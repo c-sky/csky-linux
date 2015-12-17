@@ -1,0 +1,488 @@
+#
+# For a description of the syntax of this configuration file,
+# see Documentation/kbuild/kconfig-language.txt.
+#
+config CSKY 
+	bool
+	default y
+	select HAVE_GENERIC_DMA_COHERENT
+	select HAVE_KERNEL_GZIP
+	select HAVE_KERNEL_LZO
+	select HAVE_KERNEL_LZMA
+	select HAVE_AOUT
+	select HAVE_IDE
+	select HAVE_OPROFILE
+	select HAVE_PERF_EVENTS
+	select PERF_USE_VMALLOC
+	select HAVE_C_RECORDMCOUNT
+	select HAVE_KPROBES
+	select HAVE_KRETPROBES
+	select HAVE_IRQ_WORK
+	select RTC_LIB
+	select HAVE_DMA_API_DEBUG
+	select HAVE_GENERIC_HARDIRQS
+	select GENERIC_IRQ_SHOW
+	select SYS_SUPPORTS_APM_EMULATION
+	select USB_ARCH_HAS_EHCI
+	select USB_ARCH_HAS_OHCI
+	select GENERIC_ATOMIC64
+	select HAVE_MEMBLOCK
+	select HAVE_MEMBLOCK_NODE_MAP
+	select MODULES_USE_ELF_REL if MODULES
+	select MODULES_USE_ELF_RELA if MODULES
+
+config UID16
+	bool 
+	default n
+
+config RWSEM_GENERIC_SPINLOCK
+	bool
+	default y
+
+config RWSEM_XCHGADD_ALGORITHM
+	bool
+
+config ARCH_HAS_ILOG2_U32
+	bool
+	default n
+
+#config ARCH_HAS_ILOG2_U64
+#	bool
+#	default n
+
+config GENERIC_FIND_NEXT_BIT
+	bool
+	default n 
+
+config GENERIC_HWEIGHT
+	bool
+	default y
+
+config GENERIC_CALIBRATE_DELAY
+	bool
+	default y
+
+config GENERIC_GPIO
+	def_bool y
+
+config ARCH_USES_GETTIMEOFFSET
+    bool
+    default n
+
+config GENERIC_CLOCKEVENTS
+    bool
+
+config GENERIC_CLOCKEVENTS_BROADCAST
+    bool
+    depends on GENERIC_CLOCKEVENTS
+    default y if SMP
+
+config TIME_LOW_RES
+	bool
+	default y
+
+config GENERIC_IOMAP
+	bool
+
+config ARCH_MAY_HAVE_PC_FDC
+	bool
+
+config GENERIC_HARDIRQS
+	bool
+	default y
+
+config TRACE_IRQFLAGS_SUPPORT
+	bool
+	default y
+
+config FORCE_MAX_ZONEORDER
+	int
+	depends on !MMU
+	default "14"
+
+config NO_IOPORT
+	def_bool y
+
+config HZ
+	int
+	default 100
+
+config SYS_SUPPORTS_APM_EMULATION
+    bool
+
+source "init/Kconfig"
+
+source "kernel/Kconfig.freezer"
+
+menu "Processor type and features"
+
+comment "Processor type"
+
+choice
+        prompt "CPU's arch version"
+        default CPU_CSKYV1
+
+config CPU_CSKYV1
+        bool "CSKY CPU V1.0(ck510/ck610)"
+
+config CPU_CSKYV2
+        bool "CSKY CPU V2.0(ck803/ck810)"
+endchoice
+
+config MMU
+	bool "MMU-based Paged Memory Management Support"
+	default y
+	help
+	  Select if you want MMU-based virtualised addressing space
+	  support by paged memory management. If unsure, say 'Y'.
+
+config CPU_MMU_V1
+	bool
+	default y
+	depends on CPU_CSKYV1 && MMU
+
+config CPU_MMU_V2
+	bool
+	default y
+	depends on CPU_CSKYV2 && MMU
+
+config MMU_HARD_REFILL
+	bool "Hard refill TLB miss exception"
+	depends on MMU
+	default n if CPU_MMU_V1
+	default y
+	help 
+	   This control whether the hardware refill is enable or not when there 
+	     is TLB miss exception 
+
+config CSKY_INSTRUCTION_CACHE
+	bool "Instruction Cache On"
+	default y
+
+config CSKY_DATA_CACHE
+	bool "Data Cache On"
+	default y
+config CSKY_USER_SEGMENT_CACHE
+	bool "User segment Cache On"
+	default y
+
+config CSKY_CACHE_SIZE
+	hex "Cache Size(hex)"
+	default 0x4000
+	---help---
+	   CSKY_CACHE_SIZE is the total size of cache. 0x4000 means 16K data
+	   cache and 16K instruction cache.
+	   (size = way * linelen * set)
+
+config CSKY_DOUBLE_DCACHE_LINE
+	bool "Double Data Cache Line On"
+	depends on CPU_CSKYV1
+	default n
+	---help---
+	   this selects for cpu support double cache line.
+	   If unsure, say N.
+
+config CSKY_CACHE_LINE_FLUSH
+	bool "Have Flush Cache Line"
+	default n
+	---help---
+	   this selects for flush cache line one by one.
+	   If unsure, say N.
+
+config CSKY_CACHE_WAY
+	int "Cache Way"
+	depends on CSKY_CACHE_LINE_FLUSH
+	default 2
+	---help---
+	   CSKY_CACHE_WAY is the num of cache ways. 2 means there are 2 ways
+	   in cache.
+
+config CSKY_L2_CACHE
+        bool "L2 Cache On"
+	depends on CPU_CSKYV2
+        default n
+        ---help---
+           this selects for using L2 cache.
+           if unsure, say N.
+
+config CSKY_L2_CACHE_LINE_FLUSH
+        bool "Have Flush L2 Cache Line"
+        depends on CSKY_L2_CACHE
+        default n
+        ---help---
+           this selects for flush cache line one by one.
+           if unsure, say N.
+
+config CSKY_L2_CACHE_SIZE
+        hex "L2 Cache Size(hex)"
+        depends on CSKY_L2_CACHE_LINE_FLUSH
+        default 0x20000
+        ---help---
+           CSKY_L2_CACHE_SIZE is the total size of L1 cache. 0x20000 means 128K
+           data cache and 128K instruction cache. (size = way * linelen * set)
+
+config CSKY_L2_CACHE_WAY
+        int "L2 Cache Way Num"
+        depends on CSKY_L2_CACHE_LINE_FLUSH
+        default 8
+        ---help---
+           CSKY_L2_CACHE_WAY is the num of cache ways. 8 means there are 8 ways
+           in cache.
+
+config CPU_PRFL
+	bool "CPU has Profiling coprocessor"
+	default n
+	depends on CPU_CSKYV2
+	---help---
+       say Y to let cpu support hardware profiling preformance. 
+
+menuconfig CPU_HAS_FPU
+	bool "CPU has FPU coprocessor"
+	default n
+	---help---
+	  You can say N here if you C-SKY CPU don't have Floating-Point Coprocessor 	  or the user program need not to support FPU.
+
+	  You'll have say N here if you C-SKY CPU have Floating-Point Coprocessor 
+	  and the user program need to support FPU. Floating-Point Coprocessor (FPC)
+	  is a coprocessor of CK serial processor. The function of FPC is to provide
+	  low-cost high-speed float point computation, which is full compliance with
+	  ANSI/IEEE Std 754, IEEE Standard for Binary Floating-Point Arithmetic.
+
+	  Generally, the FPU need not to open exception. See also "FPC User Guide" 
+	  and " C-SKY CPU Linux-2.6 User Guide" for more details.  
+
+if CPU_HAS_FPU
+	
+comment "FPU coprocessor exception options"
+
+config OPEN_FPU_IDE
+	bool "Open input denormalized exception"
+	default n
+
+config OPEN_FPU_IXE
+	bool "Open inexact exception"
+	default n
+
+config OPEN_FPU_UFE
+	bool "Open underflow exception"
+	default n
+
+config OPEN_FPU_OFE
+	bool "Open overflow exception"
+	default n
+
+config OPEN_FPU_DZE
+	bool "Open divide by zero exception"
+	default n
+
+config OPEN_FPU_IOE
+	bool "Open invalid operation exception"
+	default n
+
+endif # if CPU_HAS_FPU
+
+config CSKY_FPE
+	bool "Support math emulation"
+	default n
+	---help---
+	  Say Y to include the floating point emulator in the kernel.
+	  This will help to handle float point hardware exceptions.
+
+	  If in doubt, say N.
+
+config CPU_HAS_DSP
+	bool "CPU support DSP enhanced instruction"
+	default n
+
+config CPU_BIG_ENDIAN
+	bool "Build big-endian kernel"
+	default y 
+	---help---
+	  Say Y if you plan on running a kernel in big-endian mode.
+	  Note that your board must be properly built and your board
+	  port must properly enable any big-endian related features
+	   of your chipset/board/processor.
+
+config CPU_USE_FIQ 
+	bool "Fast Interrupt mode support"
+	default n
+	---help---
+	  The C-SKY CPU support Fast Interrupt mode. But the FIQ mode isn't linux 
+	  common interface. So it need careful to use the Fast Interrupt. The FIQ 
+	  can be use in estecial situation suah as DMA.
+
+	  The Fast Interrupt of C-SKY CPU use optional registers and couldn't be 
+	  nesting. So the FIQ need not to wake up thread and handle schedule. 
+
+config FIQ_STACK_SIZE
+	int "Fast Interrupt Stack size(Byte)"
+	depends on CPU_USE_FIQ
+	default 1024
+
+config ARCH_POPULATES_NODE_MAP
+	def_bool y
+
+config	SOFT_HANDMISSALIGN
+	bool "Software fixup alignment exception."
+	default y
+	help
+          CSKY CPU cannot fetch/store information which is not
+          naturally aligned on the bus, i.e., a 4 byte fetch must start at an
+          address divisible by 4. On 32-bit CSKY processors, these non-aligned
+          fetch/store instructions will be emulated in software if you say
+          here, which has a severe performance impact. This is necessary for
+          correct operation of some network protocols. With an IP-only
+          configuration it is safe to say N, otherwise say Y. 
+
+comment "*****System type*****"
+
+source "kernel/time/Kconfig"
+
+config HIGHMEM
+	bool "High Memory Support"
+	depends on MMU
+	default n 
+	help
+	  The address space of CSKY CPU is only 4 Gigabytes large
+	  and it has to accommodate user address space, kernel address
+	  space as well as some memory mapped IO. That means that, if you
+	  have a large amount of physical memory and/or IO, not all of the
+	  memory can be "permanently mapped" by the kernel. The physical
+	  memory that is not permanently mapped is called "high memory".
+	
+	  If unsure, say n.
+
+config CPU_CLOCK_FREQ
+	int "CPU Clock Frequency"
+	default 40000000 
+
+config APB_FREQ
+	int "APB Frequency(Hz)"
+	default 40000000
+
+config RAM_BASE
+	hex "(S)DRAM base address(hex)"
+	default 0x08000000
+
+config PHYSICAL_BASE_CHANGE
+	bool "Change physical address of direct mapping"
+	depends on MMU
+	default n
+	help
+	  There are MSA0(cp15_cr30) and MSA1(cp15_cr31) can be used to change
+	  the base physical address of direct mapping. The default base physical
+	  address is 0x0.
+
+	  If unsure, say n.
+
+config SSEG0_BASE
+	hex "SSEG0's physical base(hex)"
+	depends on PHYSICAL_BASE_CHANGE
+	default 0x0
+	help
+	  SSEG0 is usually used as a ram section. set as C(cache), D(dirty) and
+	  V(valid).
+
+config SSEG1_BASE
+	hex "SSEG1's physical base(hex)"
+	depends on PHYSICAL_BASE_CHANGE
+	default 0x0
+	help
+	  SSEG1 is usually used as an IO section. set as D(dirty) and V(valid).
+
+config RAM_SIZE
+	hex "(S)DRAM size(Byte)(hex)"
+	default 0x2000000
+	depends on !MMU
+
+choice
+	prompt "Uncached DMA region"
+	default DMA_UNCACHED_1M
+	depends on !MMU
+
+config DMA_UNCACHED_16M
+	bool "Enable 16M DMA region"
+
+config DMA_UNCACHED_8M
+	bool "Enable 8M DMA region"
+
+config DMA_UNCACHED_4M
+	bool "Enable 4M DMA region"
+
+config DMA_UNCACHED_2M
+	bool "Enable 2M DMA region"
+
+config DMA_UNCACHED_1M
+	bool "Enable 1M DMA region"
+
+config DMA_UNCACHED_NONE
+	bool "Disable DMA region"
+
+endchoice
+
+config HEARTBEAT
+	bool "Use power LED as a heartbeat" if CK6408EVB 
+	default n
+	help
+	  Use the power-on LED on your machine as a load meter.  The exact
+	  behavior is platform-dependent, but normally the flash frequency is
+	  a hyperbolic function of the 5-minute load average.
+
+config CMDLINE
+	string "Default kernel command string"
+	default ""
+	help
+	  On some architectures, there is currently no way
+	  for the boot loader to pass arguments to the kernel. For these
+	  architectures, you should supply some command-line options at build
+	  time by entering them here. As a minimum, you should specify the
+	  memory size and the root device (e.g., mem=64M root=/dev/nfs).
+
+choice
+	prompt "Board Support"
+	default GX3211 if CSKY
+
+config GX3211
+	bool "Nationalchip GX3211/GX6622"
+
+config GX3201
+	bool "Nationalchip GX3201/GX6602"
+
+endchoice
+
+config GXAV_NDS
+    bool "Enable NDS"
+    default n
+        depends on GX3211
+source "arch/csky/gx3xxx/Kconfig"
+
+endmenu
+
+menu "Power management options"
+
+source "kernel/power/Kconfig"
+
+config ARCH_SUSPEND_POSSIBLE
+    def_bool y
+
+endmenu
+
+source "mm/Kconfig"
+
+source "fs/Kconfig.binfmt"
+
+source "kernel/Kconfig.preempt"
+
+source "net/Kconfig"
+
+source "drivers/Kconfig"
+
+source "fs/Kconfig"
+
+source "arch/csky/Kconfig.debug"
+
+source "security/Kconfig"
+
+source "crypto/Kconfig"
+
+source "lib/Kconfig"
