@@ -41,12 +41,6 @@
 
 struct cpuinfo_csky cpu_data[NR_CPUS];
 
-
-//union thread_union init_thread_union __init_task_data
-//__attribute__((__aligned__(THREAD_SIZE)))
-//       = { INIT_THREAD_INFO(init_task) };
-
-
 asmlinkage void ret_from_fork(void);
 
 /*
@@ -55,7 +49,7 @@ asmlinkage void ret_from_fork(void);
 unsigned long thread_saved_pc(struct task_struct *tsk)
 {
 	struct switch_stack *sw = (struct switch_stack *)tsk->thread.ksp;
-                
+
 	return sw->r15;
 }
 #if 0

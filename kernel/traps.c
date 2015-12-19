@@ -86,7 +86,7 @@ void __init per_cpu_trap_init(void)
 void __init trap_init (void)
 {
 	int i;
-	
+
 	per_cpu_trap_init();
 
 	if (mach_trap_init)
@@ -113,7 +113,7 @@ void __init trap_init (void)
 	_ramvec[VEC_SYS] = system_call;
 	_ramvec[VEC_AUTOVEC] = autohandler;
 	_ramvec[VEC_FAUTOVEC] = (void *)((unsigned int)fastautohandler | 1);
-	
+
 	_ramvec[VEC_TLBINVALIDL] = handle_tlbinvalidl;
 	_ramvec[VEC_TLBINVALIDS] = handle_tlbinvalids;
 	_ramvec[VEC_TLBMODIFIED] = handle_tlbmodified;
@@ -214,7 +214,7 @@ void show_stack(struct task_struct *task, unsigned long *stack)
 void dump_stack(void)
 {
 	unsigned long stack;
-                        
+
 	show_trace(&stack);
 }
 EXPORT_SYMBOL(dump_stack);
@@ -222,10 +222,10 @@ EXPORT_SYMBOL(dump_stack);
 void bad_super_trap (int vector, struct frame *fp)
 {
 	console_verbose();
-	
+
 	printk("Kernel: Bad trap from supervisor state, vector = %d\n", vector);
 	printk("Current process id is %d\n", current->pid);
-	show_registers((struct pt_regs *)fp);	
+	show_registers((struct pt_regs *)fp);
 	panic("Trap from supervisor state\n");
 }
 
@@ -256,7 +256,7 @@ int hand_fpcr_rdwr(struct pt_regs * regs)
 	mm_segment_t fs;
 	unsigned long instrptr, regx = 0;
 	unsigned int fault;
-#if   defined(CONFIG_CPU_CSKYV1) 
+#if   defined(CONFIG_CPU_CSKYV1)
 	unsigned long index_regx = 0, index_fpregx = 0;
 	u16 tinstr = 0;
 
@@ -319,7 +319,7 @@ int hand_fpcr_rdwr(struct pt_regs * regs)
 	if (fault) {
 		goto bad_or_fault;
 	}
- 
+
 	fs = get_fs();
 	set_fs(KERNEL_DS);
 	fault = __get_user(instr_hi, (u16 *)((instrptr + 2) & ~1));
@@ -337,7 +337,7 @@ int hand_fpcr_rdwr(struct pt_regs * regs)
 		goto bad_or_fault;
 	}
 
-/* 
+/*
  * define four macro to distinguish the instruction is mfcr or mtcr.
  */
 #define MTCR_MASK 0xFC00FFE0
@@ -359,13 +359,13 @@ int hand_fpcr_rdwr(struct pt_regs * regs)
 		} else {
 			goto bad_or_fault;
 		}
-	
+
 		regs->pc +=4;
 		return 1;
 	} else if ((tinstr & MFCR_MASK) == MFCR_DISTI) {
 		index_regx = tinstr & 0x1F;
 		index_fpregx_prev = ((tinstr >> 16) & 0x1F);
-	
+
 		if (index_fpregx_prev == 1) {
 			regx = read_fpcr();
 		} else if (index_fpregx_prev == 2) {
@@ -404,22 +404,22 @@ asmlinkage void trap_c(int vector, struct frame *fp)
 				return;
 			break;
 
-		case VEC_TRACE:  /* ptrace single step */	
+		case VEC_TRACE:  /* ptrace single step */
 			info.si_code = TRAP_TRACE;
 			sig = SIGTRAP;
 			break;
-	
+
 		    /* fp->ptregs.sr &= ~PS_T */
 		case VEC_BREAKPOINT: /* breakpoint */
 			info.si_code = TRAP_BRKPT;
 			sig = SIGTRAP;
 			break;
-	
+
 		case VEC_TRAP1:    /* gdb server breakpoint */
 			fp->ptregs.pc -= 2;
-		 	sig = SIGTRAP;
+			sig = SIGTRAP;
 			break;
-	
+
 		default:
 			sig = SIGILL;
 			break;
@@ -606,7 +606,7 @@ asmlinkage void handle_fpe_c(unsigned long fesr, struct pt_regs * regs)
 			info.si_code = FPE_FLTRES;
 		}
 		else {
-    		info.si_code = __SI_FAULT;
+		info.si_code = __SI_FAULT;
 		}
 	}
 	else {
@@ -659,10 +659,10 @@ void show_registers(struct pt_regs *fp)
 	unsigned long   *sp;
 	unsigned char   *tp;
 	int             i;
-	
+
 	printk("\nCURRENT PROCESS:\n\n");
 	printk("COMM=%s PID=%d\n", current->comm, current->pid);
-	
+
 	if (current->mm) {
 		printk("TEXT=%08x-%08x DATA=%08x-%08x BSS=%08x-%08x\n",
 		        (int) current->mm->start_code,
@@ -675,9 +675,9 @@ void show_registers(struct pt_regs *fp)
 		        (int) current->mm->start_stack,
 		        (int) (((unsigned long) current) + 2 * PAGE_SIZE));
 	}
-	
+
 	printk("PC: 0x%08lx\n", (long)fp->pc);
- 	printk("orig_a0: 0x%08lx\n", fp->orig_a0);	
+ 	printk("orig_a0: 0x%08lx\n", fp->orig_a0);
 	printk("PSR: 0x%08lx\n", (long)fp->sr);
 	/*
 	 * syscallr1->orig_a0
@@ -706,14 +706,14 @@ void show_registers(struct pt_regs *fp)
 	printk("r16:0x%08lx   r17: 0x%08lx   r18: 0x%08lx    r19: 0x%08lx\n",
                 fp->exregs[0], fp->exregs[1], fp->exregs[2], fp->exregs[3]);
 	printk("r20 0x%08lx   r21: 0x%08lx   r22: 0x%08lx    r23: 0x%08lx\n",
-            	fp->exregs[4], fp->exregs[5], fp->exregs[6], fp->exregs[7]);
+		fp->exregs[4], fp->exregs[5], fp->exregs[6], fp->exregs[7]);
 	printk("r24 0x%08lx   r25: 0x%08lx   r26: 0x%08lx    r27: 0x%08lx\n",
-            	fp->exregs[8], fp->exregs[9], fp->exregs[10], fp->exregs[11]);
+		fp->exregs[8], fp->exregs[9], fp->exregs[10], fp->exregs[11]);
 	printk("r28 0x%08lx   r29: 0x%08lx   r30: 0x%08lx    r31: 0x%08lx\n",
-            	fp->exregs[12], fp->exregs[13], fp->exregs[14], fp->exregs[15]);
+		fp->exregs[12], fp->exregs[13], fp->exregs[14], fp->exregs[15]);
 	printk("hi 0x%08lx     lo: 0x%08lx \n",
                 fp->rhi, fp->rlo);
-#endif	
+#endif
 
 	printk("\nCODE:");
 	tp = ((unsigned char *) fp->pc) - 0x20;
@@ -724,7 +724,7 @@ void show_registers(struct pt_regs *fp)
 		printk("%08x ", (int) *sp++);
 	}
 	printk("\n");
-	
+
 	printk("\nKERNEL STACK:");
 	tp = ((unsigned char *) fp) - 0x40;
 	for (sp = (unsigned long *) tp, i = 0; (i < 0xc0); i += 4) {

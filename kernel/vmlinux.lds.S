@@ -105,7 +105,7 @@ SECTIONS
   . = ALIGN(8192);
   __init_end = .;
 
-  .data.init_task : AT(ADDR(.data.init_task) - LOAD_OFFSET) { *(.data.init_task) }	/* The initial task and kernel stack */
+  .data..init_task : AT(ADDR(.data..init_task) - LOAD_OFFSET) { *(.data..init_task) }	/* The initial task and kernel stack */
 
   _end = . ;
 

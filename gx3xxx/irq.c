@@ -47,96 +47,218 @@ static void gx3xxx_irq_unmask(struct irq_data *d)
 	}
 }
 
-struct irq_chip gx3xxx_irq_chip = {
-        .name           = "GX3XXX_IntCtrl",
-        .irq_mask           = gx3xxx_irq_mask,
-        .irq_unmask         = gx3xxx_irq_unmask,
-};
-
-#if 0
-void gx3xxx_irq_channel_set(unsigned int irq)
+static void gx3xxx_irq_en(unsigned int irq)
 {
-	unsigned int i, status, status2;
+	unsigned int mask;
+	unsigned int irq_chan;
 
-	for (i = 0; i < NR_IRQS; i++) {
-		status = __raw_readl(GX3201_VA_INTC_SOURCE + i - i%4);
-		status2 = (status >> ((i%4)*8)) & 0xff;
-		if (status2 == 0xff) {
-			status2 = irq;
-			irq_num[irq] = i;
-			status2 = (status2 << ((i%4)*8)) | ~(0xff << ((i%4)*8));
-			status = status & status2;
-			printk("gx3xxx_irq %d at channel %d, base_va: %x.\n", irq, i, GX3201_VA_INTC_SOURCE);
-			__raw_writel(status, GX3201_VA_INTC_SOURCE + i - i%4);
-			break;
-		}
+	irq_chan = irq_num[irq];
+	if (irq_chan == 0xff) return;
+
+	if (irq_chan < 32) {
+		mask = 1 << irq_chan;
+		__raw_writel(mask, GX3201_VA_INTC_NENSET31_00);
+	} else {
+		mask = 1 << (irq_chan - 32);
+		__raw_writel(mask, GX3201_VA_INTC_NENSET63_32);
 	}
 }
-#else
-void gx3xxx_irq_channel_set(unsigned int i)
-{
-	unsigned int status;
 
+static void gx3xxx_irq_dis(unsigned int irq)
+{
+	unsigned int mask;
+	unsigned int irq_chan;
+
+	irq_chan = irq_num[irq];
+	if (irq_chan == 0xff) return;
+
+	if (irq_chan < 32) {
+		mask = 1 << irq_chan;
+		__raw_writel(mask, GX3201_VA_INTC_NENCLR31_00);
+	} else {
+		mask = 1 << (irq_chan - 32);
+		__raw_writel(mask, GX3201_VA_INTC_NENCLR63_32);
+	}
+}
+
+static inline void gx3xxx_irq_ack(struct irq_data *d) {}
+
+unsigned int gx3xxx_irq_channel_set(struct irq_data *d)
+{
+	unsigned int status, i;
+
+	i = d->irq;
 	irq_num[i] = i;
 	status = __raw_readl(GX3201_VA_INTC_SOURCE + i - i%4) &
 				((i << ((i%4)*8)) | ~(0xff << ((i%4)*8)));
 	__raw_writel(status, GX3201_VA_INTC_SOURCE + i - i%4);
-}
-#endif
 
-void gx3xxx_irq_channel_clear(unsigned int irq)
+	gx3xxx_irq_en(d->irq);
+	gx3xxx_irq_unmask(d);
+	return 0;
+}
+
+void gx3xxx_irq_channel_clear(struct irq_data *d)
 {
 	unsigned int i, status;
 
-	i = irq_num[irq];
-	irq_num[irq] = 0xff;
+	i = irq_num[d->irq];
+	irq_num[d->irq] = 0xff;
+
+	gx3xxx_irq_mask(d);
+	gx3xxx_irq_dis(d->irq);
 
 	status = __raw_readl(GX3201_VA_INTC_SOURCE + i - i%4);
 	status = status | (0xff << ((i%4)*8));
 	__raw_writel(status, GX3201_VA_INTC_SOURCE + i - i%4);
 }
 
+struct irq_chip gx3xxx_irq_chip = {
+	.name =     "GX3XXX_IntCtrl",
+	.irq_ack =      gx3xxx_irq_ack,
+	.irq_mask =     gx3xxx_irq_mask,
+	.irq_unmask =   gx3xxx_irq_unmask,
+	.irq_startup =  gx3xxx_irq_channel_set,
+	.irq_shutdown = gx3xxx_irq_channel_clear,
+};
+
 void __init gx3xxx_init_IRQ(void)
 {
 	unsigned int i;
 
-	for (i = 0; i < NR_IRQS; ++i) 
-	{
-//	set_irq_chip(i,&gx3xxx_irq_chip);
+	for (i = 0; i < NR_IRQS; ++i) {
 		irq_set_chip_and_handler(i, &gx3xxx_irq_chip, handle_level_irq);
 		irq_num[i] = 0xFF;
 		if(i%4 == 0)
-			__raw_writel(0xFFFFFFFF,GX3201_VA_INTC_SOURCE + i);
+			__raw_writel(0xffffffff,GX3201_VA_INTC_SOURCE + i);
 	}
 
-	__raw_writel(0xFFFFFFFF,GX3201_VA_INTC_NEN31_00);
-	__raw_writel(0xFFFFFFFF,GX3201_VA_INTC_NEN63_32);
+	__raw_writel(0xffffffff, GX3201_VA_INTC_NENCLR31_00);
+	__raw_writel(0xffffffff, GX3201_VA_INTC_NENCLR63_32);
 
-	__raw_writel(0xFFFFFFFF,GX3201_VA_INTC_NMASK31_00);
-	__raw_writel(0xFFFFFFFF,GX3201_VA_INTC_NMASK63_32);
+	__raw_writel(0xffffffff, GX3201_VA_INTC_NMASK31_00);
+	__raw_writel(0xffffffff, GX3201_VA_INTC_NMASK63_32);
 }
+
+// find first one in 64bit { hi[31:0],lo[31:0] }
+// return -1 if none
+// return 63 if hi[31] is one
+inline int ff1_64(unsigned int hi, unsigned int lo)
+{
+	int result;
+	__asm__ __volatile__(
+		"ff1 %0"
+		:"=r"(hi)
+		:"r"(hi)
+		:
+	);
+
+	__asm__ __volatile__(
+		"ff1 %0"
+		:"=r"(lo)
+		:"r"(lo)
+		:
+	);
+	if( lo != 32 )
+		result = 31-lo;
+	else if( hi != 32 ) result = 31-hi + 32; 
+	else {
+		printk("mach_get_auto_irqno error hi:%x, lo:%x.\n", hi, lo);
+		result = NR_IRQS;
+	}
+	return result;
+}
+
+unsigned char irq_list_bak[32] = {0};
+unsigned int irq_list_bak_pos = 0;
 
 unsigned int gx3201_get_irqno(void)
 {
-	unsigned int i;
-	unsigned long long nint64;
+	unsigned int nint64hi;
+	unsigned int nint64lo;
+	int irq_no;
+	nint64lo = __raw_readl(GX3201_VA_INTC_NINT31_00);
+	nint64hi = __raw_readl(GX3201_VA_INTC_NINT63_32);
+	irq_no = ff1_64(nint64hi, nint64lo);
 
-	nint64 = __raw_readl(GX3201_VA_INTC_NINT63_32);
-	nint64 = nint64 << 32;
-	nint64 = nint64 | __raw_readl(GX3201_VA_INTC_NINT31_00);
+	irq_list_bak[irq_list_bak_pos] = irq_no;
+	irq_list_bak_pos++;
+	if (irq_list_bak_pos == 32) irq_list_bak_pos = 0;
 
-	for (i = 0; i < NR_IRQS; i++) {
-		if ((nint64 >> i) & 1) {
-#if 0
-			printk("NINT63_00:0x%x%x\n",
-			__raw_readl(GX3201_VA_INTC_NINT63_32),
-			__raw_readl(GX3201_VA_INTC_NINT31_00));
-			printk("interrupt number is:%d\n",i);
-#endif
-			return i;
-		}
-	}
-
-	return -1;
+	return irq_no;
 }
 
+#ifdef CONFIG_PM
+struct gx3xxx_irq_save_t {
+	unsigned int en_low;
+	unsigned int en_hi;
+	unsigned int mask_low;
+	unsigned int mask_hi;
+	unsigned int source[16];
+};
+
+static volatile struct gx3xxx_irq_save_t irq_save;
+
+static int gx3xxx_irq_suspend(struct sys_device *dev, pm_message_t state)
+{
+	unsigned int i;
+	
+	irq_save.en_low = __raw_readl(GX3201_VA_INTC_NEN31_00);
+	irq_save.en_hi = __raw_readl(GX3201_VA_INTC_NEN63_32);
+
+	irq_save.mask_low = __raw_readl(GX3201_VA_INTC_NMASK31_00);
+	irq_save.mask_hi = __raw_readl(GX3201_VA_INTC_NMASK63_32);
+
+	for (i = 0; i < 16; i++) {
+		irq_save.source[i] = __raw_readl(GX3201_VA_INTC_SOURCE + i);
+	}
+
+	printk("hello: %s, %d.\n", __func__, __LINE__);
+
+	for (i = 0; i < NR_IRQS; ++i) {
+		irq_num[i] = 0xff;
+		if(i%4 == 0)
+			__raw_writel(0xffffffff, GX3201_VA_INTC_SOURCE + i);
+	}
+
+	__raw_writel(0xffffffff, GX3201_VA_INTC_NMASK31_00);
+	__raw_writel(0xffffffff, GX3201_VA_INTC_NMASK63_32);
+
+	__raw_writel(0xffffffff, GX3201_VA_INTC_NENCLR31_00);
+	__raw_writel(0xffffffff, GX3201_VA_INTC_NENCLR63_32);
+
+	return 0;
+}
+
+static int gx3xxx_irq_resume(struct sys_device *dev)
+{
+	unsigned int i;
+
+	printk("hello: %s, %d.\n", __func__, __LINE__);
+
+	for (i = 0; i < 16; i++) {
+		__raw_writel(irq_save.source[i], GX3201_VA_INTC_SOURCE + i);
+	}
+
+	__raw_writel(irq_save.en_low, GX3201_VA_INTC_NENSET31_00);
+	__raw_writel(irq_save.en_hi, GX3201_VA_INTC_NENSET63_32);
+
+	__raw_writel(irq_save.mask_low, GX3201_VA_INTC_NMASK31_00);
+	__raw_writel(irq_save.mask_hi, GX3201_VA_INTC_NMASK63_32);
+
+	return 0;
+}
+
+static struct sysdev_driver gx3xxx_irq_driver = {
+	.suspend	= gx3xxx_irq_suspend,
+	.resume		= gx3xxx_irq_resume,
+};
+
+extern struct sysdev_class gx3xxx_sysclass;
+static int gx3xxx_irq_init(void)
+{
+	return sysdev_driver_register(&gx3xxx_sysclass, &gx3xxx_irq_driver);
+}
+
+arch_initcall(gx3xxx_irq_init);
+#endif
