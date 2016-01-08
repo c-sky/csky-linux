@@ -200,21 +200,21 @@ void _flush_icache_all(void)
 }
 
 void _flush_dcache_page(struct page * page)
-{ 
-        int value = 0x32;
-	
-        __asm__ __volatile__("mtcr %0,cr17\n\t"
-			     "sync\n\t"
-                             : :"r" (value));
+{
+	int value = 0x32;
+
+	__asm__ __volatile__("mtcr %0,cr17\n\t"
+			"sync\n\t"
+			: :"r" (value));
 }
 
 void _flush_dcache_all(void)
-{ 
-        int value = 0x32;
-	
-        __asm__ __volatile__("mtcr %0,cr17\n\t"
-			     "sync\n\t"
-                             : :"r" (value));
+{
+	int value = 0x32;
+
+	__asm__ __volatile__("mtcr %0,cr17\n\t"
+			"sync\n\t"
+			: :"r" (value));
 }
 
 void _flush_icache_range(unsigned long start, unsigned long end)
@@ -243,7 +243,7 @@ void _flush_icache_range(unsigned long start, unsigned long end)
 void _clear_dcache_all(void)
 {
         int value = 0x22;
-	
+
         __asm__ __volatile__("mtcr %0,cr17\n\t"
 			     "sync\n\t"
                              : :"r" (value));
@@ -259,21 +259,21 @@ void _clear_dcache_range(unsigned long start, unsigned long end)
 }
 
 #ifdef CONFIG_CSKY_CACHE_LINE_FLUSH /* CSKY_CACHE_LINE_FLUSH */
-/* 
+/*
  * reserve a two dimensional array for flush cache line.
  */
 static char __flush_retention[CSKY_CACHE_SIZE / L1_CACHE_BYTES] \
 		[L1_CACHE_BYTES]__attribute__((aligned(CSKY_CACHE_SIZE)));
 
-#define RES_START	((unsigned long)__flush_retention) 
+#define RES_START	((unsigned long)__flush_retention)
 #define WAY_SIZE_MASK	(CSKY_CACHE_WAY_SIZE - 1)
 #define LINE_LEN_MASK	(L1_CACHE_BYTES - 1)
 #define ADDR_MASK	(WAY_SIZE_MASK & (~LINE_LEN_MASK))
 
 static int array_have_init = 0;
 
-/* 
- * initialization reserve array for flush instruction cache, devide it into two 
+/*
+ * initialization reserve array for flush instruction cache, devide it into two
  * halves, the first one initialized by jmp r2, the other one used jmp r15.
  * then access the address which is alignment as 8K to complete it.
  */
@@ -295,13 +295,13 @@ __asm__ __volatile__("1:\n\t"				\
 			"cmphs	%1, %2\n\t"		\
 			"bf	1b\n\t"			\
 			:"=r"(tmp) 			\
-			:"r" (start), "r"(end), "0"(tmp));	
-	
-/* 
- * while flushing data cache, we can read specific position to flush out one 
+			:"r" (start), "r"(end), "0"(tmp));
+
+/*
+ * while flushing data cache, we can read specific position to flush out one
  * specified cache line.
  */
-void 
+void
 __flush_dcache_range(unsigned long start, unsigned long end){
 /* assume CK610 is 2 ways */
 #if CSKY_CACHE_WAY == 2
@@ -310,18 +310,18 @@ __flush_dcache_range(unsigned long start, unsigned long end){
 
 	len = end - start;
 	if(likely(len < CSKY_CACHE_WAY_SIZE)){
-		startaddr = (start & WAY_SIZE_MASK) | RES_START; 
+		startaddr = (start & WAY_SIZE_MASK) | RES_START;
 		endaddr = ((end & WAY_SIZE_MASK) | RES_START) + 16;
 
 		if(startaddr > endaddr){
 			macrostart = RES_START;
 			macroend = endaddr;
 			ldw_range(macrostart, macroend);
-						
+
 			macrostart = startaddr;
 			macroend = endaddr + CSKY_CACHE_WAY_SIZE;
 			ldw_range(macrostart, macroend);
-						
+
 			macrostart = startaddr + CSKY_CACHE_WAY_SIZE;
 			macroend = RES_START + CSKY_CACHE_SIZE;
 			ldw_range(macrostart, macroend);
@@ -332,7 +332,7 @@ __flush_dcache_range(unsigned long start, unsigned long end){
 
 			macrostart = startaddr + CSKY_CACHE_WAY_SIZE;
 			macroend = endaddr + CSKY_CACHE_WAY_SIZE;
-			ldw_range(macrostart, macroend);		
+			ldw_range(macrostart, macroend);
 		}
 	}else{
 		_flush_dcache_all();
@@ -356,11 +356,11 @@ __asm__ __volatile__("mov	r2, %0\n\t"		\
 			:"r2","r15");
 
 /*
- * To fulsh the instruction cache, we need execute two instructions 
+ * To fulsh the instruction cache, we need execute two instructions
  * which's last 13 bits is same as the address. so here we use the jsr
  * and jmp r15 instruction.
  */
-void 
+void
 __flush_icache_range(unsigned long start, unsigned long end)
 {
 /* assume CK610 is 2 ways */
@@ -368,15 +368,15 @@ __flush_icache_range(unsigned long start, unsigned long end)
 	unsigned long len, r2, needend;
 	unsigned long startaddr, endaddr, macrostart, macroend;
 
-	/* 
-	 * in order to use for flush instruction cache, 
-	 * we need to init the retention area. 
+	/*
+	 * in order to use for flush instruction cache,
+	 * we need to init the retention area.
 	 */
 	if(array_have_init == 0){
-		__cache_fluch_init();	
+		__cache_fluch_init();
 		array_have_init = 1;
 	}
-	
+
 	len = end - start;
 	if(likely(len < CSKY_CACHE_WAY_SIZE)){
 		startaddr = (start & ADDR_MASK) | RES_START;
@@ -388,7 +388,7 @@ __flush_icache_range(unsigned long start, unsigned long end)
 			macrostart = RES_START;
 			macroend = endaddr;
 			jsr_range(macrostart, macroend);
-						
+
 			macrostart = startaddr;
 			macroend = RES_START + CSKY_CACHE_WAY_SIZE;
 			jsr_range(macrostart, macroend);
@@ -396,7 +396,7 @@ __flush_icache_range(unsigned long start, unsigned long end)
 			macrostart = startaddr;
 			macroend = endaddr;
 			jsr_range(macrostart, macroend);
-		}					
+		}
 	}else{
 		_flush_icache_all();
 	}
@@ -406,10 +406,10 @@ __flush_icache_range(unsigned long start, unsigned long end)
 }
 
 /*
- * there is not length check, so please make sure the arguements 
+ * there is not length check, so please make sure the arguements
  * end minus start is less than 8K.
  */
-void 
+void
 __flush_all_range(unsigned long start, unsigned long end){
 	__flush_icache_range(start, end);
 	__flush_dcache_range(start, end);

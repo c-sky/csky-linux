@@ -35,6 +35,7 @@
 #include <asm/unistd.h>
 #include <asm/regdef.h>
 #include <asm/prfl.h>
+#include <asm/user.h>
 
 /* common code for old and new mmaps */
 static inline long do_mmap2(

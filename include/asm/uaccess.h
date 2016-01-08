@@ -130,8 +130,8 @@ do{                                                             \
 	         ".long    1b,2b                 \n"            \
 	         ".previous                      \n"            \
 	          "3:                            \n"            \
-	         :"=r"(err), "=r"(x), "=r"(ptr), "=r"(errcode)  \
-	         :"0"(err), "1"(x), "2"(ptr), "3"(-EFAULT)      \
+	         : "=r"(err), "=r"(x), "=r"(ptr), "=r"(errcode)  \
+	         : "0"(err), "1"(x), "2"(ptr), "3"(-EFAULT)      \
 	         : "memory");                                   \
 }while(0)
 

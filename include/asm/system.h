@@ -7,9 +7,9 @@
  *  (C) Copyright 2004, Li Chunqiang (chunqiang_li@c-sky.com)
  *  (C) Copyright 2009, Hu Junshan (junshan_hu@c-sky.com)
  *  (C) Copyright 2009, C-SKY Microsystems Co., Ltd. (www.c-sky.com)
- *  
- */ 
-  
+ *
+ */
+
 #ifndef _CSKY_SYSTEM_H
 #define _CSKY_SYSTEM_H
 
@@ -19,30 +19,7 @@
 #include <linux/irqflags.h>
 #include <asm/regdef.h>
 
-#define prepare_to_switch()	do { } while(0)
-
 #ifdef __KERNEL__
-
-#if defined(CONFIG_CPU_HAS_FPU) && defined(CONFIG_CPU_CSKYV1)
-//FIXME: maybe death cycle auch as FPU error! 	
-#define _is_fpu_busying() {                     \
-	unsigned long fsr, flags;                   \
-                                                \
-	__asm__ __volatile__("mfcr    %0, psr\n\r"  \
-		                 "cpseti  1   \n\r"     \
-		                 "1:		"           \
-		                 "cprsr   %1\n\r"       \
-		                 "btsti   %1, 31\n\r"   \
-		                 "bt      1b\n\r"       \
-		                 "mtcr    %0, psr\n\r"  \
-		                 :"=r"(flags), "=r"(fsr)\
-	                    );                      \
-}
-#else
-#define _is_fpu_busying()  do { } while(0)
-#endif
-
-
 
 /*
  * Force strict CPU ordering.
@@ -73,12 +50,11 @@
 struct __xchg_dummy { unsigned long a[100]; };
 #define __xg(x) ((volatile struct __xchg_dummy *)(x))
 
-static inline unsigned long __xchg(unsigned long x, volatile void * ptr, 
-									int size)
+static inline unsigned long __xchg(unsigned long x, volatile void * ptr, int size)
 {
   unsigned long tmp, flags;
 
-  local_irq_save(flags);  
+  local_irq_save(flags);
 
   switch (size) {
   case 1:

@@ -73,6 +73,7 @@ void pgd_init(unsigned long page)
 #endif
 }
 
+#if 0
 static void __init fixrange_init (unsigned long start, unsigned long end,
                    pgd_t *pgd_base)
 {
@@ -113,6 +114,7 @@ static void __init fixrange_init (unsigned long start, unsigned long end,
 	}
 #endif
 }
+#endif
 
 void __init pagetable_init(void)
 {

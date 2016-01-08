@@ -21,7 +21,6 @@
 #include <asm/entry.h>
 #include <asm/errno.h>
 #include <asm/setup.h>
-#include <asm/segment.h>
 #include <asm/traps.h>
 #include <asm/pgtable-bits.h>
 #include <asm/unistd.h>
@@ -1086,10 +1085,6 @@ ENTRY(resume)
 	FPU_SAVE_REGS
 #endif
 
-#ifdef CONFIG_CPU_PRFL
-	PRFL_SAVE_REGS
-#endif
-
 #if  defined(CONFIG_CPU_HAS_DSP) || defined(__CK810__) 
 	/* Save DSP regs */
 	lrw      r10, THREAD_DSPHI
@@ -1102,7 +1097,7 @@ ENTRY(resume)
 	stw      r6, (r10, 8)           /* THREAD_DSPCSR */   
 #endif
 
-	lrw      a3, TASK_THREAD               
+	lrw      a3, TASK_THREAD
 	addu     a3, a1                 /* Pointer to thread in task_struct */
 	
 	/* Set up next process to run */
@@ -1117,10 +1112,6 @@ ENTRY(resume)
 
 #ifdef CONFIG_CPU_HAS_FPU 
 	FPU_RESTORE_REGS
-#endif
-
-#ifdef CONFIG_CPU_PRFL
-	PRFL_RESTORE_REGS
 #endif
 
 #if  defined(CONFIG_CPU_HAS_DSP) || defined(__CK810__)

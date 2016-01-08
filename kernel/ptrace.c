@@ -42,17 +42,17 @@
 #define TRACE_MODE_MASK    ~(0x3 << 14)
 
 /*
- * PT_xxx is the stack offset at which the register is  saved. 
+ * PT_xxx is the stack offset at which the register is  saved.
  * Notice that usp has no stack-slot and needs to be treated
- * specially (see get_reg/put_reg below). 
+ * specially (see get_reg/put_reg below).
  * No usrsp of CSKY ABIV2 in this array !
  */
 static int regoff[] = {
 #if defined(__CSKYABIV2__)
         PT_A0,    PT_A1,     PT_A2,    PT_A3,
         PT_REGS0, PT_REGS1,  PT_REGS2, PT_REGS3,
-        PT_REGS4, PT_REGS5,  PT_REGS6, PT_REGS7, 
-        PT_REGS8, PT_REGS9,  -1,       PT_R15, 
+        PT_REGS4, PT_REGS5,  PT_REGS6, PT_REGS7,
+        PT_REGS8, PT_REGS9,  -1,       PT_R15,
         PT_R16,   PT_R17,    PT_R18,   PT_R19,
         PT_R20,   PT_R21,    PT_R22,   PT_R23,
         PT_R24,   PT_R25,    PT_R26,   PT_R27,
@@ -121,7 +121,7 @@ static inline int put_reg(struct task_struct *task, int regno,
  */
 static inline void singlestep_disable(struct task_struct *child)
 {
-	unsigned long tmp; 
+	unsigned long tmp;
 	tmp = (get_reg(child, REGNO_SR) & TRACE_MODE_MASK) | TRACE_MODE_RUN;
 	put_reg(child, REGNO_SR, tmp);
 	/* FIXME maybe wrong here: if clear flag of TIF_DELAYED_TRACE? */
@@ -181,7 +181,7 @@ void ptrace_disable(struct task_struct *child)
  * addr    - address of data that this request to read from or write to.
  * data    - address of data that this request to read to or write from.
  *
- * RETURN: 
+ * RETURN:
  * 0       - success
  * others  - fail
  */
@@ -235,7 +235,7 @@ long arch_ptrace(struct task_struct *child, long request, unsigned long addr,
 			(&(child->thread.fcr))[addr - CSKY_FREG_NUM_HI] = data;
 		}else
 			goto out_eio;
-    		break;
+		break;
 
 	case PTRACE_SYSCALL:  /* continue and stop at next (return from) syscall */
 	case PTRACE_CONT:     /* restart after signal. */
@@ -270,7 +270,7 @@ long arch_ptrace(struct task_struct *child, long request, unsigned long addr,
 
 		clear_tsk_thread_flag(child, TIF_SYSCALL_TRACE);
 		singlestep_enable(child);
-			
+
 		child->exit_code = data;
 		/* give it a chance to run. */
 		wake_up_process(child);
@@ -291,7 +291,7 @@ long arch_ptrace(struct task_struct *child, long request, unsigned long addr,
 			if (ret)
 				break;
 			put_reg(child, i, tmp);
-			data += sizeof(long); 
+			data += sizeof(long);
 		}
 		break;
 
