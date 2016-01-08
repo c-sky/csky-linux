@@ -55,7 +55,7 @@ extern struct cpuinfo_csky cpu_data[];
 
 /* read user stack pointer */
 extern inline unsigned long rdusp(void) {
-  	register unsigned long usp;
+	register unsigned long usp;
 #if defined(__CSKYABIV2__)
         __asm__ __volatile__("mfcr %0, cr<14, 1> \n\r" : "=r" (usp));
 #else
@@ -92,13 +92,7 @@ extern inline void wrusp(unsigned long usp) {
 /* This decides where the kernel will search for a free chunk of vm
  * space during mmap's.
  */
-  #define TASK_UNMAPPED_BASE      (TASK_SIZE / 3)
-
-/*
- * Bus types
- */
-#define MCA_bus 0
-
+#define TASK_UNMAPPED_BASE      (TASK_SIZE / 3)
 
 struct thread_struct {
 	unsigned long  ksp;       /* kernel stack pointer */
@@ -124,17 +118,6 @@ struct thread_struct {
 	unsigned long  dspcsr;    /* DSP control and stats reg(cr14) */
 #endif
 
-#ifdef CONFIG_CPU_PRFL
-	/* hardware profiling regs */
-	unsigned long  hpcr;       /* profiling control reg */
-	unsigned long  hpspr;      /* start pc reg */
-	unsigned long  hpepr;      /* end pc reg */
-	unsigned long  hpsir;      /* software count enable reg */
-	unsigned long  soft[28];   /* profiling software event count reg */
-	unsigned long  hard[30];   /* profiling hardware event count reg */
-	unsigned long  extend[26]; /* profiling extended event count reg */
-#endif
-
 	/* Other stuff associated with the thread. */
 	unsigned long address;      /* Last user fault */
 	unsigned long baduaddr;     /* Last kernel fault accessing USEG  */
@@ -142,9 +125,9 @@ struct thread_struct {
 	unsigned long trap_no;
 };
 
-#define INIT_THREAD  { 									\
-	sizeof(init_stack) + (unsigned long) init_stack, 0, \
-	PS_S, {0, 0}, 0, 0, 0, {0, 0,}, 0, 0, 0,			\
+#define INIT_THREAD  { \
+	.ksp = sizeof(init_stack) + (unsigned long) init_stack, \
+	.sr = PS_S, \
 }
 
 /*
@@ -160,16 +143,17 @@ struct thread_struct {
 #define PS_USE_MODE  (~PS_S)
 #define PS_CP_MASK   0x00000000
 #endif
-#define start_thread(_regs, _pc, _usp)		       			  \
-do {						        		  \
-	set_fs(USER_DS); /* reads from user space */			  \
-	(_regs)->pc = (_pc);		        			  \
-	(_regs)->regs[1] = 0; /* ABIV1 is R7, uClibc_main rtdl argument */\
-	(_regs)->regs[2] = 0; 						  \
-	(_regs)->regs[3] = 0; /* ABIV2 is R7, use it?*/			  \
-    	(_regs)->sr &= PS_USE_MODE;                     		  \
-	(_regs)->sr |= PS_CP_MASK;                      		  \
-	wrusp(_usp);							  \
+
+#define start_thread(_regs, _pc, _usp)					\
+do {									\
+	set_fs(USER_DS); /* reads from user space */			\
+	(_regs)->pc = (_pc);						\
+	(_regs)->regs[1] = 0; /* ABIV1 is R7, uClibc_main rtdl arg */	\
+	(_regs)->regs[2] = 0;						\
+	(_regs)->regs[3] = 0; /* ABIV2 is R7, use it? */		\
+	(_regs)->sr &= PS_USE_MODE;					\
+	(_regs)->sr |= PS_CP_MASK;					\
+	wrusp(_usp);							\
 } while(0)
 
 /* Forward declaration, a strange C thing */
@@ -182,7 +166,6 @@ static inline void release_thread(struct task_struct *dead_task)
 
 /* Prepare to copy thread state - unlazy all lazy status */
 #define prepare_to_copy(tsk)    do { } while (0)
-
 
 extern int kernel_thread(int (*fn)(void *), void * arg, unsigned long flags);
 
@@ -201,17 +184,19 @@ extern unsigned long thread_saved_pc(struct task_struct *tsk);
 
 unsigned long get_wchan(struct task_struct *p);
 
-#define	KSTK_EIP(tsk)										 \
-    ({														 \
-	unsigned long eip = 0;	 								 \
-	if ((tsk)->thread.esp0 > PAGE_SIZE && 					 \
-	    MAP_NR((tsk)->thread.esp0) < max_mapnr) 			 \
-	      eip = ((struct pt_regs *) (tsk)->thread.esp0)->pc; \
-	eip; })
-#define	KSTK_ESP(tsk)	((tsk) == current ? rdusp() : (tsk)->thread.usp)
+#define	KSTK_EIP(tsk)							\
+({									\
+	unsigned long eip = 0;						\
+	if ((tsk)->thread.esp0 > PAGE_SIZE &&				\
+	     MAP_NR((tsk)->thread.esp0) < max_mapnr)			\
+		eip = ((struct pt_regs *) (tsk)->thread.esp0)->pc;	\
+		eip;							\
+})
 
-#define task_pt_regs(tsk)       ((struct pt_regs *) ((tsk)->thread.esp0))
+#define	KSTK_ESP(tsk) ((tsk) == current ? rdusp() : (tsk)->thread.usp)
 
-#define cpu_relax()    barrier()
+#define task_pt_regs(tsk) ((struct pt_regs *) ((tsk)->thread.esp0))
+
+#define cpu_relax() barrier()
 
 #endif /* __ASM_CSKY_PROCESSOR_H */

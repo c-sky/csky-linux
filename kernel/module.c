@@ -125,8 +125,10 @@ int apply_relocate_add(Elf32_Shdr *sechdrs, const char *strtab,
 	Elf32_Sym *sym;
 	uint32_t *location;
 	short * temp;
+#ifdef CONFIG_CPU_CSKYV2
 	uint32_t *nop_location;
-	
+#endif
+
 	DEBUGP("Applying relocate_add section %u to %u\n", relsec,
 	       sechdrs[relsec].sh_info);
 	for (i = 0; i < sechdrs[relsec].sh_size / sizeof(*rel); i++) {
@@ -137,7 +139,7 @@ int apply_relocate_add(Elf32_Shdr *sechdrs, const char *strtab,
 		   undefined symbols have been resolved.  */
 		sym = (Elf32_Sym *)sechdrs[symindex].sh_addr
 		    + ELF32_R_SYM(rel[i].r_info);
-		
+
 		switch (ELF32_R_TYPE(rel[i].r_info)) {
 		case R_CSKY_32:
 			/* We add the value into the location given */

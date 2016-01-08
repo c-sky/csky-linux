@@ -16,8 +16,9 @@
  */
 void *memset(void *dest, int c, size_t l)
 {
-	char   *d = dest;
-	int    ch = c;
+	char	*d = dest;
+	int	ch = c;
+	int	tmp;
 
 	if ((long)d & 0x3)
 	{
@@ -25,9 +26,9 @@ void *memset(void *dest, int c, size_t l)
 	}
 	else
 	{
-		ch &= 0xff; 
-		int tmp = (ch | ch << 8 | ch << 16 | ch << 24);
-        
+		ch &= 0xff;
+		tmp = (ch | ch << 8 | ch << 16 | ch << 24);
+
 		while (l >= 16)
 		{
 			*(((long *)d)) = tmp;

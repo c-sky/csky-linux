@@ -101,11 +101,6 @@ void gx3xxx_restart(void)
 
 }
 
-const char *get_machine_type(void)
-{
-	return "GX3XXX";
-}
-
 extern int gxav_memhole_init(void);
 void __init config_BSP(void)
 {
@@ -121,41 +116,6 @@ void __init config_BSP(void)
 }
 
 #ifdef CONFIG_SERIAL_8250
-static struct plat_serial8250_port gx8250_uart0_data[] = {
-	{
-		.mapbase	= 0x00403000,
-		.membase	= (char *)0xa0403000,
-		.irq		= 15,
-		.flags		= UPF_SKIP_TEST | UPF_BOOT_AUTOCONF,
-		.iotype		= UPIO_MEM,
-		.regshift	= 2,
-		.uartclk	= 29491200,
-	}, {
-	},
-};
-
-static struct resource gx8250_uart0_resources[] = {
-	{
-		.start		= 0x00403000,
-		.end		= 0x00403000 + 0xff,
-		.flags		= IORESOURCE_MEM,
-	}, {
-		.start		= 15,
-		.end		= 15,
-		.flags		= IORESOURCE_IRQ,
-	},
-};
-
-static struct platform_device gx8250_uart0 = {
-	.name			= "serial8250",
-	.id			= 0,
-	.dev			= {
-		.platform_data	= gx8250_uart0_data,
-	},
-	.resource		= gx8250_uart0_resources,
-	.num_resources		= ARRAY_SIZE(gx8250_uart0_resources),
-};
-
 static struct plat_serial8250_port gx3211_8250_uart0_data[] = {
 	[0] = {
 		.mapbase = 0x00403000,
@@ -184,8 +144,6 @@ static struct platform_device gx3211_8250_uart0 = {
 	.dev			= {
 		.platform_data	= gx3211_8250_uart0_data,
 	},
-//	.resource		= gx8250_uart0_resources,
-//	.num_resources		= ARRAY_SIZE(gx8250_uart0_resources),
 };
 
 static int __init board_devices_init(void)

@@ -707,12 +707,7 @@ static int show_cpuinfo(struct seq_file *m, void *v)
     /*
      * For the first processor also print the system type and version
      */
-    if (n == 0)
-	{
-		seq_printf(m, "Hardware\t: %s\n",
-			(get_machine_type ? get_machine_type():"unknow!"));
-		seq_printf(m, "Revision\t: %04x\n", system_rev);
-	}
+    if (n == 0) seq_printf(m, "Revision\t: %04x\n", system_rev);
 
     /*
      * The fiducial operation declt + bf need 2 cycle. So calculate CPU clock

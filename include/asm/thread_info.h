@@ -21,12 +21,14 @@
 #include <asm/processor.h>
 
 struct thread_info {
-	struct task_struct	  *task;	     /* main task structure */
-	unsigned long		  flags;
-	int					  preempt_count; /* 0 => preemptable, <0 => BUG */
-	unsigned long         tp_value;      /* thread pointer */
-	mm_segment_t          addr_limit;
-	struct pt_regs		  *regs;
+	struct task_struct	*task;
+	void			*dump_exec_domain;
+	unsigned long		flags;
+	int			preempt_count;
+	unsigned long		tp_value;
+	mm_segment_t		addr_limit;
+	struct restart_block	restart_block;
+	struct pt_regs		*regs;
 };
 
 #define INIT_THREAD_INFO(tsk)			\
@@ -34,9 +36,11 @@ struct thread_info {
 	.task		= &tsk,			\
 	.preempt_count  = INIT_PREEMPT_COUNT,	\
 	.addr_limit     = KERNEL_DS,		\
+	.restart_block = {			\
+		.fn = do_no_restart_syscall,	\
+	},					\
 }
 
-/* THREAD_SIZE should be 8k, so handle differently for 4k and 8k machines */
 #define THREAD_SIZE_ORDER (13 - PAGE_SHIFT)
 
 #define init_thread_info	(init_thread_union.thread_info)

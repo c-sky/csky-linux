@@ -48,7 +48,7 @@ do{                                                   \
 	            "       mtcr  %0, cr<29, 15> \n"  \
 	            ::"r"(pgd), "r"(PHYS_OFFSET)      \
 	            :);                               \
-}while(0) 
+}while(0)
 #endif /* CONFIG_CPU_MMU_V1 */
 
 #define TLBMISS_HANDLER_SETUP() \
@@ -65,14 +65,12 @@ extern unsigned long pgd_current[];
 #define cpu_asid(cpu, mm)	(cpu_context((cpu), (mm)) & ASID_MASK)
 #define asid_cache(cpu)		(cpu_data[cpu].asid_cache)
 
-
 #define ASID_INC	0x1
 #define ASID_MASK	0xff
 
 static inline void enter_lazy_tlb(struct mm_struct *mm, struct task_struct *tsk)
 {
 }
-
 
 /*
  *  All unused by hardware upper bits will be considered
@@ -96,6 +94,7 @@ get_new_mmu_context(struct mm_struct *mm, unsigned long cpu)
 	cpu_context(cpu, mm) = asid_cache(cpu) = asid;
 }
 #endif
+
 /*
  * Initialize the context related info for a new mm_struct
  * instance.
@@ -106,7 +105,7 @@ init_new_context(struct task_struct *tsk, struct mm_struct *mm)
 #ifdef CONFIG_MMU
 	int i;
 
-	for_each_online_cpu(i)		
+	for_each_online_cpu(i)
 		cpu_context(i, mm) = 0;
 #endif
 	return 0;
@@ -115,7 +114,7 @@ init_new_context(struct task_struct *tsk, struct mm_struct *mm)
 static inline void switch_mm(struct mm_struct *prev, struct mm_struct *next,
                              struct task_struct *tsk)
 {
-#ifdef CONFIG_MMU 
+#ifdef CONFIG_MMU
 	unsigned int cpu = smp_processor_id();
 	unsigned long flags;
 
@@ -131,7 +130,7 @@ static inline void switch_mm(struct mm_struct *prev, struct mm_struct *next,
 	 * We don't want to mislead possible IPI tlb flush routines.
 	 */
 	cpumask_clear_cpu(cpu, mm_cpumask(prev));
-	cpumask_set_cpu(cpu, mm_cpumask(next));	
+	cpumask_set_cpu(cpu, mm_cpumask(next));
 
 	local_irq_restore(flags);
 #endif
@@ -152,7 +151,7 @@ static inline void destroy_context(struct mm_struct *mm)
 static inline void
 activate_mm(struct mm_struct *prev, struct mm_struct *next)
 {
-#ifdef CONFIG_MMU 
+#ifdef CONFIG_MMU
 	unsigned long flags;
 	int cpu = smp_processor_id();
 
@@ -171,10 +170,10 @@ activate_mm(struct mm_struct *prev, struct mm_struct *next)
 	local_irq_restore(flags);
 #endif
 }
-#define deactivate_mm(tsk,mm)   do { } while (0)
+#define deactivate_mm(tsk,mm)	do {} while (0)
 
 /*
- * If mm is currently active_mm, we can't really drop it.  Instead,
+ * If mm is currently active_mm, we can't really drop it. Instead,
  * we will get a new one for it.
  */
 #ifdef CONFIG_MMU
