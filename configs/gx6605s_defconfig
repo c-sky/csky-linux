@@ -1,6 +1,6 @@
 #
 # Automatically generated file; DO NOT EDIT.
-# Linux/csky 4.4.0-rc6 Kernel Configuration
+# Linux/csky 4.4.0 Kernel Configuration
 #
 CONFIG_CSKY=y
 # CONFIG_UID16 is not set
@@ -298,7 +298,7 @@ CONFIG_ALLOW_DEV_COREDUMP=y
 # CONFIG_DEBUG_DRIVER is not set
 # CONFIG_DEBUG_DEVRES is not set
 # CONFIG_SYS_HYPERVISOR is not set
-# CONFIG_GENERIC_CPU_DEVICES is not set
+CONFIG_GENERIC_CPU_DEVICES=y
 CONFIG_REGMAP=y
 CONFIG_REGMAP_I2C=m
 # CONFIG_DMA_SHARED_BUFFER is not set
