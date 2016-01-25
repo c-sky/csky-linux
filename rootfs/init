@@ -1,0 +1,10 @@
+#!/bin/sh
+
+mount -t proc proc /proc
+mount -t sysfs sysfs /sys
+mount -t tmpfs tmpfs /tmp
+mount -t tmpfs tmpfs /var
+mkdir -p /var/run
+mkdir -p /var/lock
+
+exec /bin/sh </dev/console 1>/dev/console 2>/dev/console
