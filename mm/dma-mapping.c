@@ -157,7 +157,7 @@ static void csky_dma_unmap_page(
 	__dma_sync(addr, size, direction);
 }
 
-void csky_dma_sync_single_for_cpu(
+static void csky_dma_sync_single_for_cpu(
 	struct device *dev,
 	dma_addr_t dma_handle,
 	size_t size,
@@ -172,7 +172,7 @@ void csky_dma_sync_single_for_cpu(
 	__dma_sync(addr, size, direction);
 }
 
-void csky_dma_sync_single_for_device(
+static void csky_dma_sync_single_for_device(
 	struct device *dev,
 	dma_addr_t dma_handle,
 	size_t size,
@@ -187,7 +187,7 @@ void csky_dma_sync_single_for_device(
 	__dma_sync(addr, size, direction);
 }
 
-void csky_dma_sync_sg_for_cpu(
+static void csky_dma_sync_sg_for_cpu(
 	struct device *dev,
 	struct scatterlist *sg,
 	int nelems,
@@ -205,7 +205,7 @@ void csky_dma_sync_sg_for_cpu(
 	}
 }
 
-void csky_dma_sync_sg_for_device(
+static void csky_dma_sync_sg_for_device(
 	struct device *dev,
 	struct scatterlist *sg,
 	int nelems,
