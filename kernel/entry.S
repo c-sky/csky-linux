@@ -612,6 +612,13 @@ syscall_exit_work:
 
 2:      RESTORE_ALL
 
+ENTRY(ret_from_kernel_thread)
+	jbsr     schedule_tail
+	mov	 a0, r8
+	jsr	 r9
+	jbsr     ret_from_exception
+
+
 ENTRY(ret_from_fork)
 	jbsr     schedule_tail
 	mov      r9, sp				 /* Get task pointer */
@@ -1037,10 +1044,6 @@ ENTRY(sys_vfork)
 	PT_REGS_ADJUST a0	
 	jmpi     csky_vfork           /* Call fork routine */
 
-ENTRY(_sys_execve)
-	PT_REGS_ADJUST a3	
-	jmpi     csky_execve           /* Call execve routine */
-
 ENTRY(sys_sigreturn)
 	PT_REGS_ADJUST a0
 	movi     r11_sig, 0             /* prevent syscall restart handling */
@@ -1167,7 +1170,7 @@ sys_call_table:
 	.long sys_creat
 	.long sys_link
 	.long sys_unlink        /* 10 */
-	.long _sys_execve
+	.long sys_execve
 	.long sys_chdir
 	.long sys_time
 	.long sys_mknod

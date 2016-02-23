@@ -73,51 +73,17 @@ struct  pt_regs {
 	// ABIV2: r4 ~ r13,  ABIV1: r6 ~ r15.
 	long             regs[10];
 	long             r15;
-#if (__CSKY__ == 2)
-	// r16~r31;
-	long             exregs[16];
-	long             rhi;
-	long             rlo;
-#endif
 };
 
-/*
- * This is the extended stack used by the context
- * switcher: it's pushed after the normal "struct pt_regs".
- *
- * ABI_CSKYV2: r4 ~ r11,r16 ~ r17, r26 ~ r30;
- * ABI_CSKYV1: r8 ~ r14,r16 ~ r19, r26 ~ r30.
- */
 struct  switch_stack {
-#if defined(__CSKYABIV2__)
-	unsigned long   r4;
-        unsigned long   r5;
-        unsigned long   r6;
-        unsigned long   r7;
-#endif
         unsigned long   r8;
         unsigned long   r9;
         unsigned long   r10;
         unsigned long   r11;
-#if !defined(__CSKYABIV2__)    // ABIV1
         unsigned long   r12;
         unsigned long   r13;
         unsigned long   r14;
-#endif
         unsigned long   r15;
-#if (__CSKY__ == 2)
-        unsigned long   r16;
-        unsigned long   r17;
-#if !defined(__CSKYABIV2__)    // ABIV1
-        unsigned long   r18;
-        unsigned long   r19;
-#endif
-        unsigned long   r26;
-        unsigned long   r27;
-        unsigned long   r28;
-        unsigned long   r29;
-        unsigned long   r30;
-#endif
 };
 
 /* Arbitrarily choose the same ptrace numbers as used by the Sparc code. */

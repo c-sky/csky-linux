@@ -42,6 +42,7 @@
 struct cpuinfo_csky cpu_data[NR_CPUS];
 
 asmlinkage void ret_from_fork(void);
+asmlinkage void ret_from_kernel_thread(void);
 
 /*
  * Return saved PC from a blocked thread
@@ -119,57 +120,10 @@ void show_regs(struct pt_regs * regs)
 }
 
 /*
- * Shuffle the argument into the correct register before calling the
- * thread function.  a1 is the thread argument, a2 is the pointer to
- * the thread function, and a3 points to the exit function.
- *	mov	r2, r3
- *	mov	r15, r5
- *	jmp	r4
+ * Some archs flush debug and FPU info here
  */
-extern void kernel_thread_helper(void);
-
-asm (
-".section .text\n\t"
-".align 2\n\t"
-".type kernel_thread_helper, @function\n\t"
-"kernel_thread_helper:\n\t"
-#ifdef CONFIG_TRACE_IRQFLAGS
-"	jbsr	trace_hardirqs_on\n\t"
-#endif
-"	mov	a0,  a1\n\t"
-"	mov	r15, a3\n\t"
-"	jmp	a2\n\t"
-".size kernel_thread_helper, . - kernel_thread_helper\n\t"
-".previous"
-);
-
-#if 0
-/*
- * Create a kernel thread
- */
-pid_t __kernel_thread(int (*fn)(void *), void *arg, unsigned long flags)
-{
-	struct pt_regs regs;
-	unsigned long reg_psr = 0;
-
-	memset(&regs, 0, sizeof(regs));
-
-	regs.a1 = (long)arg;
-	regs.a2 = (long)fn;
-	regs.a3 = (long)do_exit;
-	regs.pc = (unsigned long)kernel_thread_helper;
-	__asm__ __volatile__("mfcr   %0, psr\n\t"
-			             :"+r"(reg_psr) :);
-	regs.sr = reg_psr;
-
-	return do_fork(flags|CLONE_VM|CLONE_UNTRACED, 0, 0, NULL, NULL);
-}
-EXPORT_SYMBOL(kernel_thread);
-#endif
-
 void flush_thread(void)
 {
-
 }
 
 /*
@@ -209,44 +163,40 @@ int copy_thread(unsigned long clone_flags,
 		unsigned long kthread_arg,
 		struct task_struct *p)
 {
-	struct thread_info *ti = task_thread_info(p);
 	struct pt_regs * childregs, *regs = current_pt_regs();
 	struct switch_stack * childstack;
 
 	unsigned long reg_psr = 0;
 
 	childregs = (struct pt_regs *) (task_stack_page(p) + THREAD_SIZE) - 1;
-	*childregs = *regs;
+
+	childstack = ((struct switch_stack *) childregs) - 1;
+	memset(childstack, 0, sizeof(struct switch_stack));
+
+	p->thread.ksp = (unsigned long)childstack;
+
+	if (unlikely(p->flags & PF_KTHREAD)) {
+		memset(childregs, 0, sizeof(struct pt_regs));
+		childstack->r15 = (unsigned long) ret_from_kernel_thread;
+		childstack->r8 = kthread_arg;
+		childstack->r9 = usp;
+		__asm__ __volatile__("mfcr   %0, psr\n\t"
+			             :"+r"(reg_psr) :);
+		childregs->sr = reg_psr;
+
+		return 0;
+	} else {
+		*childregs = *regs;
+		childstack->r15 = (unsigned long) ret_from_fork;
+	}
 
 	/*Return 0 for subprocess when return from fork(),vfork(),clone()*/
 	childregs->a0 = 0;
 
-	childstack = ((struct switch_stack *) childregs) - 1;
-	memset(childstack, 0, sizeof(struct switch_stack));
-	childstack->r15 = (unsigned long)ret_from_fork;
-
 	p->thread.usp = usp;
-	p->thread.ksp = (unsigned long)childstack;
 
 	if (clone_flags & CLONE_SETTLS)
-	{
-		ti->tp_value = regs->regs[0];
-#ifdef CONFIG_CPU_CSKYV2
-		childregs->exregs[15] = regs->regs[0];
-#endif
-	}
-
-	if (unlikely(p->flags & PF_KTHREAD)) {
-		memset(childregs, 0, sizeof(struct pt_regs));
-		childregs->a1 = kthread_arg;
-		childregs->a2 = usp;
-		childregs->a3 = (unsigned long) do_exit;
-		childregs->pc = (unsigned long) kernel_thread_helper;
-		__asm__ __volatile__(	"mfcr %0, psr\n\t"
-					:"+r" (reg_psr)
-					:);
-		childregs->sr = reg_psr;
-	}
+		task_thread_info(p)->tp_value = regs->regs[0];
 
 	return 0;
 }
@@ -276,32 +226,6 @@ int dump_task_regs(struct task_struct *tsk, elf_gregset_t *pr_regs)
 #endif
 
 	return 1;
-}
-
-/*
- * fill in the user structure for a core dump..
- *
- * this function is not used in linux 2.6
- */
-void dump_thread(struct pt_regs * regs, struct user * dump)
-{
-}
-
-asmlinkage int csky_execve(const char __user *name,
-	const char __user * __user *argv,
-	const char __user * __user *envp, struct pt_regs *regs)
-{
-	/* struct pt_regs *regs; */ /* commended by sunkang 2004.11.18 */
-	int error;
-	struct filename *filename;
-
-	filename = getname(name);
-	error = PTR_ERR(filename);
-	if (IS_ERR(filename))
-		return error;
-	error = do_execve(filename, argv, envp);
-	putname(filename);
-	return error;
 }
 
 /* use to set tls */
