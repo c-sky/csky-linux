@@ -76,6 +76,8 @@ asmlinkage void do_page_fault(struct pt_regs *regs, unsigned long write,
 
         info.si_code = SEGV_MAPERR;
 
+	local_flush_tlb_all(); /* bug fixme */
+
         /*
          * We fault-in kernel-space virtual memory on-demand. The
          * 'reference' page table is init_mm.pgd.
@@ -157,14 +159,14 @@ bad_area_nosemaphore:
         if (user_mode(regs)) {
                 tsk->thread.address = address;
                 tsk->thread.error_code = write;
-#if 0
-                printk("do_page_fault() #2: sending SIGSEGV to %s for "
-                       "invalid %s\n%0*lx (epc == %0*lx)\n",
+
+                printk(KERN_ERR "do_page_fault() #2: sending SIGSEGV to %s for"
+                       "invalid %s\n%08lx (epc == %08lx)\n",
                        tsk->comm,
                        write ? "write access to" : "read access from",
                        address,
-                       (unsigned long) regs->pc);
-#endif
+                       regs->pc);
+
                 info.si_signo = SIGSEGV;
                 info.si_errno = 0;
                 /* info.si_code has been set above */

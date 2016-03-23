@@ -408,6 +408,10 @@ ENTRY(handle_tlbmodified)
 	lsri    a2, _PGDIR_SHIFT
 	lsli    a2, 2
 	addu    r6, a2
+
+	/*
+	 * get pte table to r6
+	 */
 	ldw     r6, (r6)
 #ifdef CONFIG_MMU_HARD_REFILL
 	lrw	a2, PHYS_OFFSET
@@ -419,16 +423,20 @@ ENTRY(handle_tlbmodified)
 	lrw     a2, PTE_INDX_MSK
 	and     a3, a2
 	addu    r6, a3
-	ldw     a3, (r6)    
-	bgeni   a2, 31      /* TLB probe command, a2 = 0x80000000 */
-	
-	WR_MCIR	a2          /* find faulting entry */
+	ldw     a3, (r6)/* get pte to a3*/
+
+	bgeni   a2, 31	/* TLB probe command, a2 = 0x80000000 */
+	WR_MCIR	a2	/* find faulting entry */
+
+	/*
+	 * if _PAGE_WRITE == 0, goto tlbmodified.
+	 */
 	movi    a2, _PAGE_WRITE
 	and     a3, a2
 	cmpnei  a3, 0
 	bf      tlbmodified
 	ldw     a3, (r6)
-	
+
 	/* 
 	 * Present and writable bits set, set accessed and dirty bits. 
 	 * a2 = (_PAGE_ACCESSED | _PAGE_MODIFIED | _PAGE_VALID | _PAGE_DIRTY)
@@ -485,7 +493,7 @@ tlbmodified:
 	SET_CP_MMU
 	RD_MEH	a3
 	bmaski  r8, 12
-	andn    a3, r8          /* r8 = !(0xfffff000) */
+	andn    a3, r8          /* a3 = a3 & (~0xfff) */
 	mov     a2, a3
 	psrset  ee, ie          /* Enable exception & interrupt */
 	mov     a0, sp

@@ -5,7 +5,7 @@
  * CPU interrupt mask handling.
  */
 #define arch_local_irq_save __arch_local_irq_save
-static inline unsigned long arch_local_irq_save(void)
+static inline unsigned long __arch_local_irq_save(void)
 {
 	unsigned long flags;
 	asm volatile(
@@ -16,7 +16,7 @@ static inline unsigned long arch_local_irq_save(void)
 }
 
 #define arch_local_irq_enable __arch_local_irq_enable
-static inline void arch_local_irq_enable(void)
+static inline void __arch_local_irq_enable(void)
 {
 	asm volatile(
 		"psrset ee, ie \n"
@@ -24,7 +24,7 @@ static inline void arch_local_irq_enable(void)
 }
 
 #define arch_local_irq_disable __arch_local_irq_disable
-static inline void arch_local_irq_disable(void)
+static inline void __arch_local_irq_disable(void)
 {
 	asm volatile(
 		"psrclr ie     \n"
@@ -35,7 +35,7 @@ static inline void arch_local_irq_disable(void)
  * Save the current interrupt enable state.
  */
 #define arch_local_save_flags __arch_local_save_flags
-static inline unsigned long arch_local_save_flags(void)
+static inline unsigned long __arch_local_save_flags(void)
 {
 	unsigned long flags;
 	asm volatile(
@@ -48,7 +48,7 @@ static inline unsigned long arch_local_save_flags(void)
  * restore saved IRQ state
  */
 #define arch_local_irq_restore __arch_local_irq_restore
-static inline void arch_local_irq_restore(unsigned long flags)
+static inline void __arch_local_irq_restore(unsigned long flags)
 {
 	asm volatile(
 		"mtcr    %0, psr  \n"

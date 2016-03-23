@@ -1,3 +1,14 @@
+/*
+ * linux/arch/include/asm/pgtable_mm.h
+ *
+ * This file is subject to the terms and conditions of the GNU General Public
+ * License.  See the file "COPYING" in the main directory of this archive
+ * for more details.
+ *
+ * Copyright (C) 2009  Hangzhou C-SKY Microsystemsi,.Ltd
+ * Copyright (C) 2009  Ye Yun (yun_ye@c-sky.com)
+ */
+
 #ifndef __ASM_CSKY_PGTABLE_H
 #define __ASM_CSKY_PGTABLE_H
 
@@ -10,6 +21,8 @@
 #include <asm/addrspace.h>
 #include <asm-generic/4level-fixup.h>
 #include <asm/fixmap.h>
+
+#ifndef __ASSEMBLY__
 
 #include <asm/pgtable-bits.h>
 
@@ -28,6 +41,31 @@
 #define ClearPageDcacheDirty(page)	\
 	clear_bit(PG_dcache_dirty, &(page)->flags)
 
+/*
+ * Certain architectures need to do special things when pte's
+ * within a page table are directly modified.  Thus, the following
+ * hook is made available.
+ */
+#ifdef CONFIG_MMU_HARD_REFILL
+
+#define set_pte(pteptr, pteval)                                 \
+        do{                                                     \
+                *(pteptr) = (pteval);                           \
+                clear_dcache_range((unsigned long)pteptr, 4);   \
+        } while(0)
+#define set_pte_at(mm,addr,ptep,pteval) set_pte(ptep,pteval)
+
+static inline pte_t *pmd_page_vaddr(pmd_t pmd)
+{
+	unsigned long ptr;
+
+	ptr = pmd_val(pmd);
+
+	return __va(ptr);
+}
+
+#define pmd_phys(pmd)           pmd_val(pmd)
+#else   /* CONFIG_MMU_HARD_REFILL */
 
 #define set_pte(pteptr, pteval)                                 \
         do{                                                     \
@@ -49,9 +87,11 @@ static inline pte_t *pmd_page_vaddr(pmd_t pmd)
  * and a page entry and page directory to the page they refer to.
  */
 #define pmd_phys(pmd)           virt_to_phys((void *)pmd_val(pmd))
+#endif /* CONFIG_MMU_HARD_REFILL */
 
 #define pmd_page(pmd)           (pfn_to_page(pmd_phys(pmd) >> PAGE_SHIFT))
 
+#endif /* !defined (__ASSEMBLY__) */
 
 /*
  * Basically we have the same two-level (which is the logical three level
@@ -278,69 +318,69 @@ static inline void pgd_clear(pgd_t *pgdp)	{ }
 
 static inline int pte_read(pte_t pte)
 {
-    return (pte).pte_low & _PAGE_READ;
+	return (pte).pte_low & _PAGE_READ;
 }
 
 static inline int pte_write(pte_t pte)
 {
-    return (pte).pte_low & _PAGE_WRITE;
+	return (pte).pte_low & _PAGE_WRITE;
 }
 
 static inline int pte_dirty(pte_t pte)
 {
-    return (pte).pte_low & _PAGE_MODIFIED;
+	return (pte).pte_low & _PAGE_MODIFIED;
 }
 
 static inline int pte_young(pte_t pte)
 {
-    return (pte).pte_low & _PAGE_ACCESSED;
+	return (pte).pte_low & _PAGE_ACCESSED;
 }
 
 static inline int pte_file(pte_t pte)
 {
-    return pte_val(pte) & _PAGE_FILE;
+	return pte_val(pte) & _PAGE_FILE;
 }
 
 static inline pte_t pte_wrprotect(pte_t pte)
 {
-    pte_val(pte) &= ~(_PAGE_WRITE | _PAGE_SILENT_WRITE);
-    return pte;
+	pte_val(pte) &= ~(_PAGE_WRITE | _PAGE_SILENT_WRITE);
+	return pte;
 }
 
 static inline pte_t pte_mkclean(pte_t pte)
 {
-    pte_val(pte) &= ~(_PAGE_MODIFIED|_PAGE_SILENT_WRITE);
-    return pte;
+	pte_val(pte) &= ~(_PAGE_MODIFIED|_PAGE_SILENT_WRITE);
+	return pte;
 }
 
 static inline pte_t pte_mkold(pte_t pte)
 {
-    pte_val(pte) &= ~(_PAGE_ACCESSED|_PAGE_SILENT_READ);
-    return pte;
+	pte_val(pte) &= ~(_PAGE_ACCESSED|_PAGE_SILENT_READ);
+	return pte;
 }
 
 static inline pte_t pte_mkwrite(pte_t pte)
 {
-    pte_val(pte) |= _PAGE_WRITE;
-    if (pte_val(pte) & _PAGE_MODIFIED)
-        pte_val(pte) |= _PAGE_SILENT_WRITE;
-    return pte;
+	pte_val(pte) |= _PAGE_WRITE;
+	if (pte_val(pte) & _PAGE_MODIFIED)
+		pte_val(pte) |= _PAGE_SILENT_WRITE;
+	return pte;
 }
 
 static inline pte_t pte_mkdirty(pte_t pte)
 {
-    pte_val(pte) |= _PAGE_MODIFIED;
-    if (pte_val(pte) & _PAGE_WRITE)
-        pte_val(pte) |= _PAGE_SILENT_WRITE;
-    return pte;
+	pte_val(pte) |= _PAGE_MODIFIED;
+	if (pte_val(pte) & _PAGE_WRITE)
+		pte_val(pte) |= _PAGE_SILENT_WRITE;
+	return pte;
 }
 
 static inline pte_t pte_mkyoung(pte_t pte)
 {
-    pte_val(pte) |= _PAGE_ACCESSED;
-    if (pte_val(pte) & _PAGE_READ)
-        pte_val(pte) |= _PAGE_SILENT_READ;
-    return pte;
+	pte_val(pte) |= _PAGE_ACCESSED;
+	if (pte_val(pte) & _PAGE_READ)
+		pte_val(pte) |= _PAGE_SILENT_READ;
+	return pte;
 }
 
 #define PGD_T_LOG2	ffz(~sizeof(pgd_t))
@@ -372,11 +412,11 @@ static inline pte_t pte_mkyoung(pte_t pte)
 
 static inline pgprot_t pgprot_noncached(pgprot_t _prot)
 {
-        unsigned long prot = pgprot_val(_prot);
+	unsigned long prot = pgprot_val(_prot);
 
-        prot = (prot & ~_CACHE_MASK) | _CACHE_UNCACHED;
+	prot = (prot & ~_CACHE_MASK) | _CACHE_UNCACHED;
 
-        return __pgprot(prot);
+	return __pgprot(prot);
 }
 
 
@@ -387,7 +427,7 @@ static inline pgprot_t pgprot_noncached(pgprot_t _prot)
 #define mk_pte(page, pgprot)    pfn_pte(page_to_pfn(page), (pgprot))
 static inline pte_t pte_modify(pte_t pte, pgprot_t newprot)
 {
-        return __pte((pte_val(pte) & _PAGE_CHG_MASK) | pgprot_val(newprot));
+	return __pte((pte_val(pte) & _PAGE_CHG_MASK) | pgprot_val(newprot));
 }
 
 /* to find an entry in a page-table-directory */
@@ -406,20 +446,20 @@ static inline pmd_t *pmd_offset(pgd_t *dir, unsigned long address)
 static inline pte_t *pte_offset(pmd_t * dir, unsigned long address)
 {
 	return (pte_t *) (pmd_page_vaddr(*dir)) +
-	       ((address >> PAGE_SHIFT) & (PTRS_PER_PTE - 1));
+		((address >> PAGE_SHIFT) & (PTRS_PER_PTE - 1));
 }
 
 extern pgd_t swapper_pg_dir[PTRS_PER_PGD];
 extern void paging_init(void);
 
 extern void __update_tlb(struct vm_area_struct *vma, unsigned long address,
-	pte_t pte);
+		pte_t pte);
 extern void __update_cache(struct vm_area_struct *vma, unsigned long address,
-	pte_t pte);
+		pte_t pte);
 extern void show_jtlb_table(void);
 
 static inline void update_mmu_cache(struct vm_area_struct *vma,
-	unsigned long address, pte_t *ptep)
+		unsigned long address, pte_t *ptep)
 {
 	pte_t pte = *ptep;
 	__update_tlb(vma, address, pte);
@@ -429,8 +469,6 @@ static inline void update_mmu_cache(struct vm_area_struct *vma,
 /* Needs to be defined here and not in linux/mm.h, as it is arch dependent */
 #define PageSkip(page)		(0)
 #define kern_addr_valid(addr)	(1)
-
-#include <asm-generic/pgtable.h>
 
 #endif /* ifndef (__ASSEMBLY__) */
 
@@ -444,6 +482,11 @@ static inline void update_mmu_cache(struct vm_area_struct *vma,
  * No page table caches to initialise
  */
 #define pgtable_cache_init()	do { } while (0)
+
+#define io_remap_pfn_range(vma, vaddr, pfn, size, prot)         \
+	remap_pfn_range(vma, vaddr, pfn, size, prot)
+
+#include <asm-generic/pgtable.h>
 
 #endif /* CONFIG_MMU */
 
