@@ -238,6 +238,8 @@ void __update_tlb(struct vm_area_struct * vma, unsigned long address, pte_t pte)
 	pte_t *ptep;
 	int idx, pid;
 
+	local_flush_tlb_all(); /* bug fix me */
+
 	/*
 	 * Handle debugger faulting in for debugee.
 	 */

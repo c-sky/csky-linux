@@ -76,8 +76,6 @@ asmlinkage void do_page_fault(struct pt_regs *regs, unsigned long write,
 
         info.si_code = SEGV_MAPERR;
 
-	local_flush_tlb_all(); /* bug fixme */
-
         /*
          * We fault-in kernel-space virtual memory on-demand. The
          * 'reference' page table is init_mm.pgd.
