@@ -65,8 +65,10 @@ extern unsigned long pgd_current[];
 #define cpu_asid(cpu, mm)	(cpu_context((cpu), (mm)) & ASID_MASK)
 #define asid_cache(cpu)		(cpu_data[cpu].asid_cache)
 
-#define ASID_INC	0x1
-#define ASID_MASK	0xff
+#define ASID_INC		0x1
+#define ASID_MASK		0xff
+#define ASID_VERSION_MASK	0xffffff00
+#define ASID_FIRST_VERSION	0x100
 
 static inline void enter_lazy_tlb(struct mm_struct *mm, struct task_struct *tsk)
 {
@@ -76,9 +78,6 @@ static inline void enter_lazy_tlb(struct mm_struct *mm, struct task_struct *tsk)
  *  All unused by hardware upper bits will be considered
  *  as a software asid extension.
  */
-#define ASID_VERSION_MASK  ((unsigned long)~(ASID_MASK|(ASID_MASK-1)))
-#define ASID_FIRST_VERSION ((unsigned long)(~ASID_VERSION_MASK) + 1)
-
 #ifdef CONFIG_MMU
 static inline void
 get_new_mmu_context(struct mm_struct *mm, unsigned long cpu)
