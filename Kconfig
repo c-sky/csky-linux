@@ -111,6 +111,10 @@ config HZ
 config SYS_SUPPORTS_APM_EMULATION
     bool
 
+config PGTABLE_LEVELS
+    int
+    default 3
+
 source "init/Kconfig"
 
 source "kernel/Kconfig.freezer"

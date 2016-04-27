@@ -118,6 +118,7 @@ static inline void switch_mm(struct mm_struct *prev, struct mm_struct *next,
 	unsigned long flags;
 
 	local_irq_save(flags);
+	select_mmu_cp();
 	/* Check if our ASID is of an older version and thus invalid */
 	if ((cpu_context(cpu, next) ^ asid_cache(cpu)) & ASID_VERSION_MASK)
 		get_new_mmu_context(next, cpu);

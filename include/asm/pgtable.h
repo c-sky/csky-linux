@@ -26,8 +26,6 @@
 
 #include <asm/pgtable-bits.h>
 
-#define __PAGETABLE_PMD_FOLDED
-
 /*
  * This flag is used to indicate that the page pointed to by a pte
  * is dirty and requires cleaning before returning it to the user.
