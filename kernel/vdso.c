@@ -84,7 +84,7 @@ static int __init init_vdso(void)
 	if (err)
 		panic("Cannot set signal return code.");
 
-	clear_dcache_range((unsigned long)vdso, ((unsigned long)vdso) + 16);
+	cache_op_range((unsigned long)vdso, ((unsigned long)vdso) + 16, DATA_CACHE|CACHE_CLR);
 #if  defined(CONFIG_MMU)
 	vunmap(vdso);
 #endif

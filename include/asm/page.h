@@ -4,6 +4,8 @@
 
 #include <asm/csky.h>
 #include <asm/setup.h>
+#include <asm/cache.h>
+#include <asm/cacheflush.h>
 #include <linux/const.h>
 
 #ifndef CONFIG_MMU
@@ -61,19 +63,17 @@ extern void *memcpy (void *to, const void *from, size_t l);
 static inline void clear_user_page(void *addr, unsigned long vaddr,
         struct page *page)
 {
-	extern void flush_data_cache_page(unsigned long addr);
         clear_page(addr);
         if (pages_do_alias((unsigned long) addr, vaddr & PAGE_MASK))
-                flush_data_cache_page((unsigned long)addr);
+                flush_dcache_page(page);
 }
 
 static inline void copy_user_page(void *to, void *from, unsigned long vaddr,
 	struct page *page)
 {
-	extern void flush_data_cache_page(unsigned long addr);
 	copy_page(to, from);
 	if (pages_do_alias((unsigned long) to, vaddr & PAGE_MASK))
-		flush_data_cache_page((unsigned long)to);
+		flush_dcache_page(page);
 }
 #else
 #define clear_user_page(addr, vaddr, page)      \

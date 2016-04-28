@@ -4,7 +4,7 @@
 #include <linux/scatterlist.h>
 #include <linux/io.h>
 #include <linux/cache.h>
-#include <asm/cacheflush.h>
+#include <asm/cache.h>
 
 static void *csky_dma_alloc(
 	struct device *dev,
@@ -14,21 +14,25 @@ static void *csky_dma_alloc(
 	struct dma_attrs *attrs
 	)
 {
-	void *ret;
+	unsigned int ret;
 
 	/* fixme, why gfp? */
 	gfp &= ~(__GFP_DMA | __GFP_HIGHMEM);
 	gfp |= __GFP_ZERO;
 
-	ret = (void *) __get_free_pages(gfp, get_order(size));
+	ret = (unsigned int) __get_free_pages(gfp, get_order(size));
 	if (!ret)
 		return NULL;
 
-	memset(ret, 0, size);
-	*dma_handle = virt_to_phys(ret);
+	memset((void *)ret, 0, size);
+	*dma_handle = virt_to_phys((void*)ret);
 
 	if (!dma_get_attr(DMA_ATTR_NON_CONSISTENT, attrs)) {
-		dma_cache_wback_inv((unsigned long) ret, size);
+		cache_op_range(
+			ret, ret+size,
+			DATA_CACHE|
+			CACHE_CLR|
+			CACHE_INV);
 		ret = UNCACHE_ADDR(ret);
 	}
 
@@ -59,15 +63,26 @@ static inline void __dma_sync(
 {
 	switch (direction) {
 	case DMA_TO_DEVICE:
-		dma_cache_wback(addr, size);
+		cache_op_range(
+			addr, addr+size,
+			DATA_CACHE|
+			CACHE_CLR);
 		break;
 
 	case DMA_FROM_DEVICE:
-		dma_cache_inv(addr, size);
+		cache_op_range(
+			addr, addr+size,
+			DATA_CACHE|
+			CACHE_CLR|
+			CACHE_INV);
 		break;
 
 	case DMA_BIDIRECTIONAL:
-		dma_cache_wback_inv(addr, size);
+		cache_op_range(
+			addr, addr+size,
+			DATA_CACHE|
+			CACHE_CLR|
+			CACHE_INV);
 		break;
 
 	default:

@@ -11,36 +11,45 @@
 #include <linux/mm.h>
 #include <linux/fs.h>
 #include <asm/uaccess.h>
+#include <asm/cache.h>
 #include <asm/cacheflush.h>
 #include <asm/cachectl.h>
 
-void flush_data_cache_page(unsigned long addr)
-{ 
-        int value = 0x32;
-
-        __asm__ __volatile__("sync\n\t"
-                             "mtcr %0,cr17\n\t"
-                             : :"r" (value));
-}
-
 asmlinkage int sys_cacheflush(void __user *addr, unsigned long bytes, int cache)
 {
+	unsigned int start;
+	unsigned int end;
+
 	if (bytes == 0)
 		return 0;
+
 	if (!access_ok(VERIFY_WRITE, addr, bytes))
 		return -EFAULT;
 
+	start = (unsigned int)addr;
+	end = start + bytes;
+
 	switch(cache) {
 	case ICACHE:
-		flush_icache_range((unsigned long)addr, 
-			(unsigned long)addr + bytes);
+		cache_op_range(
+			start, end,
+			INS_CACHE|
+			CACHE_INV);
 		break;
 	case DCACHE:
-		flush_dcache_all();
+		cache_op_range(
+			start, end,
+			DATA_CACHE|
+			CACHE_CLR|
+			CACHE_INV);
 		break;
 	case BCACHE:
-		/* This should flush more selectivly ...  */
-		flush_cache_all();
+		cache_op_range(
+			start, end,
+			INS_CACHE|
+			DATA_CACHE|
+			CACHE_CLR|
+			CACHE_INV);
 		break;
 	default:
 		return -EINVAL;
@@ -48,7 +57,7 @@ asmlinkage int sys_cacheflush(void __user *addr, unsigned long bytes, int cache)
 
 	return 0;
 }
-
+#if 0
 void flush_dcache_page(struct page *page)
 {
 	struct address_space *mapping = page_mapping(page);
@@ -69,14 +78,18 @@ void flush_dcache_page(struct page *page)
 	 * get faulted into the tlb (and thus flushed) anyways.
 	 */
 	addr = (unsigned long) page_address(page);
-	flush_data_cache_page(addr);
+
+	cache_op_all(
+		DATA_CACHE|
+		CACHE_CLR|
+		CACHE_INV);
 }
+#endif
 
 void __update_cache(struct vm_area_struct *vma, unsigned long address,
 	pte_t pte)
 {
 	unsigned long addr;
-#if defined (CONFIG_MMU)
 	struct page *page;
 	unsigned long pfn;
 	int exec = vma->vm_flags & VM_EXEC;
@@ -89,15 +102,18 @@ void __update_cache(struct vm_area_struct *vma, unsigned long address,
 		addr = (unsigned long) page_address(page);
 #if defined (CONFIG_HIGHMEM) && defined (CONFIG_CPU_CSKYV1)
 		if (PageHighMem(page)){
-			flush_data_cache_page(addr);
+			cache_op_all(
+				DATA_CACHE|
+				CACHE_CLR|
+				CACHE_INV);
 		}
 #endif
 		if (exec || pages_do_alias(addr, address & PAGE_MASK))
-			flush_data_cache_page(addr);
+			cache_op_all(
+				DATA_CACHE|
+				CACHE_CLR|
+				CACHE_INV);
 		ClearPageDcacheDirty(page);
 //	}
-#else
-	flush_data_cache_page(addr);
-#endif
 }
 

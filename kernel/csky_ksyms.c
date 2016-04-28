@@ -43,14 +43,12 @@ EXPORT_SYMBOL(clear_user);
 EXPORT_SYMBOL(__clear_user);
 
 /* cache flush */
-EXPORT_SYMBOL(_flush_cache_all);
-EXPORT_SYMBOL(_flush_cache_mm);
-EXPORT_SYMBOL(_flush_cache_page);
-EXPORT_SYMBOL(_flush_cache_range);
-EXPORT_SYMBOL(_flush_dcache_page);
-EXPORT_SYMBOL(flush_dcache_page);
-EXPORT_SYMBOL(_flush_dcache_all);
-EXPORT_SYMBOL(_clear_dcache_all);
+//EXPORT_SYMBOL(_flush_cache_mm);
+//EXPORT_SYMBOL(_flush_cache_page);
+//EXPORT_SYMBOL(_flush_cache_range);
+//EXPORT_SYMBOL(flush_dcache_page);
+//EXPORT_SYMBOL(_flush_dcache_all);
+//EXPORT_SYMBOL(_clear_dcache_all);
 
 EXPORT_SYMBOL(get_wchan);
 

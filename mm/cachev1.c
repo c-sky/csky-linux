@@ -1,7 +1,6 @@
 #include <linux/mm.h>
 #include <linux/sched.h>
 #include <asm/cache.h>
-#include <asm/cacheflush.h>
 
 #ifdef CONFIG_CSKY_INSTRUCTION_CACHE
 #define dis_icache(tmp) \
@@ -27,8 +26,8 @@
 		"mtcr	%0, cr17\n\t" \
 		::"r"(value))
 
-static inline void
-cache_clr_inv_all(unsigned int value)
+inline void
+cache_op_all(unsigned int value)
 {
 	unsigned long flags = 0;
 	unsigned int tmp = 0;
@@ -52,25 +51,26 @@ cache_clr_inv_all(unsigned int value)
 		"mtcr	%0, cr22\n\t" \
 		::"r"(value))
 inline void
-__flush_cache_range(
-		unsigned long start,
-		unsigned long end,
-		unsigned long value)
+cache_op_range(
+	unsigned int start,
+	unsigned int end,
+	unsigned int value
+	)
 {
 #ifndef CONFIG_CSKY_CACHE_LINE_FLUSH
-	cache_clr_inv_all(value);
-#else
+	cache_op_all(value);
+#else /* CONFIG_CSKY_CACHE_LINE_FLUSH */
 	unsigned long i,flags;
 	unsigned int tmp = 0;
 
 	if (unlikely((start & 0xf0000000) !=
 		(CK_RAM_BASE + PAGE_OFFSET - PHYS_OFFSET))) {
-		cache_clr_inv_all(value);
+		cache_op_all(value);
 		return;
 	}
 
 	if (unlikely((end - start) > PAGE_SIZE)) {
-		cache_clr_inv_all(value);
+		cache_op_all(value);
 		return;
 	}
 
@@ -93,111 +93,6 @@ __flush_cache_range(
 		en_icache(tmp);
 
 	local_irq_restore(flags);
-#endif /* CSKY_CACHE_LINE_FLUSH */
-}
-
-/* just compat for misc, don't care following code.*/
-void
-__flush_dcache_range(
-	unsigned long start,
-	unsigned long end
-	)
-{
-	__flush_cache_range(
-		start, end,
-		DATA_CACHE|CACHE_INV|CACHE_CLR);
-}
-
-void
-__flush_icache_range(
-	unsigned long start,
-	unsigned long end
-	)
-{
-	__flush_cache_range(
-		start, end,
-		INS_CACHE|CACHE_INV|CACHE_CLR);
-}
-
-void
-__flush_all_range(
-	unsigned long start,
-	unsigned long end
-	)
-{
-	__flush_cache_range(
-		start, end,
-		INS_CACHE|DATA_CACHE|
-		CACHE_INV|CACHE_CLR);
-}
-
-
-void _flush_cache_all(void)
-{
-	cache_clr_inv_all(0x33);
-}
-
-void ___flush_cache_all(void)
-{
-	cache_clr_inv_all(0x33);
-}
-
-void _flush_cache_mm(struct mm_struct *mm)
-{
-	cache_clr_inv_all(0x33);
-}
-
-void _flush_cache_page(struct vm_area_struct *vma, unsigned long page)
-{
-	cache_clr_inv_all(0x33);
-}
-
-void _flush_cache_range(
-		struct vm_area_struct *mm,
-		unsigned long start,
-		unsigned long end
-		)
-{
-	cache_clr_inv_all(0x33);
-}
-
-void _flush_cache_sigtramp(unsigned long addr)
-{
-	cache_clr_inv_all(0x33);
-}
-
-void _flush_icache_page(struct vm_area_struct *vma, struct page *page)
-{
-	cache_clr_inv_all(0x11);
-}
-
-void _flush_icache_all(void)
-{
-	cache_clr_inv_all(0x11);
-}
-
-void _flush_icache_range(unsigned long start, unsigned long end)
-{
-	cache_clr_inv_all(0x11);
-}
-
-void _flush_dcache_page(struct page * page)
-{
-	cache_clr_inv_all(0x32);
-}
-
-void _flush_dcache_all(void)
-{
-	cache_clr_inv_all(0x32);
-}
-
-void _clear_dcache_all(void)
-{
-	cache_clr_inv_all(0x22);
-}
-
-void _clear_dcache_range(unsigned long start, unsigned long end)
-{
-	cache_clr_inv_all(0x22);
+#endif /* CONFIG_CSKY_CACHE_LINE_FLUSH */
 }
 

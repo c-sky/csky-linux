@@ -3,14 +3,11 @@
 
 #include <asm/cacheflush.h>
 
-#ifndef CONFIG_MMU
-#error "forget uClinux!!"
-#endif
-
 #define tlb_start_vma(tlb, vma) \
 	do { \
 		if (!tlb->fullmm) \
-		flush_cache_range(vma, vma->vm_start, vma->vm_end); \
+		cache_op_range(vma->vm_start, vma->vm_end, \
+			INS_CACHE|DATA_CACHE|CACHE_CLR|CACHE_INV); \
 	}  while (0)
 
 #ifdef CONFIG_MMU_HARD_REFILL
@@ -20,15 +17,11 @@
 #define tlb_end_vma(tlb, vma) \
 	do { \
 		if (!tlb->fullmm) \
-		clear_dcache_range(vma->vm_start, \
-		vma->vm_end - vma->vm_start); \
+		cache_op_range(vma->vm_start, vma->vm_end, \
+			INS_CACHE|DATA_CACHE|CACHE_CLR|CACHE_INV); \
 	}  while (0)
 #endif
 
-/*
- * .. because we flush the whole mm when it
- * fills up.
- */
 #define tlb_flush(tlb)	flush_tlb_mm((tlb)->mm)
 
 #include <asm-generic/tlb.h>
