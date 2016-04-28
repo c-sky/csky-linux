@@ -11,8 +11,6 @@ obj-y			:= cache.o init.o ioremap.o fault.o dma-mapping.o mmap.o
 obj-$(CONFIG_CPU_CSKYV1)  += cachev1.o
 obj-$(CONFIG_CPU_CSKYV2)  += cachev2.o
 
-obj-$(CONFIG_CPU_MMU_V2)  += l2cache.o
-
 obj-$(CONFIG_CPU_MMU_V1)  += tlbv1.o
 obj-$(CONFIG_CPU_MMU_V2)  += tlbv2.o
 
