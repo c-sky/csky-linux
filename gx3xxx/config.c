@@ -8,7 +8,6 @@
 #include <linux/platform_device.h>
 #include <linux/serial_8250.h>
 #include <asm/machdep.h>
-#include <asm/csky.h>
 #include <asm/irq.h>
 #include <asm/io.h>
 #include <asm/delay.h>

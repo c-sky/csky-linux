@@ -19,7 +19,6 @@
 #include <linux/rtc.h>
 #include <asm/irq.h>
 #include <asm/traps.h>
-#include <asm/csky.h>
 #include <mach/map.h>
 #include <asm/delay.h>
 #include <asm/io_mm.h>

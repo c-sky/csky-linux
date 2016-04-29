@@ -28,7 +28,6 @@
 #include <linux/threads.h>
 #include <asm/setup.h>
 #include <asm/page.h>
-#include <asm/csky.h>
 #include <asm/thread_info.h>
 #include <asm/regdef.h>
 #include <asm/prfl.h>

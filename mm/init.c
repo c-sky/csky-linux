@@ -37,7 +37,6 @@
 #include <asm/mmu_context.h>
 #include <asm/sections.h>
 #include <asm/tlb.h>
-#include <asm/csky.h>
 
 #ifndef CONFIG_MMU_HARD_REFILL
 unsigned long pgd_current[NR_CPUS];

@@ -2,7 +2,6 @@
 #define __ASM_CSKY_PAGE_H
 
 
-#include <asm/csky.h>
 #include <asm/setup.h>
 #include <asm/cache.h>
 #include <asm/cacheflush.h>
@@ -33,7 +32,7 @@
 
 #include <linux/pfn.h>
 
-#define PHY_OFFSET		CK_RAM_BASE
+#define PHY_OFFSET		CONFIG_RAM_BASE
 #define ARCH_PFN_OFFSET		PFN_UP(PHY_OFFSET)
 
 #define virt_to_pfn(kaddr)      (__pa(kaddr) >> PAGE_SHIFT)
@@ -138,10 +137,10 @@ typedef struct page *pgtable_t;
 #define __va(x)		((void *)((unsigned long) (x) - PHYS_OFFSET + PAGE_OFFSET))
 #define __pa_symbol(x)  __pa(RELOC_HIDE((unsigned long)(x), 0))
 
-#define MAP_NR(addr)       (((unsigned long)(addr)-PAGE_OFFSET-CK_RAM_BASE) \
+#define MAP_NR(addr)       (((unsigned long)(addr)-PAGE_OFFSET-CONFIG_RAM_BASE) \
                                >> PAGE_SHIFT)
 
-#define virt_to_page(kaddr)	(mem_map + ((__pa(kaddr)-CK_RAM_BASE) \
+#define virt_to_page(kaddr)	(mem_map + ((__pa(kaddr)-CONFIG_RAM_BASE) \
                                     >> PAGE_SHIFT))
 
 #define VALID_PAGE(page)	((page - mem_map) < max_mapnr)

@@ -4,7 +4,7 @@
 #include <linux/in6.h>
 #include <asm/byteorder.h>
 
-static inline __sum16 __csum_fold(__wsum csum)
+static inline __sum16 csum_fold(__wsum csum)
 {
 	u32 tmp;
 	__asm__ __volatile__("mov     %1, %0 \n\t"
@@ -15,11 +15,16 @@ static inline __sum16 __csum_fold(__wsum csum)
 			:"0"(csum));
 	return (__force __sum16)~csum;
 }
-#define csum_fold __csum_fold
+#define csum_fold csum_fold
 
 static inline __wsum
-__csum_tcpudp_nofold(__be32 saddr, __be32 daddr, unsigned short len,
-		unsigned short proto, __wsum sum)
+csum_tcpudp_nofold(
+	__be32 saddr,
+	__be32 daddr,
+	unsigned short len,
+	unsigned short proto,
+	__wsum sum
+	)
 {
 	__asm__ __volatile__("clrc  \n\t"
 			"addc    %0, %1 \n\t"
@@ -38,14 +43,16 @@ __csum_tcpudp_nofold(__be32 saddr, __be32 daddr, unsigned short len,
 			:"cc");
 	return sum;
 }
-#define csum_tcpudp_nofold __csum_tcpudp_nofold
+#define csum_tcpudp_nofold csum_tcpudp_nofold
 
 static __inline__ __sum16
-csum_ipv6_magic(const struct in6_addr *saddr,
-		const struct in6_addr *daddr,
-		__u32 len,
-		unsigned short proto,
-		__wsum sum)
+csum_ipv6_magic(
+	const struct in6_addr *saddr,
+	const struct in6_addr *daddr,
+	__u32 len,
+	unsigned short proto,
+	__wsum sum
+	)
 {
 	sum += saddr->in6_u.u6_addr32[0];
 	sum += saddr->in6_u.u6_addr32[1];

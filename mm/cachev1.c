@@ -64,7 +64,7 @@ cache_op_range(
 	unsigned int tmp = 0;
 
 	if (unlikely((start & 0xf0000000) !=
-		(CK_RAM_BASE + PAGE_OFFSET - PHYS_OFFSET))) {
+		(CONFIG_RAM_BASE + PAGE_OFFSET - PHYS_OFFSET))) {
 		cache_op_all(value);
 		return;
 	}

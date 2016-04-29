@@ -1,4 +1,3 @@
-#include <asm/csky.h>
 #include <asm/entry.h>
 /*
  *	Board setup info.

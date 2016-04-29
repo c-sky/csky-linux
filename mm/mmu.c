@@ -37,7 +37,6 @@
 #include <asm/mmu_context.h>
 #include <asm/sections.h>
 #include <asm/tlb.h>
-#include <asm/csky.h>
 #include <asm/fixmap.h>
 
 DEFINE_PER_CPU(struct mmu_gather, mmu_gathers);

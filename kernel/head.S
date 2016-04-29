@@ -1,29 +1,10 @@
-/*
- * hrad.S -- startup code for csky eval board.
- *
- * This file is subject to the terms and conditions of the GNU General Public
- * License.  See the file README.legal in the main directory of this archive
- * for more details.
- *
- * Copyright (C) 2009 Hangzhou C-SKY Microsystems co.,ltd.
- * Copyright (C) 2009 Hu junshan (junshan_hu@c-sky.com)
- *
- */
-
 #include <linux/init.h>
 #include <linux/threads.h>
 #include <asm/setup.h>
-#include <asm/csky.h>
 #include <asm/page.h>
 #include <asm/entry.h>
 #include <asm/regdef.h>
 
-/*
- *	Board setup info.
- */
-#define	PHY_MEM_BASE	CK_RAM_BASE	/* Memory base at address 0 */
-
-//Virtual address variable
 .export _ramvec
 .export swapper_pg_dir
 .export empty_bad_page
@@ -152,7 +133,7 @@ __create_page_table:
 	 * will be removed by paging_init()
 	 */
 
-	lrw     r8, PHY_MEM_BASE  //get physical address of start RAM   
+	lrw     r8, CONFIG_RAM_BASE  //get physical address of start RAM   
 	movi    a0, 0
 #ifdef CONFIG_CPU_CSKYV1
 	movi    r5, 0x00000016 //C = 010, D = 1, V = 1, G = 0, pfn = 0x0
