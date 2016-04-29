@@ -19,7 +19,6 @@
 #include <asm/tlbflush.h>
 #include <asm/pgalloc.h>
 
-#ifdef CONFIG_MMU
 static inline void remap_area_pte(pte_t * pte, unsigned long address,
 	phys_addr_t size, phys_addr_t phys_addr, unsigned long flags)
 {
@@ -226,22 +225,6 @@ void iounmap(void *addr)
 	if (!IS_KSEG1(addr))
 		return vfree((void *) (PAGE_MASK & (unsigned long) addr));
 }
-#else /*CONFIG_MMU*/
-void __iomem * __ioremap(phys_addr_t phys_addr, phys_addr_t size, unsigned long flags)
-{
-    return (void __iomem *) phys_addr;
-}
-
-void __iomem * __ioremap_mode(phys_addr_t offset, unsigned long size, unsigned long flags)
-{
-	return __ioremap(offset, size, flags);
-}
-
-void iounmap(void *addr)
-{
-    return;
-}
-#endif /*CONFIG_MMU*/
 
 EXPORT_SYMBOL(__ioremap);
 EXPORT_SYMBOL(iounmap);

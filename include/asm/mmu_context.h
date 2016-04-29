@@ -10,7 +10,7 @@
 #include <linux/errno.h>
 #include <linux/sched.h>
 
-#ifdef CONFIG_CPU_MMU_V1
+#ifdef CONFIG_CPU_CSKYV1
 #include <asm/ckmmuv1.h>
 #else
 #include <asm/ckmmuv2.h>
@@ -25,7 +25,7 @@
  * map the page tables.
  */
 #ifdef CONFIG_MMU_HARD_REFILL
-#ifdef CONFIG_CPU_MMU_V1
+#ifdef CONFIG_CPU_CSKYV1
 #define TLBMISS_HANDLER_SETUP_PGD(pgd)                \
 do{                                                   \
 	__asm__ __volatile__(                         \
@@ -49,7 +49,7 @@ do{                                                   \
 	            ::"r"(pgd), "r"(PHYS_OFFSET)      \
 	            :);                               \
 }while(0)
-#endif /* CONFIG_CPU_MMU_V1 */
+#endif /* CONFIG_CPU_CSKYV1 */
 
 #define TLBMISS_HANDLER_SETUP() \
     TLBMISS_HANDLER_SETUP_PGD(swapper_pg_dir)

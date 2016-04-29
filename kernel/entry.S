@@ -147,7 +147,7 @@ tlbinvalidl:
 
 	/* PTE present, now make it valid */
 	ldw     a3, (r6)
-#ifdef CONFIG_CPU_MMU_V1
+#ifdef CONFIG_CPU_CSKYV1
 	bgeni   a2, 7         /* a2 = (_PAGE_VALID | _PAGE_ACCESSED) */
  	bseti   a2, 3
 #else
@@ -162,7 +162,7 @@ tlbinvalidl:
 	 * Table, and Entrylo1 with the high one.
 	 */
 	bclri   r6, PTE_BIT
-#ifdef CONFIG_CPU_MMU_V1
+#ifdef CONFIG_CPU_CSKYV1
 	ldw     a2, (r6, 4)
 	lsri    a2, 6
 	WR_MEL1 a2
@@ -258,7 +258,7 @@ tlbinvalids:
 	/* PTE resent, set it to be valid. */
 	ldw     a3, (r6)
 
-#ifdef CONFIG_CPU_MMU_V1
+#ifdef CONFIG_CPU_CSKYV1
 	/* a2 = (_PAGE_ACCESSED | _PAGE_MODIFIED | _PAGE_VALID | _PAGE_DIRTY) */
 	movi    a2, 0x18
 	bseti   a2, 7
@@ -275,7 +275,7 @@ tlbinvalids:
 	 * Table, and Entrylo1 with the high one.
 	 */     
 	bclri   r6, PTE_BIT
-#ifdef CONFIG_CPU_MMU_V1
+#ifdef CONFIG_CPU_CSKYV1
 	ldw     a2, (r6,4)
 	lsri    a2, 6
 	WR_MEL1	a2
@@ -334,7 +334,7 @@ tlbmiss:
 	
 	SET_CP_MMU
 	RD_MEH  a1
-#ifdef CONFIG_CPU_MMU_V1
+#ifdef CONFIG_CPU_CSKYV1
 	mov     a2, a1
 	lsri    a2, _PGDIR_SHIFT
 	ixw     a0, a2
@@ -441,7 +441,7 @@ ENTRY(handle_tlbmodified)
 	 * Present and writable bits set, set accessed and dirty bits. 
 	 * a2 = (_PAGE_ACCESSED | _PAGE_MODIFIED | _PAGE_VALID | _PAGE_DIRTY)
 	 */
-#ifdef CONFIG_CPU_MMU_V1
+#ifdef CONFIG_CPU_CSKYV1
 	movi    a2, 0x18
 	bseti   a2, 7
 	bseti   a2, 8
@@ -453,7 +453,7 @@ ENTRY(handle_tlbmodified)
 
 	/* Now reload the entry into the tlb. */
 	bclri   r6, PTE_BIT
-#ifdef CONFIG_CPU_MMU_V1
+#ifdef CONFIG_CPU_CSKYV1
 	ldw     a2, (r6, 4)
 	lsri    a2, 6
 	WR_MEL1	a2

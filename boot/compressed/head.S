@@ -76,7 +76,7 @@ __create_page_table:
 	bmaski  r4, 13
 	andn    r3, r4
 	or      r7, r3          // VPN2 is bit 31-12 of phy addr
-#ifdef CONFIG_CPU_MMU_V1
+#ifdef CONFIG_MMU_V1
 	lsri    r3, 6           // get bit 31-12 of phy addr
 #endif
 	or      r5, r3          //pfn

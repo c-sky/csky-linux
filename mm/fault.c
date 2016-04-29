@@ -243,7 +243,7 @@ vmalloc_fault:
 
 #ifdef CONFIG_MMU_HARD_REFILL
                 unsigned long pgd_base;
-#ifdef CONFIG_CPU_MMU_V1
+#ifdef CONFIG_CPU_CSKYV1
                 __asm__ __volatile__("cpseti	cp15		\n\r"
                                      "cprcr	r6, cpcr29	\n\r"
                                      "bclri	r6, 0		\n\r"
@@ -261,7 +261,7 @@ vmalloc_fault:
                                      :"=&r"(pgd_base)
 				     :"r"(PHYS_OFFSET)
                                      :);
-#endif	/* CONFIG_CPU_MMU_V1 */
+#endif	/* CONFIG_CPU_CSKYV1 */
                 pgd = (pgd_t *)pgd_base + offset;
 #else
                 pgd = (pgd_t *) pgd_current[raw_smp_processor_id()] + offset;

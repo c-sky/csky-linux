@@ -6,18 +6,9 @@
 # unless it's something special (ie not a .c file).
 #
 
-obj-y			:= cache.o init.o ioremap.o fault.o dma-mapping.o mmap.o 
+obj-y := cache.o init.o ioremap.o fault.o dma-mapping.o mmap.o mmu.o
 
-obj-$(CONFIG_CPU_CSKYV1)  += cachev1.o
-obj-$(CONFIG_CPU_CSKYV2)  += cachev2.o
+obj-$(CONFIG_CPU_CSKYV1)	+= cachev1.o tlbv1.o
+obj-$(CONFIG_CPU_CSKYV2)	+= cachev2.o tlbv2.o
 
-obj-$(CONFIG_CPU_MMU_V1)  += tlbv1.o
-obj-$(CONFIG_CPU_MMU_V2)  += tlbv2.o
-
-obj-$(CONFIG_MMU)	+= mmu.o
-
-ifneq ($(CONFIG_MMU),y)
-obj-y               += nommu.o
-endif
-
-obj-$(CONFIG_HIGHMEM) += highmem.o
+obj-$(CONFIG_HIGHMEM)		+= highmem.o

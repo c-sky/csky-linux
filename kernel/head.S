@@ -154,7 +154,7 @@ __create_page_table:
 
 	lrw     r8, PHY_MEM_BASE  //get physical address of start RAM   
 	movi    a0, 0
-#ifdef CONFIG_CPU_MMU_V1
+#ifdef CONFIG_CPU_CSKYV1
 	movi    r5, 0x00000016 //C = 010, D = 1, V = 1, G = 0, pfn = 0x0
 	movi    r6, 0x00000056 //C = 010, D = 1, V = 1, G = 0, pfn = 0x1
 #else
@@ -165,7 +165,7 @@ __create_page_table:
 	bmaski  r9, 13
 	andn    r8, r9
 	or      r7, r8          // VPN2 is bit 31-12 of phy addr
-#ifdef CONFIG_CPU_MMU_V1
+#ifdef CONFIG_CPU_CSKYV1
 	lsri    r8, 6	        // get bit 31-12 of phy addr, only MMUv1 need.
 #endif
 	or      r5, r8		    //pfn	
@@ -195,7 +195,7 @@ __create_page_table:
 	or      a0, a1
 	WR_MSA1 a0
 #else
-#ifdef CONFIG_CPU_MMU_V1
+#ifdef CONFIG_CPU_CSKYV1
 	//movi	a0, 1
 	//WR_MSA1	a0
 #endif

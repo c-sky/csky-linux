@@ -23,7 +23,7 @@
  * this problem will be in the update_mmu_cache() code for the r4k.
  */
 
-#ifdef CONFIG_CPU_MMU_V1
+#ifdef CONFIG_CPU_CSKYV1
 #define _PAGE_PRESENT               (1<<0)  /* implemented in software */ 
 #define _PAGE_READ                  (1<<1)  /* implemented in software */
 #define _PAGE_WRITE                 (1<<2)  /* implemented in software */

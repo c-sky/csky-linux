@@ -12,12 +12,6 @@
 #ifndef __ASM_CSKY_PGTABLE_H
 #define __ASM_CSKY_PGTABLE_H
 
-#ifndef CONFIG_MMU
-
-#include "pgtable-nommu.h"
-
-#else
-
 #include <asm/addrspace.h>
 #include <asm-generic/4level-fixup.h>
 #include <asm/fixmap.h>
@@ -115,9 +109,9 @@ static inline pte_t *pmd_page_vaddr(pmd_t pmd)
 #define USER_PTRS_PER_PGD	(0x80000000UL/PGDIR_SIZE)
 #define FIRST_USER_ADDRESS      0
 
-#define VMALLOC_START     (KSEG2 + 0x8000)
+#define VMALLOC_START	(0xc0008000)
 
-#define PKMAP_BASE		(0xfe000000UL)
+#define PKMAP_BASE	(0xfe000000UL)
 
 #ifdef CONFIG_HIGHMEM
 # define VMALLOC_END	(PKMAP_BASE-2*PAGE_SIZE)
@@ -165,7 +159,7 @@ static inline pte_t *pmd_page_vaddr(pmd_t pmd)
 #define pte_pfn(x)              ((unsigned long)((x).pte_low >> PAGE_SHIFT))
 #define pfn_pte(pfn, prot)    __pte(((unsigned long long)(pfn) << PAGE_SHIFT)\
                                     | pgprot_val(prot))
-#ifdef CONFIG_CPU_MMU_V1
+#ifdef CONFIG_CPU_CSKYV1
 static inline unsigned long pte_to_pgoff(pte_t pte)
 {
         return pte.pte_low >> 4;
@@ -485,7 +479,5 @@ static inline void update_mmu_cache(struct vm_area_struct *vma,
 	remap_pfn_range(vma, vaddr, pfn, size, prot)
 
 #include <asm-generic/pgtable.h>
-
-#endif /* CONFIG_MMU */
 
 #endif /* __ASM_CSKY_PGTABLE_H */

@@ -304,19 +304,19 @@
 
 /*
  * Below, are macros for MMU operating, use them to switch cop, read or write
- * registers of MMU in assemble files. Macro CONFIG_CPU_MMU_V1 means MMU in
+ * registers of MMU in assemble files. Macro CONFIG_CPU_CSKYV1 means MMU in
  * coprocessor.
  */
 /* Coprocessor switch to MMU */
 .macro SET_CP_MMU
-#ifdef CONFIG_CPU_MMU_V1
+#ifdef CONFIG_CPU_CSKYV1
 	cpseti  cp15
 #endif
 .endm
 
 /* MMU registers read operators. */
 .macro RD_MIR	rx
-#ifdef CONFIG_CPU_MMU_V1 
+#ifdef CONFIG_CPU_CSKYV1 
 	cprcr   \rx, cpcr0
 #else
 	mfcr    \rx, cr<0, 15>
@@ -324,7 +324,7 @@
 .endm
 
 .macro RD_MRR	rx
-#ifdef CONFIG_CPU_MMU_V1 
+#ifdef CONFIG_CPU_CSKYV1 
 	cprcr   \rx, cpcr1
 #else
 	mfcr    \rx, cr<1, 15>
@@ -332,7 +332,7 @@
 .endm
 
 .macro RD_MEL0	rx
-#ifdef CONFIG_CPU_MMU_V1 
+#ifdef CONFIG_CPU_CSKYV1 
 	cprcr   \rx, cpcr2
 #else
 	mfcr    \rx, cr<2, 15>
@@ -340,7 +340,7 @@
 .endm
 
 .macro RD_MEL1	rx
-#ifdef CONFIG_CPU_MMU_V1 
+#ifdef CONFIG_CPU_CSKYV1 
 	cprcr   \rx, cpcr3
 #else
 	mfcr    \rx, cr<3, 15>
@@ -348,7 +348,7 @@
 .endm
 
 .macro RD_MEH	rx
-#ifdef CONFIG_CPU_MMU_V1 
+#ifdef CONFIG_CPU_CSKYV1 
 	cprcr   \rx, cpcr4
 #else
 	mfcr    \rx, cr<4, 15>
@@ -356,7 +356,7 @@
 .endm
 
 .macro RD_MCR	rx
-#ifdef CONFIG_CPU_MMU_V1 
+#ifdef CONFIG_CPU_CSKYV1 
 	cprcr   \rx, cpcr5
 #else
 	mfcr    \rx, cr<5, 15>
@@ -364,7 +364,7 @@
 .endm
 
 .macro RD_MPR	rx
-#ifdef CONFIG_CPU_MMU_V1 
+#ifdef CONFIG_CPU_CSKYV1 
 	cprcr   \rx, cpcr6
 #else
 	mfcr    \rx, cr<6, 15>
@@ -372,7 +372,7 @@
 .endm
 
 .macro RD_MWR	rx
-#ifdef CONFIG_CPU_MMU_V1 
+#ifdef CONFIG_CPU_CSKYV1 
 	cprcr   \rx, cpcr7
 #else
 	mfcr    \rx, cr<7, 15>
@@ -380,7 +380,7 @@
 .endm
 
 .macro RD_MCIR	rx
-#ifdef CONFIG_CPU_MMU_V1 
+#ifdef CONFIG_CPU_CSKYV1 
 	cprcr   \rx, cpcr8
 #else
 	mfcr    \rx, cr<8, 15>
@@ -388,7 +388,7 @@
 .endm
 
 .macro RD_PGDR  rx
-#ifdef CONFIG_CPU_MMU_V1 
+#ifdef CONFIG_CPU_CSKYV1 
         cprcr   \rx, cpcr29
 #else
         mfcr    \rx, cr<29, 15>
@@ -397,7 +397,7 @@
 
 /* MMU registers write operators. */
 .macro WR_MIR	rx
-#ifdef CONFIG_CPU_MMU_V1
+#ifdef CONFIG_CPU_CSKYV1
 	cpwcr   \rx, cpcr0
 #else
 	mtcr    \rx, cr<0, 15>
@@ -405,7 +405,7 @@
 .endm
 
 .macro WR_MRR	rx
-#ifdef CONFIG_CPU_MMU_V1
+#ifdef CONFIG_CPU_CSKYV1
 	cpwcr   \rx, cpcr1
 #else
 	mtcr    \rx, cr<1, 15>
@@ -413,14 +413,14 @@
 .endm
 
 .macro WR_MEL0	rx
-#ifdef CONFIG_CPU_MMU_V1
+#ifdef CONFIG_CPU_CSKYV1
 	cpwcr   \rx, cpcr2
 #else
 	mtcr    \rx, cr<2, 15>
 #endif
 .endm
 .macro WR_MEL1	rx
-#ifdef CONFIG_CPU_MMU_V1
+#ifdef CONFIG_CPU_CSKYV1
 	cpwcr   \rx, cpcr3
 #else
 	mtcr    \rx, cr<3, 15>
@@ -428,7 +428,7 @@
 .endm
 
 .macro WR_MEH	rx
-#ifdef CONFIG_CPU_MMU_V1
+#ifdef CONFIG_CPU_CSKYV1
 	cpwcr   \rx, cpcr4
 #else
 	mtcr    \rx, cr<4, 15>
@@ -436,7 +436,7 @@
 .endm
 
 .macro WR_MCR	rx
-#ifdef CONFIG_CPU_MMU_V1
+#ifdef CONFIG_CPU_CSKYV1
 	cpwcr   \rx, cpcr5
 #else
 	mtcr    \rx, cr<5, 15>
@@ -444,7 +444,7 @@
 .endm
 
 .macro WR_MPR	rx
-#ifdef CONFIG_CPU_MMU_V1
+#ifdef CONFIG_CPU_CSKYV1
 	cpwcr   \rx, cpcr6
 #else
 	mtcr    \rx, cr<6, 15>
@@ -452,7 +452,7 @@
 .endm
 
 .macro WR_MWR	rx
-#ifdef CONFIG_CPU_MMU_V1
+#ifdef CONFIG_CPU_CSKYV1
 	cpwcr   \rx, cpcr7
 #else
 	mtcr    \rx, cr<7, 15>
@@ -460,7 +460,7 @@
 .endm
 
 .macro WR_MCIR	rx
-#ifdef CONFIG_CPU_MMU_V1
+#ifdef CONFIG_CPU_CSKYV1
 	cpwcr   \rx, cpcr8
 #else
 	mtcr    \rx, cr<8, 15>
@@ -468,7 +468,7 @@
 .endm
 
 .macro WR_MSA0	rx
-#ifdef CONFIG_CPU_MMU_V1
+#ifdef CONFIG_CPU_CSKYV1
 	cpwcr   \rx, cpcr30
 #else
 	mtcr    \rx, cr<30, 15>
@@ -476,7 +476,7 @@
 .endm
 
 .macro WR_MSA1	rx
-#ifdef CONFIG_CPU_MMU_V1
+#ifdef CONFIG_CPU_CSKYV1
 	cpwcr   \rx, cpcr31
 #else
 	mtcr    \rx, cr<31, 15>
