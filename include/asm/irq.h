@@ -8,7 +8,6 @@
 #include <linux/irqreturn.h>
 #include <linux/spinlock_types.h>
 
-
 /*
  * "Generic" interrupt sources
  */
@@ -52,7 +51,7 @@ extern void (*mach_disable_irq)(unsigned int);
 #define IRQ_FLG_REPLACE	(0x0002)	/* replace existing handler	*/
 #define IRQ_FLG_FAST	(0x0004)
 #define IRQ_FLG_SLOW	(0x0008)
-#define IRQ_FLG_STD		(0x8000)	/* internally used		*/
+#define IRQ_FLG_STD	(0x8000)	/* internally used		*/
 
 
 

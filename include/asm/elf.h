@@ -9,7 +9,7 @@
 #include <asm/user.h>
 #include <asm/regdef.h>
 
-#define EM_CSKY 39
+#define ELF_ARCH 39
 
 /* CSKY Relocations */
 #define R_CSKY_NONE               0
@@ -41,30 +41,28 @@ typedef struct user_cskyfp_struct elf_fpregset_t;
 /*
  * This is used to ensure we don't load something for the wrong architecture.
  */
-#define elf_check_arch(x) ((x)->e_machine == EM_CSKY)
+#define elf_check_arch(x) ((x)->e_machine == ELF_ARCH)
 
 /*
  * These are used to set parameters in the core dumps.
  */
-#define ELF_CLASS	ELFCLASS32
+#define USE_ELF_CORE_DUMP
+#define ELF_EXEC_PAGESIZE		4096
+#define ELF_CLASS			ELFCLASS32
+#define ELF_PLAT_INIT(_r, load_addr)	_r->a0 = 0
+
 #ifdef  __cskyBE__
 #define ELF_DATA	ELFDATA2MSB
 #else
-#define ELF_DATA    ELFDATA2LSB
+#define ELF_DATA	ELFDATA2LSB
 #endif
-#define ELF_ARCH	EM_CSKY
-
-#define ELF_PLAT_INIT(_r, load_addr)	_r->a0 = 0
-
-#define USE_ELF_CORE_DUMP
-#define ELF_EXEC_PAGESIZE	4096
 
 /* This is the location that an ET_DYN program is loaded if exec'ed.  Typical
    use of this is to invoke "./ld.so someprog" to test out a new version of
    the loader.  We need to make sure that it is out of the way of the program
    that it will "exec", and that there is sufficient room for the brk.  */
 
-#define ELF_ET_DYN_BASE         0x00000000UL
+#define ELF_ET_DYN_BASE	0x0UL
 
 /* The member sort in array pr_reg[x] is pc, r1, r0, psr, r2, r3,r4,
    r5, r6...... Because GDB difine */
@@ -86,7 +84,7 @@ typedef struct user_cskyfp_struct elf_fpregset_t;
         pr_reg[13] = regs->regs[7];             \
         pr_reg[14] = regs->regs[8];             \
         pr_reg[15] = regs->regs[9];             \
-        pr_reg[16] = rdusp(); 		        \
+        pr_reg[16] = rdusp();		        \
         pr_reg[17] = regs->r15;                 \
         pr_reg[18] = regs->exregs[0];           \
         pr_reg[19] = regs->exregs[1];           \
@@ -126,9 +124,8 @@ typedef struct user_cskyfp_struct elf_fpregset_t;
         pr_reg[17] = regs->r15;
 #endif
 
-struct task_struct;
-
 /* Similar, but for a thread other than current. */
+struct task_struct;
 extern int dump_task_regs(struct task_struct *, elf_gregset_t *);
 #define ELF_CORE_COPY_TASK_REGS(tsk, elf_regs) dump_task_regs(tsk, elf_regs)
 
@@ -141,14 +138,13 @@ extern int dump_task_regs(struct task_struct *, elf_gregset_t *);
    specific libraries for optimization.  This is more specific in
    intent than poking at uname or /proc/cpuinfo.  */
 
-#define ELF_PLATFORM  (NULL)
-
+#define ELF_PLATFORM	(NULL)
 #define SET_PERSONALITY(ex) set_personality(PER_LINUX)
-
 #define ARCH_HAS_SETUP_ADDITIONAL_PAGES 1
 struct linux_binprm;
-extern int arch_setup_additional_pages(struct linux_binprm *bprm,
-                                     int uses_interp);
+extern int arch_setup_additional_pages(
+		struct linux_binprm *bprm,
+		int uses_interp);
 
 struct mm_struct;
 extern unsigned long arch_randomize_brk(struct mm_struct *mm);

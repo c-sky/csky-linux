@@ -80,7 +80,7 @@
  *      came from supervisor mode before changing stack pointers.
  */
 
-.macro	SAVE_ALL 
+.macro	SAVE_ALL
 #if defined(CONFIG_CPU_CSKYV1)
         mtcr    regs7, ss2    /* save original regs7=r13 */
         mtcr    a0, ss3/* save original a0 */
@@ -292,8 +292,8 @@
 #endif
 .endm
 /*
- * Because kernel don't use FPU and only user program use FPU, we select 
- * coprocessor 15(MMU) when in super-mode. So this macro is called when 
+ * Because kernel don't use FPU and only user program use FPU, we select
+ * coprocessor 15(MMU) when in super-mode. So this macro is called when
  * CPU enter from user-mode to kernel super-mode except MMU exception.
  */
 .macro SET_SMOD_MMU_CP15
@@ -316,7 +316,7 @@
 
 /* MMU registers read operators. */
 .macro RD_MIR	rx
-#ifdef CONFIG_CPU_CSKYV1 
+#ifdef CONFIG_CPU_CSKYV1
 	cprcr   \rx, cpcr0
 #else
 	mfcr    \rx, cr<0, 15>
@@ -324,7 +324,7 @@
 .endm
 
 .macro RD_MRR	rx
-#ifdef CONFIG_CPU_CSKYV1 
+#ifdef CONFIG_CPU_CSKYV1
 	cprcr   \rx, cpcr1
 #else
 	mfcr    \rx, cr<1, 15>
@@ -332,7 +332,7 @@
 .endm
 
 .macro RD_MEL0	rx
-#ifdef CONFIG_CPU_CSKYV1 
+#ifdef CONFIG_CPU_CSKYV1
 	cprcr   \rx, cpcr2
 #else
 	mfcr    \rx, cr<2, 15>
@@ -340,7 +340,7 @@
 .endm
 
 .macro RD_MEL1	rx
-#ifdef CONFIG_CPU_CSKYV1 
+#ifdef CONFIG_CPU_CSKYV1
 	cprcr   \rx, cpcr3
 #else
 	mfcr    \rx, cr<3, 15>
@@ -348,7 +348,7 @@
 .endm
 
 .macro RD_MEH	rx
-#ifdef CONFIG_CPU_CSKYV1 
+#ifdef CONFIG_CPU_CSKYV1
 	cprcr   \rx, cpcr4
 #else
 	mfcr    \rx, cr<4, 15>
@@ -356,7 +356,7 @@
 .endm
 
 .macro RD_MCR	rx
-#ifdef CONFIG_CPU_CSKYV1 
+#ifdef CONFIG_CPU_CSKYV1
 	cprcr   \rx, cpcr5
 #else
 	mfcr    \rx, cr<5, 15>
@@ -364,7 +364,7 @@
 .endm
 
 .macro RD_MPR	rx
-#ifdef CONFIG_CPU_CSKYV1 
+#ifdef CONFIG_CPU_CSKYV1
 	cprcr   \rx, cpcr6
 #else
 	mfcr    \rx, cr<6, 15>
@@ -372,7 +372,7 @@
 .endm
 
 .macro RD_MWR	rx
-#ifdef CONFIG_CPU_CSKYV1 
+#ifdef CONFIG_CPU_CSKYV1
 	cprcr   \rx, cpcr7
 #else
 	mfcr    \rx, cr<7, 15>
@@ -380,7 +380,7 @@
 .endm
 
 .macro RD_MCIR	rx
-#ifdef CONFIG_CPU_CSKYV1 
+#ifdef CONFIG_CPU_CSKYV1
 	cprcr   \rx, cpcr8
 #else
 	mfcr    \rx, cr<8, 15>
@@ -388,7 +388,7 @@
 .endm
 
 .macro RD_PGDR  rx
-#ifdef CONFIG_CPU_CSKYV1 
+#ifdef CONFIG_CPU_CSKYV1
         cprcr   \rx, cpcr29
 #else
         mfcr    \rx, cr<29, 15>

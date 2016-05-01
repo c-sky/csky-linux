@@ -23,10 +23,6 @@
 
 static struct page *vdso_page;
 
-#ifndef CONFIG_MMU
- struct csky_vdso *global_vdso = 0;
-#endif
-
 static int __init init_vdso(void)
 {
 	struct csky_vdso *vdso;
@@ -36,14 +32,10 @@ static int __init init_vdso(void)
 	if (!vdso_page)
 		panic("Cannot allocate vdso");
 
-#if defined(CONFIG_MMU)
 	vdso = vmap(&vdso_page, 1, 0, PAGE_KERNEL);
-#else
-	vdso = pfn_to_virt(page_to_pfn(vdso_page));
-	global_vdso = vdso;
-#endif
 	if (!vdso)
 		panic("Cannot map vdso");
+
 	clear_page(vdso);
 
 #if defined(CONFIG_CPU_CSKYV1)
@@ -81,19 +73,16 @@ static int __init init_vdso(void)
 	err |= __put_user(0x2020, (vdso->rt_signal_retcode + 3));
 #endif
 
-	if (err)
-		panic("Cannot set signal return code.");
+	if (err) panic("Cannot set signal return code, err: %x.", err);
 
 	cache_op_range((unsigned long)vdso, ((unsigned long)vdso) + 16, DATA_CACHE|CACHE_CLR);
-#if  defined(CONFIG_MMU)
+
 	vunmap(vdso);
-#endif
 
 	return 0;
 }
 subsys_initcall(init_vdso);
 
-#if  defined(CONFIG_MMU)
 static unsigned long vdso_addr(unsigned long start)
 {
 	return STACK_TOP;
@@ -115,11 +104,12 @@ int arch_setup_additional_pages(struct linux_binprm *bprm, int uses_interp)
 		goto up_fail;
 	}
 
-	ret = install_special_mapping(mm, addr, PAGE_SIZE,
-				      VM_READ|VM_EXEC|
-				      VM_MAYREAD|VM_MAYWRITE|VM_MAYEXEC,
-				      &vdso_page);
-
+	ret = install_special_mapping(
+		mm,
+		addr,
+		PAGE_SIZE,
+		VM_READ|VM_EXEC|VM_MAYREAD|VM_MAYWRITE|VM_MAYEXEC,
+		&vdso_page);
 	if (ret)
 		goto up_fail;
 
@@ -132,8 +122,11 @@ up_fail:
 
 const char *arch_vma_name(struct vm_area_struct *vma)
 {
-	if (vma->vm_mm && vma->vm_start == (long)vma->vm_mm->context.vdso)
+	if (vma->vm_mm == NULL)
+		return NULL;
+
+	if (vma->vm_start == (long)vma->vm_mm->context.vdso)
 		return "[vdso]";
-	return NULL;
+	else
+		return NULL;
 }
-#endif

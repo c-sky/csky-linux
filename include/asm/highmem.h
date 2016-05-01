@@ -1,18 +1,3 @@
-/*
- * highmem.h: virtual kernel memory mappings for high memory
- *
- * Used in CONFIG_HIGHMEM systems for memory pages which
- * are not addressable by direct kernel virtual addresses.
- *
- * This file is subject to the terms and conditions of the GNU General Public
- * License.  See the file "COPYING" in the main directory of this archive
- * for more details.
- *
- * (C) Copyright 2011, C-SKY Microsystems Co., Ltd. (www.c-sky.com) 
- *
- * added by Hujunshan<junshan_hu@c-sky.com>, July 2011
- */
-
 #ifndef __ASM_CSKY_HIGHMEM_H
 #define __ASM_CSKY_HIGHMEM_H
 
