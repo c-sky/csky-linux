@@ -76,12 +76,12 @@ int main(void)
 	DEFINE(PT_RHI,            offsetof(struct pt_regs, rhi));
 	DEFINE(PT_RLO,            offsetof(struct pt_regs, rlo));
 #endif
-
+#if 0
 	/* offsets into the irq_handler struct */
 	DEFINE(IRQ_HANDLER,       offsetof(struct irq_node, handler));
 	DEFINE(IRQ_DEVID,         offsetof(struct irq_node, dev_id));
 	DEFINE(IRQ_NEXT,          offsetof(struct irq_node, next));
-
+#endif
 	/* offsets into the irq_cpustat_t struct */
 	DEFINE(CPUSTAT_SOFTIRQ_PENDING, offsetof(irq_cpustat_t, __softirq_pending));
 
