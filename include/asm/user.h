@@ -97,14 +97,4 @@ struct user{
 #define HOST_TEXT_START_ADDR (u.start_code)
 #define HOST_STACK_END_ADDR (u.start_stack + u.u_ssize * NBPG)
 
-struct user_cskyprfl_struct {
-	unsigned long  hpcr;         /* Control reg */
-	unsigned long  hpspr;        /* Start PC reg */
-	unsigned long  hpepr;        /* End PC reg */
-	unsigned long  hpsir;        /* Software count trig reg */
-	unsigned long  soft[28];     /* profiling software Event count regs */
-	unsigned long  hard[30];     /* profiling hardware Event count regs */
-	unsigned long  extend[26];   /* profiling extended Event count regs */
-};
-
 #endif /* __ASM_CSKY_USER_H */

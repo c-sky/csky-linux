@@ -1,22 +1,9 @@
-/*
- * linux/arch/include/asm/pgtable_mm.h
- *
- * This file is subject to the terms and conditions of the GNU General Public
- * License.  See the file "COPYING" in the main directory of this archive
- * for more details.
- *
- * Copyright (C) 2009  Hangzhou C-SKY Microsystemsi,.Ltd
- * Copyright (C) 2009  Ye Yun (yun_ye@c-sky.com)
- */
-
 #ifndef __ASM_CSKY_PGTABLE_H
 #define __ASM_CSKY_PGTABLE_H
 
 #include <asm/addrspace.h>
 #include <asm-generic/4level-fixup.h>
 #include <asm/fixmap.h>
-
-#ifndef __ASSEMBLY__
 
 #include <asm/pgtable-bits.h>
 
@@ -82,8 +69,6 @@ static inline pte_t *pmd_page_vaddr(pmd_t pmd)
 #endif /* CONFIG_MMU_HARD_REFILL */
 
 #define pmd_page(pmd)           (pfn_to_page(pmd_phys(pmd) >> PAGE_SHIFT))
-
-#endif /* !defined (__ASSEMBLY__) */
 
 /*
  * Basically we have the same two-level (which is the logical three level

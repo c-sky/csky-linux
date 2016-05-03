@@ -1,20 +1,9 @@
-/*
- * arch/csky/include/asm/regdef.h
- *
- * This file is subject to the terms and conditions of the GNU General
- * Public License.  See the file COPYING in the main directory of
- * this archive for more details.
- *
- * (C) Copyright 2009, C-SKY Microsystems Co., Ltd. (www.c-sky.com)
- *  
- */
-
-#ifndef  _CSKY_REGDEF_H
-#define  _CSKY_REGDEF_H
+#ifndef  __ASM_CSKY_REGDEF_H
+#define  __ASM_CSKY_REGDEF_H
 
 #ifndef __CSKYABIV2__
 #define  sp           r0   /* stack pointer */
-#define  syscallid    r1   
+#define  syscallid    r1
 #define  a0           r2   /*argument word 1 or function return value */
 #define  a1           r3   /*argument word 2 or function return value */
 #define  a2           r4   /*argument word 3-6 */
@@ -46,7 +35,7 @@
 #define  regs7        r11
 #define  regs8        r12
 #define  regs9        r13
-#endif 
+#endif
 
 #define  r11_sig      r11 /* use as judge restart syscall */
 

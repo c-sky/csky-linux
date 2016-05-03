@@ -1,23 +1,9 @@
-/*
- * linux/arch/csky/include/asm/pgalloc.h
- *
- * This file is subject to the terms and conditions of the GNU General Public
- * License.  See the file "COPYING" in the main directory of this archive
- * for more details.
- *
- * Copyright (C) 2009  Hangzhou C-SKY Microsystems.
- * Copyright (C) 2006 by Li Chunqiang (chunqiang_li@c-sky.com)
- * Copyright (C) 2009 by Ye yun (yun_ye@c-sky.com)
- * Copyright (C) 2011 by Dou shaobin (shaobin_dou@c-sky.com)
- */
-#ifndef _ASM_PGALLOC_H
-#define _ASM_PGALLOC_H
+#ifndef __ASM_CSKY_PGALLOC_H
+#define __ASM_CSKY_PGALLOC_H
 
 #include <linux/highmem.h>
 #include <linux/mm.h>
 #include <linux/sched.h>
-
-#ifdef CONFIG_MMU
 
 #ifdef CONFIG_MMU_HARD_REFILL
 /* hard refill need fill PA. */
@@ -58,13 +44,13 @@ static inline pte_t *pte_alloc_one_kernel(struct mm_struct *mm,
 {
         pte_t *pte;
 
-        pte = (pte_t *) __get_free_pages(GFP_KERNEL | __GFP_REPEAT 
+        pte = (pte_t *) __get_free_pages(GFP_KERNEL | __GFP_REPEAT
                               | __GFP_ZERO, PTE_ORDER);
 
         return pte;
 }
 
-static inline struct page *pte_alloc_one(struct mm_struct *mm, 
+static inline struct page *pte_alloc_one(struct mm_struct *mm,
                                             unsigned long address)
 {
 	struct page *pte;
@@ -94,12 +80,12 @@ static inline void pgd_free(struct mm_struct *mm, pgd_t *pgd)
 {
         free_pages((unsigned long)pgd, PGD_ORDER);
 }
-static inline pgd_t *pgd_alloc(struct mm_struct *mm) 
-{       
+static inline pgd_t *pgd_alloc(struct mm_struct *mm)
+{
         pgd_t *ret, *init;
-                
+
         ret = (pgd_t *) __get_free_pages(GFP_KERNEL, PGD_ORDER);
-        if (ret) {     
+        if (ret) {
                 init = pgd_offset(&init_mm, 0UL);
                 pgd_init((unsigned long)ret);
                 memcpy(ret + USER_PTRS_PER_PGD, init + USER_PTRS_PER_PGD,
@@ -107,7 +93,7 @@ static inline pgd_t *pgd_alloc(struct mm_struct *mm)
         }
 
 #ifdef CONFIG_MMU_HARD_REFILL
-	clear_dcache_range((unsigned long)ret, PAGE_SIZE);	
+	clear_dcache_range((unsigned long)ret, PAGE_SIZE);
 #endif
 
         return ret;
@@ -134,7 +120,5 @@ do {                                                    \
 
 extern void pagetable_init(void);
 
-#endif /*CONFIG_MMU*/
-
-#endif /* _ASM_PGALLOC_H */
+#endif /* __ASM_CSKY_PGALLOC_H */
 

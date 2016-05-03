@@ -78,7 +78,6 @@ static inline void enter_lazy_tlb(struct mm_struct *mm, struct task_struct *tsk)
  *  All unused by hardware upper bits will be considered
  *  as a software asid extension.
  */
-#ifdef CONFIG_MMU
 static inline void
 get_new_mmu_context(struct mm_struct *mm, unsigned long cpu)
 {
@@ -92,7 +91,6 @@ get_new_mmu_context(struct mm_struct *mm, unsigned long cpu)
 	}
 	cpu_context(cpu, mm) = asid_cache(cpu) = asid;
 }
-#endif
 
 /*
  * Initialize the context related info for a new mm_struct
@@ -101,19 +99,16 @@ get_new_mmu_context(struct mm_struct *mm, unsigned long cpu)
 static inline int
 init_new_context(struct task_struct *tsk, struct mm_struct *mm)
 {
-#ifdef CONFIG_MMU
 	int i;
 
 	for_each_online_cpu(i)
 		cpu_context(i, mm) = 0;
-#endif
 	return 0;
 }
 
 static inline void switch_mm(struct mm_struct *prev, struct mm_struct *next,
                              struct task_struct *tsk)
 {
-#ifdef CONFIG_MMU
 	unsigned int cpu = smp_processor_id();
 	unsigned long flags;
 
@@ -133,7 +128,6 @@ static inline void switch_mm(struct mm_struct *prev, struct mm_struct *next,
 	cpumask_set_cpu(cpu, mm_cpumask(next));
 
 	local_irq_restore(flags);
-#endif
 }
 
 /*
@@ -151,7 +145,6 @@ static inline void destroy_context(struct mm_struct *mm)
 static inline void
 activate_mm(struct mm_struct *prev, struct mm_struct *next)
 {
-#ifdef CONFIG_MMU
 	unsigned long flags;
 	int cpu = smp_processor_id();
 
@@ -168,7 +161,6 @@ activate_mm(struct mm_struct *prev, struct mm_struct *next)
 	cpumask_set_cpu(cpu, mm_cpumask(next));
 
 	local_irq_restore(flags);
-#endif
 }
 #define deactivate_mm(tsk,mm)	do {} while (0)
 
@@ -176,7 +168,6 @@ activate_mm(struct mm_struct *prev, struct mm_struct *next)
  * If mm is currently active_mm, we can't really drop it. Instead,
  * we will get a new one for it.
  */
-#ifdef CONFIG_MMU
 static inline void
 drop_mmu_context(struct mm_struct *mm, unsigned cpu)
 {
@@ -194,6 +185,5 @@ drop_mmu_context(struct mm_struct *mm, unsigned cpu)
 
 	local_irq_restore(flags);
 }
-#endif
 
 #endif /* __ASM_CSKY_MMU_CONTEXT_H */

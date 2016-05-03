@@ -5,7 +5,7 @@
  * This file contains the system call numbers.
  */
 
-#define __NR_restart_syscall	0
+#define __NR_restart_syscall			0
 #define __NR_exit		  		1
 #define __NR_fork		  		2
 #define __NR_read		  		3
@@ -256,43 +256,43 @@
 #define __NR_epoll_create		249
 #define __NR_epoll_ctl			250
 #define __NR_epoll_wait			251
-#define __NR_remap_file_pages	252
-#define __NR_set_tid_address	253
+#define __NR_remap_file_pages		252
+#define __NR_set_tid_address		253
 #define __NR_timer_create		254
 #define __NR_timer_settime		255
 #define __NR_timer_gettime		256
-#define __NR_timer_getoverrun	257
+#define __NR_timer_getoverrun		257
 #define __NR_timer_delete		258
 #define __NR_clock_settime		259
 #define __NR_clock_gettime		260
 #define __NR_clock_getres		261
-#define __NR_clock_nanosleep	262
+#define __NR_clock_nanosleep		262
 #define __NR_statfs64			263
 #define __NR_fstatfs64			264
-#define __NR_tgkill				265
-#define __NR_utimes				266
+#define __NR_tgkill			265
+#define __NR_utimes			266
 #define __NR_fadvise64_64		267
-#define __NR_mbind				268
+#define __NR_mbind			268
 #define __NR_get_mempolicy		269
 #define __NR_set_mempolicy		270
 #define __NR_mq_open			271
 #define __NR_mq_unlink			272
 #define __NR_mq_timedsend		273
-#define __NR_mq_timedreceive	274
+#define __NR_mq_timedreceive		274
 #define __NR_mq_notify			275
 #define __NR_mq_getsetattr		276
-#define __NR_waitid				277
+#define __NR_waitid			277
 #define __NR_vserver			278
 #define __NR_add_key			279
 #define __NR_request_key		280
-#define __NR_keyctl				281	
+#define __NR_keyctl			281
 #define __NR_ioprio_set			282
 #define __NR_ioprio_get			283
 #define __NR_inotify_init		284
-#define __NR_inotify_add_watch	285
-#define __NR_inotify_rm_watch	286
+#define __NR_inotify_add_watch		285
+#define __NR_inotify_rm_watch		286
 #define __NR_migrate_pages		287
-#define __NR_openat				288
+#define __NR_openat			288
 #define __NR_mkdirat			289
 #define __NR_mknodat			290
 #define __NR_fchownat			291
@@ -300,25 +300,25 @@
 #define __NR_fstatat64			293
 #define __NR_unlinkat			294
 #define __NR_renameat			295
-#define __NR_linkat				296
+#define __NR_linkat			296
 #define __NR_symlinkat			297
 #define __NR_readlinkat			298
 #define __NR_fchmodat			299
 #define __NR_faccessat			300
 #define __NR_pselect6			301
-#define __NR_ppoll				302
+#define __NR_ppoll			302
 #define __NR_unshare			303
-#define __NR_set_robust_list	304
-#define __NR_get_robust_list	305
-#define __NR_splice				306
-#define __NR_sync_file_range2	307
-#define __NR_tee				308
+#define __NR_set_robust_list		304
+#define __NR_get_robust_list		305
+#define __NR_splice			306
+#define __NR_sync_file_range2		307
+#define __NR_tee			308
 #define __NR_vmsplice			309
 #define __NR_move_pages			310
-#define __NR_sched_setaffinity	311
-#define __NR_sched_getaffinity	312
+#define __NR_sched_setaffinity		311
+#define __NR_sched_getaffinity		312
 #define __NR_kexec_load			313
-#define __NR_getcpu				314
+#define __NR_getcpu			314
 #define __NR_epoll_pwait		315
 #define __NR_utimensat			316
 #define __NR_signalfd			317
@@ -335,8 +335,8 @@
 #define __NR_inotify_init1		328
 #define __NR_preadv			329
 #define __NR_pwritev			330
-#define __NR_rt_tgsigqueueinfo  	331
-#define __NR_perf_event_open    	332
+#define __NR_rt_tgsigqueueinfo		331
+#define __NR_perf_event_open		332
 #define __NR_recvmmsg			333
 #define __NR_accept4			334
 #define __NR_fanotify_init		335
@@ -345,15 +345,13 @@
 #define __NR_name_to_handle_at		338
 #define __NR_open_by_handle_at		339
 #define __NR_clock_adjtime		340
-#define __NR_syncfs 			341
+#define __NR_syncfs			341
 #define __NR_sendmmsg			342
-#define __NR_setns				343
-#define __NR_prfl_trig			344    // csky only
-#define __NR_prfl_read			345    // csky only
+#define __NR_setns			343
 
 #ifdef __KERNEL__
 
-#define NR_syscalls 			346
+#define NR_syscalls			346
 
 #define __ARCH_WANT_IPC_PARSE_VERSION
 #define __ARCH_WANT_OLD_STAT

@@ -30,7 +30,6 @@
 #include <asm/page.h>
 #include <asm/thread_info.h>
 #include <asm/regdef.h>
-#include <asm/prfl.h>
 #include <asm/fpu.h>
 
 #define PTE_HALF        0
@@ -1510,6 +1509,4 @@ sys_call_table:
 	.long sys_syncfs
 	.long sys_sendmmsg
 	.long sys_setns
-	.long csky_prfl_trig            //new systemcall
-	.long csky_prfl_read            /* 345*/
 

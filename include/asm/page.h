@@ -7,12 +7,6 @@
 #include <asm/cacheflush.h>
 #include <linux/const.h>
 
-#ifndef CONFIG_MMU
-
-#include "page-nommu.h"
-
-#else /*CONFIG_MMU*/
-
 /*
  * PAGE_SHIFT determines the page size
  */
@@ -161,7 +155,5 @@ typedef struct page *pgtable_t;
 
 #include <asm-generic/memory_model.h>
 #include <asm-generic/getorder.h>
-
-#endif /*CONFIG_MMU*/
 
 #endif /* __ASM_CSKY_PAGE_H */

@@ -1,55 +1,44 @@
-/*
- * arch/csky/include/asm/ptrace.h
- *
- * This file is subject to the terms and conditions of the GNU General
- * Public License.  See the file COPYING in the main directory of
- * this archive for more details.
- *  
- * (C) Copyright 2009, C-SKY Microsystems Co., Ltd. (www.c-sky.com)
- *  
- */
+#ifndef __ASM_CSKY_PTRACE_H
+#define __ASM_CSKY_PTRACE_H
 
-#ifndef _CSKY_PTRACE_H
-#define _CSKY_PTRACE_H
+#define REGNO_R0	0
+#define REGNO_R1	1
+#define REGNO_R2	2
+#define REGNO_R3	3
+#define REGNO_R4	4
+#define REGNO_R5	5
+#define REGNO_R6	6
+#define REGNO_R7	7
+#define REGNO_R8	8
+#define REGNO_R9	9
+#define REGNO_R10	10
+#define REGNO_R11	11
+#define REGNO_R12	12
+#define REGNO_R13	13
+#define REGNO_R14	14
+#define REGNO_R15	15
+#define REGNO_SR	32
+#define REGNO_PC	33
 
-#define REGNO_R0   	0
-#define REGNO_R1   	1
-#define REGNO_R2   	2
-#define REGNO_R3   	3
-#define REGNO_R4   	4
-#define REGNO_R5   	5
-#define REGNO_R6   	6
-#define REGNO_R7   	7
-#define REGNO_R8   	8
-#define REGNO_R9   	9
-#define REGNO_R10  	10
-#define REGNO_R11  	11
-#define REGNO_R12  	12
-#define REGNO_R13  	13
-#define REGNO_R14  	14
-#define REGNO_R15  	15
-#define REGNO_SR   	32
-#define REGNO_PC   	33
-
-#if (__CSKY__ == 2) 
-#define REGNO_R16  	16
-#define REGNO_R17  	17
-#define REGNO_R18  	18
-#define REGNO_R19  	19
-#define REGNO_R20  	20
-#define REGNO_R21  	21
-#define REGNO_R22  	22
-#define REGNO_R23  	23
-#define REGNO_R24  	24
-#define REGNO_R25  	25
-#define REGNO_R26  	26
-#define REGNO_R27  	27
-#define REGNO_R28  	28
-#define REGNO_R29  	29
-#define REGNO_R30  	30
-#define REGNO_R31  	31
-#define REGNO_RHI  	34
-#define REGNO_RLO  	35
+#if (__CSKY__ == 2)
+#define REGNO_R16	16
+#define REGNO_R17	17
+#define REGNO_R18	18
+#define REGNO_R19	19
+#define REGNO_R20	20
+#define REGNO_R21	21
+#define REGNO_R22	22
+#define REGNO_R23	23
+#define REGNO_R24	24
+#define REGNO_R25	25
+#define REGNO_R26	26
+#define REGNO_R27	27
+#define REGNO_R28	28
+#define REGNO_R29	29
+#define REGNO_R30	30
+#define REGNO_R31	31
+#define REGNO_RHI	34
+#define REGNO_RLO	35
 #endif/* (__CSKY__ == 2) */
 
 #if defined(__CSKYABIV2__)
@@ -122,4 +111,4 @@ struct  switch_stack {
 extern void show_regs(struct pt_regs *);
 #endif /* __KERNEL__ */
 #endif /* __ASSEMBLY__ */
-#endif /* _CSKY_PTRACE_H */
+#endif /* __ASM_CSKY_PTRACE_H */

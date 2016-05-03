@@ -1,15 +1,5 @@
-/*
- * linux/arch/csky/include/asm/misc_abiv1.h
- *
- * This file is subject to the terms and conditions of the GNU General Public
- * License.  See the file COPYING in the main directory of this archive
- * for more details.
- *
- * Copyright (C) 2014  zhangwm <wenmeng_zhang@c-sky.com>
- */
-
-#ifndef __CSKY_MISC_H__
-#define __CSKY_MISC_H__
+#ifndef __ASM_CSKY_MISC_H
+#define __ASM_CSKY_MISC_H
 #include <asm/ptrace.h>
 inline unsigned int read_pt_regs(unsigned int rx, struct pt_regs *regs);
 inline void write_pt_regs(unsigned int value, unsigned int rx, struct pt_regs *regs);

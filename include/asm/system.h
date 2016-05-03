@@ -1,17 +1,5 @@
-/*
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
- *
- *  (C) Copyright 2004, Li Chunqiang (chunqiang_li@c-sky.com)
- *  (C) Copyright 2009, Hu Junshan (junshan_hu@c-sky.com)
- *  (C) Copyright 2009, C-SKY Microsystems Co., Ltd. (www.c-sky.com)
- *
- */
-
-#ifndef _CSKY_SYSTEM_H
-#define _CSKY_SYSTEM_H
+#ifndef __ASM_CSKY_SYSTEM_H
+#define __ASM_CSKY_SYSTEM_H
 
 #include <linux/linkage.h>
 #include <asm/segment.h>
@@ -94,16 +82,9 @@ static inline unsigned long __cmpxchg(volatile unsigned long *m,
 	return retval;
 }
 
-#if 0
-#define cmpxchg(ptr, o, n)					\
-	((__typeof__(*(ptr))) __cmpxchg((unsigned long *)(ptr),	\
-					(unsigned long)(o),	\
-					(unsigned long)(n)))
-#endif
-
 #define HARD_RESET_NOW()
 
 
 #endif /* __KERNEL__ */
 
-#endif /* _CSKY_SYSTEM_H */
+#endif /* __ASM_CSKY_SYSTEM_H */
