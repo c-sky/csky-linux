@@ -99,22 +99,11 @@ static inline pgd_t *pgd_alloc(struct mm_struct *mm)
         return ret;
 }
 
-/*
- * allocating and freeing a pmd is trivial: the 1-entry pmd is
- * inside the pgd, so has no extra memory associated with it.
- */
-
-#define pmd_alloc_one(mm, addr)		({ BUG(); ((pmd_t *)2); })
-#define pmd_free(mm,x)			do { } while (0)
-#define pgd_populate(mm, pmd, pte)	BUG()
-
 #define __pte_free_tlb(tlb,pte,address)                 \
 do {                                                    \
         pgtable_page_dtor(pte);                         \
         tlb_remove_page((tlb), pte);                    \
 } while (0)
-
-#define __pmd_free_tlb(tlb, x, addr)    do {} while (0)
 
 #define check_pgt_cache()               do {} while(0)
 

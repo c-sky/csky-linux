@@ -57,34 +57,6 @@ asmlinkage int sys_cacheflush(void __user *addr, unsigned long bytes, int cache)
 
 	return 0;
 }
-#if 0
-void flush_dcache_page(struct page *page)
-{
-	struct address_space *mapping = page_mapping(page);
-	unsigned long addr;
-
-#if defined (CONFIG_CPU_CSKYV2)
-	if (PageHighMem(page))
-		return;
-#endif
-	if (mapping && !mapping_mapped(mapping)) {
-		SetPageDcacheDirty(page);
-		return;
-	}
-
-	/*
-	 * We could delay the flush for the !page_mapping case too.  But that
-	 * case is for exec env/arg pages and those are %99 certainly going to
-	 * get faulted into the tlb (and thus flushed) anyways.
-	 */
-	addr = (unsigned long) page_address(page);
-
-	cache_op_all(
-		DATA_CACHE|
-		CACHE_CLR|
-		CACHE_INV);
-}
-#endif
 
 void __update_cache(struct vm_area_struct *vma, unsigned long address,
 	pte_t pte)
@@ -98,22 +70,21 @@ void __update_cache(struct vm_area_struct *vma, unsigned long address,
 	if (unlikely(!pfn_valid(pfn)))
 		return;
 	page = pfn_to_page(pfn);
-//	if (page_mapping(page) && Page_dcache_dirty(page)) {
 		addr = (unsigned long) page_address(page);
 #if defined (CONFIG_HIGHMEM) && defined (CONFIG_CPU_CSKYV1)
-		if (PageHighMem(page)){
-			cache_op_all(
-				DATA_CACHE|
-				CACHE_CLR|
-				CACHE_INV);
-		}
+	if (PageHighMem(page)){
+		cache_op_all(
+			DATA_CACHE|
+			CACHE_CLR|
+			CACHE_INV);
+	}
 #endif
-		if (exec || pages_do_alias(addr, address & PAGE_MASK))
-			cache_op_all(
-				DATA_CACHE|
-				CACHE_CLR|
-				CACHE_INV);
-		ClearPageDcacheDirty(page);
-//	}
+	if (exec || pages_do_alias(addr, address & PAGE_MASK))
+		cache_op_all(
+			DATA_CACHE|
+			CACHE_CLR|
+			CACHE_INV);
+
+	clear_bit(PG_arch_1, &(page)->flags);
 }
 

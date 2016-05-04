@@ -113,7 +113,7 @@ config SYS_SUPPORTS_APM_EMULATION
 
 config PGTABLE_LEVELS
     int
-    default 3
+    default 2
 
 source "init/Kconfig"
 

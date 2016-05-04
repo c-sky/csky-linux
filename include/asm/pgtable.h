@@ -2,23 +2,10 @@
 #define __ASM_CSKY_PGTABLE_H
 
 #include <asm/addrspace.h>
-#include <asm-generic/4level-fixup.h>
 #include <asm/fixmap.h>
 
 #include <asm/pgtable-bits.h>
-
-/*
- * This flag is used to indicate that the page pointed to by a pte
- * is dirty and requires cleaning before returning it to the user.
- */
-#define PG_dcache_dirty			PG_arch_1
-
-#define Page_dcache_dirty(page)		\
-	test_bit(PG_dcache_dirty, &(page)->flags)
-#define SetPageDcacheDirty(page)	\
-	set_bit(PG_dcache_dirty, &(page)->flags)
-#define ClearPageDcacheDirty(page)	\
-	clear_bit(PG_dcache_dirty, &(page)->flags)
+#include <asm-generic/pgtable-nopmd.h>
 
 /*
  * Certain architectures need to do special things when pte's
@@ -44,6 +31,7 @@ static inline pte_t *pmd_page_vaddr(pmd_t pmd)
 }
 
 #define pmd_phys(pmd)           pmd_val(pmd)
+
 #else   /* CONFIG_MMU_HARD_REFILL */
 
 #define set_pte(pteptr, pteval)                                 \
@@ -66,28 +54,13 @@ static inline pte_t *pmd_page_vaddr(pmd_t pmd)
  * and a page entry and page directory to the page they refer to.
  */
 #define pmd_phys(pmd)           virt_to_phys((void *)pmd_val(pmd))
+
 #endif /* CONFIG_MMU_HARD_REFILL */
 
 #define pmd_page(pmd)           (pfn_to_page(pmd_phys(pmd) >> PAGE_SHIFT))
 
-/*
- * Basically we have the same two-level (which is the logical three level
- * Linux page table layout folded) page tables as the i386.  Some day
- * when we have proper page coloring support we can have a 1% quicker
- * tlb refill handling mechanism, but for now it is a bit slower but
- * works even with the cache aliasing problem the R4k and above have.
- */
-
-#ifndef PUD_SHIFT
-#define PUD_SHIFT      22
-#endif
-/* PMD_SHIFT determines the size of the area a second-level page table can map*/
-#define PMD_SHIFT      22
-#define PMD_SIZE	(1UL << PMD_SHIFT)
-#define PMD_MASK	(~(PMD_SIZE-1))
-
 /* PGDIR_SHIFT determines what a third-level page table entry can map */
-#define PGDIR_SHIFT	PMD_SHIFT
+#define PGDIR_SHIFT	22
 #define PGDIR_SIZE	(1UL << PGDIR_SHIFT)
 #define PGDIR_MASK	(~(PGDIR_SIZE-1))
 
@@ -111,8 +84,6 @@ static inline pte_t *pmd_page_vaddr(pmd_t pmd)
 
 #define pte_ERROR(e) \
         printk("%s:%d: bad pte %08lx.\n", __FILE__, __LINE__, (e).pte_low)
-#define pmd_ERROR(e) \
-        printk("%s:%d: bad pmd %08lx.\n", __FILE__, __LINE__, pmd_val(e))
 #define pgd_ERROR(e) \
         printk("%s:%d: bad pgd %08lx.\n", __FILE__, __LINE__, pgd_val(e))
 
@@ -204,7 +175,6 @@ static inline pte_t pgoff_to_pte(unsigned off)
 #define __S110	PAGE_SHARED
 #define __S111	PAGE_SHARED
 
-#ifndef __ASSEMBLY__
 
 extern unsigned long empty_zero_page;
 
@@ -224,15 +194,10 @@ static inline pte_t pte_mkspecial(pte_t pte)    { return pte; }
 #include <asm/cacheflush.h>
 static inline void set_pmd(pmd_t *pmdptr, pmd_t pmdval)
 {
-	*pmdptr = pmdval;
+	pmdptr->pud.pgd.pgd = pmdval.pud.pgd.pgd;
 	clear_dcache_range((unsigned long)pmdptr, 4);
 }
 
-static inline void set_pgd(pgd_t *pgdptr, pgd_t pgdval)
-{
-	*pgdptr = pgdval;
-	clear_dcache_range((unsigned long)pgdptr, 4);
-}
 
 static inline int pmd_none(pmd_t pmd)
 {
@@ -258,7 +223,6 @@ static inline void pmd_clear(pmd_t *pmdp)
  * but the define is needed for a generic inline function.)
  */
 #define set_pmd(pmdptr, pmdval) (*(pmdptr) = pmdval)
-#define set_pgd(pgdptr, pgdval) (*(pgdptr) = pgdval)
 
 static inline int pmd_none(pmd_t pmd)
 {
@@ -277,16 +241,6 @@ static inline void pmd_clear(pmd_t *pmdp)
 	pmd_val(*pmdp) = ((unsigned long) invalid_pte_table);
 }
 #endif
-
-/*
- * The "pgd_xxx()" functions here are trivial for a folded two-level
- * setup: the pgd is never bad, and a pmd always exists (as it's folded
- * into the pgd entry)
- */
-#define  pgd_none(pgd)                (0)
-#define  pgd_bad(pgd)                (0)
-static inline int pgd_present(pgd_t pgd)	{ return 1; }
-static inline void pgd_clear(pgd_t *pgdp)	{ }
 
 /*
  * The following only work if pte_present() is true.
@@ -413,12 +367,6 @@ static inline pgd_t *pgd_offset(struct mm_struct *mm, unsigned long address)
 	return mm->pgd + pgd_index(address);
 }
 
-/* Find an entry in the second-level page table.. */
-static inline pmd_t *pmd_offset(pgd_t *dir, unsigned long address)
-{
-	return (pmd_t *) dir;
-}
-
 /* Find an entry in the third-level page table.. */
 static inline pte_t *pte_offset(pmd_t * dir, unsigned long address)
 {
@@ -447,8 +395,6 @@ static inline void update_mmu_cache(struct vm_area_struct *vma,
 #define PageSkip(page)		(0)
 #define kern_addr_valid(addr)	(1)
 
-#endif /* ifndef (__ASSEMBLY__) */
-
 /*
  * We provide our own get_unmapped area to cope with the virtual aliasing
  * constraints placed on us by the cache architecture.
@@ -460,7 +406,7 @@ static inline void update_mmu_cache(struct vm_area_struct *vma,
  */
 #define pgtable_cache_init()	do { } while (0)
 
-#define io_remap_pfn_range(vma, vaddr, pfn, size, prot)         \
+#define io_remap_pfn_range(vma, vaddr, pfn, size, prot) \
 	remap_pfn_range(vma, vaddr, pfn, size, prot)
 
 #include <asm-generic/pgtable.h>
