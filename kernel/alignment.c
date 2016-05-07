@@ -1,7 +1,7 @@
 /*
- *  arch/arm/kernel/alignment.c  - handle alignment exceptions for CSKY CPU. 
- *  
- *  Copyright (C) 2011, C-SKY Microsystems Co., Ltd. (www.c-sky.com) 
+ *  arch/arm/kernel/alignment.c  - handle alignment exceptions for CSKY CPU.
+ *
+ *  Copyright (C) 2011, C-SKY Microsystems Co., Ltd. (www.c-sky.com)
  *  Copyright (C) 2011, Hu Junshan (junshan_hu@c-sky.com)
  *
  * This program is free software; you can redistribute it and/or modify
@@ -64,7 +64,6 @@ static int ai_usermode;
 #define UM_SIGNAL	(1 << 2)
 #define UM_KFIX		(1 << 3) // kernel alignment fix
 
-#ifdef CONFIG_PROC_FS
 static const char *usermode_action[] = {
 	"ignored",
 	"warn",
@@ -114,9 +113,7 @@ static int proc_alignment_write(struct file *file, const char __user *buffer,
 	return count;
 }
 
-#endif /* CONFIG_PROC_FS */
-
-#ifdef  __cskyBE__ 
+#ifdef  __cskyBE__
 #define BE		1
 #define FIRST_BYTE_16	"rotri	%1, 8\n"
 #define FIRST_BYTE_32	"rotri	%1, 24\n"
@@ -130,8 +127,8 @@ static int proc_alignment_write(struct file *file, const char __user *buffer,
 
 #define __get8_unaligned_check(val,addr,err)		\
 	__asm__(					\
- 	"1:	ldb	%1, (%2)\n"			\
- 	"	addi	%2, 1\n"			\
+	"1:	ldb	%1, (%2)\n"			\
+	"	addi	%2, 1\n"			\
 	"	br	3f\n"				\
 	"2:	movi	%0, 1\n"			\
 	"	br	3f\n"				\
@@ -173,8 +170,8 @@ static int proc_alignment_write(struct file *file, const char __user *buffer,
 	do {							\
 		unsigned int err = 0, v = val, a = addr;	\
 		__asm__( FIRST_BYTE_16				\
-	 	"1:	stb	%1, (%2)\n"			\
-	 	"	addi	%2, 1\n"			\
+		"1:	stb	%1, (%2)\n"			\
+		"	addi	%2, 1\n"			\
 			NEXT_BYTE				\
 		"2:	stb	%1, (%2)\n"			\
 		"	br	4f\n"				\
@@ -196,14 +193,14 @@ static int proc_alignment_write(struct file *file, const char __user *buffer,
 	do {							\
 		unsigned int err = 0, v = val, a = addr;	\
 		__asm__( FIRST_BYTE_32				\
-	 	"1:	stb	%1, (%2)\n"			\
-	 	"	addi	%2, 1\n"			\
+		"1:	stb	%1, (%2)\n"			\
+		"	addi	%2, 1\n"			\
 			NEXT_BYTE				\
-	 	"2:	stb	%1, (%2)\n"			\
-	 	"	addi	%2, 1\n"			\
+		"2:	stb	%1, (%2)\n"			\
+		"	addi	%2, 1\n"			\
 			NEXT_BYTE				\
-	 	"3:	stb	%1, (%2)\n"			\
-	 	"	addi	%2, 1\n"			\
+		"3:	stb	%1, (%2)\n"			\
+		"	addi	%2, 1\n"			\
 			NEXT_BYTE				\
 		"4:	stb	%1, (%2)\n"			\
 		"	br	6f\n"				\
@@ -223,14 +220,14 @@ static int proc_alignment_write(struct file *file, const char __user *buffer,
 			goto fault;				\
 	} while (0)
 
-inline static unsigned int 
+inline static unsigned int
 get_regs_value(unsigned int rx, struct pt_regs *regs){
 	unsigned int value;
 
 #ifndef __CSKYABIV2__
 	if(rx == 0){
 		if(user_mode(regs)){
-			__asm__ __volatile__("mfcr %0, ss1 \n\r" 
+			__asm__ __volatile__("mfcr %0, ss1 \n\r"
 						:"=r"(value));
 		}else{
 			value = sizeof(struct pt_regs) + ((unsigned int)regs);
@@ -247,7 +244,7 @@ get_regs_value(unsigned int rx, struct pt_regs *regs){
 		value  = *((int *)regs + rx + 3);
 	}else if(rx == 14){
 		if(user_mode(regs)){
-			__asm__ __volatile__("mfcr %0, cr<14, 1> \n\r" 
+			__asm__ __volatile__("mfcr %0, cr<14, 1> \n\r"
 						:"=r"(value));
 		}else{
 			value = sizeof(struct pt_regs) + ((unsigned int)regs);
@@ -277,7 +274,7 @@ put_regs_value(unsigned int value, unsigned int rx, struct pt_regs *regs){
 		*((int *)regs + rx + 3) = value;
 	}else if(rx == 14){
 		if(user_mode(regs)){
-			__asm__ __volatile__("mtcr %0, cr<14, 1> \n\r" 
+			__asm__ __volatile__("mtcr %0, cr<14, 1> \n\r"
 						:"=r"(value));
 		}else{
 			printk("alignment handler trying to write sp.\n");
@@ -293,7 +290,7 @@ fault:
 }
 
 #ifndef __CSKYABIV2__
-static int 
+static int
 handle_ldh_ldw_v1(unsigned long instr, struct pt_regs *regs){
 	unsigned int regx = instr & 0xf;
 	unsigned int regz = (instr >> 8) & 0xf;
@@ -325,10 +322,10 @@ handle_ldh_ldw_v1(unsigned long instr, struct pt_regs *regs){
 
 	return HANDLER_SUCCESS;
 fault:
-	return HANDLER_FAILURE;	
+	return HANDLER_FAILURE;
 }
 
-static int 
+static int
 handle_ldm_v1(unsigned long instr, struct pt_regs *regs){
 	unsigned int regf = instr & 0xf;
 	unsigned int datasp;
@@ -353,7 +350,7 @@ fault:
 	return HANDLER_FAILURE;
 }
 
-static int 
+static int
 handle_ldq_v1(unsigned long instr, struct pt_regs *regs){
 	unsigned int regf = instr & 0xf;
 	unsigned int datarf;
@@ -378,7 +375,7 @@ fault:
 	return HANDLER_FAILURE;
 }
 
-static int 
+static int
 handle_sth_stw_v1(unsigned long instr, struct pt_regs *regs){
 	unsigned int regx = instr & 0xf;
 	unsigned int regz = (instr >> 8) & 0xf;
@@ -392,11 +389,11 @@ handle_sth_stw_v1(unsigned long instr, struct pt_regs *regs){
 	sth_stw = instr & 0x6000;
 	if(sth_stw == 0x4000){ // sth
 		destaddr = dataregx + (imm4 << 1);
-		put16_unaligned_check(dataregz, destaddr);	
+		put16_unaligned_check(dataregz, destaddr);
 		ai_half += 1;
 	}else if(sth_stw == 0x0000){ //stw
 		destaddr = dataregx + (imm4 << 2);
-		put32_unaligned_check(dataregz, destaddr);	
+		put32_unaligned_check(dataregz, destaddr);
 		ai_word += 1;
 	}else{
 		goto fault;
@@ -404,10 +401,10 @@ handle_sth_stw_v1(unsigned long instr, struct pt_regs *regs){
 
 	return HANDLER_SUCCESS;
 fault:
-	return HANDLER_FAILURE;	
+	return HANDLER_FAILURE;
 }
 
-static int 
+static int
 handle_stq_v1(unsigned long instr, struct pt_regs *regs){
 	unsigned int regf = instr & 0xf;
 	unsigned int datarf;
@@ -430,7 +427,7 @@ fault:
 	return HANDLER_FAILURE;
 }
 
-static int 
+static int
 handle_stm_v1(unsigned long instr, struct pt_regs *regs){
 	unsigned int regf = instr & 0xf;
 	unsigned int datasp;
@@ -453,7 +450,7 @@ fault:
 	return HANDLER_FAILURE;
 }
 #else /* abiv2 */
-static int 
+static int
 handle_ldh_16(unsigned long instr, struct pt_regs *regs){
 	unsigned int regx = (instr >> 8) & 0x7;
 	unsigned int regz = (instr >> 5) & 0x7;
@@ -473,10 +470,10 @@ handle_ldh_16(unsigned long instr, struct pt_regs *regs){
 
 	return HANDLER_SUCCESS;
 fault:
-	return HANDLER_FAILURE;	
+	return HANDLER_FAILURE;
 }
 
-static int 
+static int
 handle_ldw_16(unsigned long instr, struct pt_regs *regs){
 	unsigned int regx = (instr >> 8) & 0x7;
 	unsigned int regz = (instr >> 5) & 0x7;
@@ -495,10 +492,10 @@ handle_ldw_16(unsigned long instr, struct pt_regs *regs){
 
 	return HANDLER_SUCCESS;
 fault:
-	return HANDLER_FAILURE;	
+	return HANDLER_FAILURE;
 }
 
-static int 
+static int
 handle_ldw_sp_16(unsigned long instr, struct pt_regs *regs){
 	unsigned int regz = (instr >> 5) & 0x7;
 	unsigned int imm5 = instr & 0x1f;
@@ -512,15 +509,15 @@ handle_ldw_sp_16(unsigned long instr, struct pt_regs *regs){
 	if(put_regs_value(tmpval32, regz, regs) != 0){
 		goto fault;
 	}
-	
+
 	ai_word += 1;
 
 	return HANDLER_SUCCESS;
 fault:
-	return HANDLER_FAILURE;	
+	return HANDLER_FAILURE;
 }
 
-static int 
+static int
 handle_sth_16(unsigned long instr, struct pt_regs *regs){
 	unsigned int regx = (instr >> 8) & 0x7;
 	unsigned int regz = (instr >> 5) & 0x7;
@@ -532,15 +529,15 @@ handle_sth_16(unsigned long instr, struct pt_regs *regs){
 	destaddr = dataregx + (imm5 << 1);
 	dataregz = get_regs_value(regz, regs);
 	put16_unaligned_check(dataregz, destaddr);
-	
+
 	ai_half += 1;
 
 	return HANDLER_SUCCESS;
 fault:
-	return HANDLER_FAILURE;	
+	return HANDLER_FAILURE;
 }
 
-static int 
+static int
 handle_stw_16(unsigned long instr, struct pt_regs *regs){
 	unsigned int regx = (instr >> 8) & 0x7;
 	unsigned int regz = (instr >> 5) & 0x7;
@@ -552,15 +549,15 @@ handle_stw_16(unsigned long instr, struct pt_regs *regs){
 	destaddr = dataregx + (imm5 << 2);
 	dataregz = get_regs_value(regz, regs);
 	put32_unaligned_check(dataregz, destaddr);
-	
+
 	ai_word += 1;
 
 	return HANDLER_SUCCESS;
 fault:
-	return HANDLER_FAILURE;	
+	return HANDLER_FAILURE;
 }
 
-static int 
+static int
 handle_stw_sp_16(unsigned long instr, struct pt_regs *regs){
 	unsigned int regz = (instr >> 5) & 0x7;
 	unsigned int imm5 = instr & 0x1f;
@@ -572,15 +569,15 @@ handle_stw_sp_16(unsigned long instr, struct pt_regs *regs){
 	destaddr = datasp + (((imm3 << 5) | imm5) << 2);
 	dataregz = get_regs_value(regz, regs);
 	put32_unaligned_check(dataregz, destaddr);
-	
+
 	ai_word += 1;
 
 	return HANDLER_SUCCESS;
 fault:
-	return HANDLER_FAILURE;	
+	return HANDLER_FAILURE;
 }
 
-static int 
+static int
 handle_push_pop_16(unsigned long instr, struct pt_regs *regs){
 	unsigned int push_pop = instr & 0xffe0;
 	unsigned int list1 = instr & 0xf;
@@ -625,10 +622,10 @@ handle_push_pop_16(unsigned long instr, struct pt_regs *regs){
 
 	return HANDLER_SUCCESS;
 fault:
-	return HANDLER_FAILURE;	
+	return HANDLER_FAILURE;
 }
 
-static int 
+static int
 handle_push_pop(unsigned long instr, struct pt_regs *regs){
 	unsigned int push_pop = instr & 0xfffffe00;
 	unsigned int list1 = instr & 0xf;
@@ -695,10 +692,10 @@ handle_push_pop(unsigned long instr, struct pt_regs *regs){
 
 	return HANDLER_SUCCESS;
 fault:
-	return HANDLER_FAILURE;	
+	return HANDLER_FAILURE;
 }
 
-static int 
+static int
 handle_ldh_ldhs_ldw_ldd(unsigned long instr, struct pt_regs *regs){
 	unsigned int regx = (instr >> 16) & 0x1f;
 	unsigned int regz = (instr >> 21) & 0x1f;
@@ -737,7 +734,7 @@ handle_ldh_ldhs_ldw_ldd(unsigned long instr, struct pt_regs *regs){
 			goto fault;
 		}
 		ai_half += 1;
-		break; 
+		break;
 	case 2: // ldw
 		destaddr = dataregx + (offset << 2);
 		get32_unaligned_check(tmpval32, destaddr);
@@ -752,10 +749,10 @@ handle_ldh_ldhs_ldw_ldd(unsigned long instr, struct pt_regs *regs){
 
 	return HANDLER_SUCCESS;
 fault:
-	return HANDLER_FAILURE;	
+	return HANDLER_FAILURE;
 }
 
-static int 
+static int
 handle_sth_stw_std(unsigned long instr, struct pt_regs *regs){
 	unsigned int regx = (instr >> 16) & 0x1f;
 	unsigned int regz = (instr >> 21) & 0x1f;
@@ -792,10 +789,10 @@ handle_sth_stw_std(unsigned long instr, struct pt_regs *regs){
 
 	return HANDLER_SUCCESS;
 fault:
-	return HANDLER_FAILURE;	
+	return HANDLER_FAILURE;
 }
 
-static int 
+static int
 handle_ldrh_ldrhs_ldrw_ldm(unsigned long instr, struct pt_regs *regs){
 	unsigned int regx = (instr >> 16) & 0x1f;
 	unsigned int regy = (instr >> 21) & 0x1f;
@@ -831,7 +828,7 @@ handle_ldrh_ldrhs_ldrw_ldm(unsigned long instr, struct pt_regs *regs){
 		}
 		ai_word += 1;
 		break;
-	case 7: // ldm	
+	case 7: // ldm
 		for(i = 0; i <= (instr & 0x1f); i++){
 			get32_unaligned_check(tmpval32, dataregx + i * 4);
 			if(put_regs_value(tmpval32, regy + i, regs) != 0){
@@ -843,13 +840,13 @@ handle_ldrh_ldrhs_ldrw_ldm(unsigned long instr, struct pt_regs *regs){
 	default:
 		goto fault;
 	}
-	
+
 	return HANDLER_SUCCESS;
 fault:
-	return HANDLER_FAILURE;	
+	return HANDLER_FAILURE;
 }
 
-static int 
+static int
 handle_strh_strw_stm(unsigned long instr, struct pt_regs *regs){
 	unsigned int regx = (instr >> 16) & 0x1f;
 	unsigned int regy = (instr >> 21) & 0x1f;
@@ -885,7 +882,7 @@ handle_strh_strw_stm(unsigned long instr, struct pt_regs *regs){
 
 	return HANDLER_SUCCESS;
 fault:
-	return HANDLER_FAILURE;	
+	return HANDLER_FAILURE;
 }
 #endif /* __CSKYABIV2__ */
 
@@ -898,7 +895,6 @@ asmlinkage void alignment_c(struct pt_regs *regs)
 	int (*handler)(unsigned long inst, struct pt_regs *regs) = NULL;
 	int isize = 2;
 	mm_segment_t fs;
-//printk("....alignment!\n");
 
 	instrptr = instruction_pointer(regs);
 
@@ -911,7 +907,7 @@ asmlinkage void alignment_c(struct pt_regs *regs)
 		if (IS_T32(tinstr)) {
 			u16 tinst2 = 0;
 			fault = __get_user(tinst2, (u16 *)(instrptr+2));
-			instr = (tinstr << 16) | tinst2;	
+			instr = (tinstr << 16) | tinst2;
 			isize = 4;
 		}
 	}
@@ -928,12 +924,12 @@ asmlinkage void alignment_c(struct pt_regs *regs)
 	} else {
 		goto bad_or_fault;
 	}
-fixup:	
+fixup:
 	regs->pc += isize;
 
 #ifndef __CSKYABIV2__	/* abiv1 */
 	if((instr & 0x9000) == 0x9000){ // sth, stw
- 		handler = handle_sth_stw_v1;
+		handler = handle_sth_stw_v1;
 	}else if((instr & 0x9000) == 0x8000){ // ldh, ldw
 		handler = handle_ldh_ldw_v1;
 	}else if((instr & 0xfff0) == 0x0070){ // stm
@@ -956,7 +952,7 @@ fixup:
 		case 0x9800: // ldw sp
 			handler = handle_ldw_sp_16;
 			break;
-		case 0x9000: // ldw 
+		case 0x9000: // ldw
 			handler = handle_ldw_16;
 			break;
 		case 0xa800: // ld
@@ -975,7 +971,7 @@ fixup:
 		default:
 			goto bad_or_fault;
 		}
-	} 
+	}
 	else {
 		switch (CODING_BITS(instr)) {
 		case 0xD8000000: // ld.h/ld.hs/ld.w/ld.d
@@ -1000,7 +996,7 @@ fixup:
 		}
 	}
 #endif
-	
+
 	if (!handler)
 		goto bad_or_fault;
 
@@ -1027,13 +1023,11 @@ user:
 
 	if (ai_usermode & UM_WARN)
 		printk("Alignment trap: %s(pid=%d) PC=0x%x Ins=0x%x\n",
-			current->comm, current->pid, 
+			current->comm, current->pid,
 			(unsigned int)regs->pc, (unsigned int)instr);
 
 	if (ai_usermode & UM_FIXUP)
 		goto fixup;
-
-//kernel:
 
 	if (ai_usermode & UM_SIGNAL)
 		force_sig(SIGBUS, current);
@@ -1049,7 +1043,6 @@ user:
  */
 static int __init alignment_init(void)
 {
-#ifdef CONFIG_PROC_FS
 	struct proc_dir_entry *res;
 
 	res = proc_mkdir("cpu", NULL);
@@ -1062,13 +1055,11 @@ static int __init alignment_init(void)
 
 	res->read_proc = proc_alignment_read;
 	res->write_proc = proc_alignment_write;
-#endif
 
 	ai_usermode = UM_FIXUP | UM_KFIX;
 
 	return 0;
 }
-
 fs_initcall(alignment_init);
 
 #else /* !CONFIG_SOFT_HANDMISSALIGN */
@@ -1087,7 +1078,7 @@ asmlinkage void alignment_c(struct pt_regs *regs)
 		force_sig_info(sig, &info, current);
         return;
 	}
-	
+
 	if(fixup_exception(regs)) {
 	    return;
 	}

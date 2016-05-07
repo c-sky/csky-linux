@@ -44,10 +44,6 @@
 /* The number of spurious interrupts */
 volatile unsigned int num_spurious;
 
-#ifdef CONFIG_CPU_USE_FIQ
-extern void init_FIQ(void);
-extern int show_fiq_list(struct seq_file *, void *);
-#endif
 extern e_vector *_ramvec;
 void set_evector(int vecnum, void (*handler)(void))
 {
@@ -129,9 +125,6 @@ void __init init_IRQ(void)
 
 	if (mach_init_IRQ)
 		mach_init_IRQ();
-#ifdef CONFIG_CPU_USE_FIQ
-	init_FIQ();
-#endif
 }
 
 

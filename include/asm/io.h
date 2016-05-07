@@ -1,7 +1,7 @@
 #ifndef __ASM_CSKY_IO_H
 #define __ASM_CSKY_IO_H
 
-#include <asm/pgtable-bits.h>
+#include <hal/pgtable-bits.h>
 #include <asm/types.h>
 
 extern void __iomem * __ioremap_mode(phys_addr_t offset, unsigned long size,

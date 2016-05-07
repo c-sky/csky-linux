@@ -30,7 +30,7 @@ read_pt_regs(unsigned int rx, struct pt_regs *regs)
 	} else if (rx == 1){
 		value = regs->regs[9];
 	} else if (rx == 15){
-	 	value = regs->r15;
+		value = regs->r15;
 	} else {
 		value = *((int *)regs + rx + 1);
 	}

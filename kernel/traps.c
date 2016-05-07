@@ -69,14 +69,12 @@ void __init base_trap_init(void)
 
 void __init per_cpu_trap_init(void)
 {
-#if defined(CONFIG_MMU)
 	unsigned int cpu = smp_processor_id();
 
 	csky_tlb_init();
 	cpu_data[cpu].asid_cache = ASID_FIRST_VERSION;
 	current_cpu_data.asid_cache = ASID_FIRST_VERSION;
 	TLBMISS_HANDLER_SETUP();
-#endif
 
 	atomic_inc(&init_mm.mm_count);
 	current->active_mm = &init_mm;
@@ -136,7 +134,7 @@ asmlinkage void buserr_c(struct frame *fp)
 	show_registers((struct pt_regs *) fp);
 	/* Only set esp0 if coming from user mode */
 	if (user_mode(&fp->ptregs)){
-  		current->thread.esp0 = (unsigned long) fp;
+		current->thread.esp0 = (unsigned long) fp;
     } else{
 		die_if_kernel("Kernel mode BUS error", (struct pt_regs *)fp, 0);
     }
@@ -228,27 +226,6 @@ void bad_super_trap (int vector, struct frame *fp)
 	show_registers((struct pt_regs *)fp);
 	panic("Trap from supervisor state\n");
 }
-
-#ifdef FPUV2_DEBUG
-void debug_print_abiv2_fpu_reg(void){
-	int reg = 0;
-
-	__asm__ __volatile__("mfcr %0, cr<0, 2> \n"
-	                         :"+r"(reg));
-
-	printk("cr<0, 2> = 0x%x\n", reg);
-
-	__asm__ __volatile__("mfcr %0, cr<1, 2> \n"
-	                         :"+r"(reg));
-
-	printk("cr<1, 2> = 0x%x\n", reg);
-
-	__asm__ __volatile__("mfcr %0, cr<2, 2> \n"
-	                         :"+r"(reg));
-
-	printk("cr<2, 2> = 0x%x\n", reg);
-}
-#endif
 
 /* use as fpc control reg read/write in glibc. */
 int hand_fpcr_rdwr(struct pt_regs * regs)
@@ -427,154 +404,6 @@ asmlinkage void trap_c(int vector, struct frame *fp)
 	send_sig(sig, current, 0);
 }
 
-#ifdef CONFIG_CSKY_FPE
-#ifdef CONFIG_CPU_CSKYV1
-#define CPWIR_MASK 0xFFF0
-#define CPRGR_MASK 0xFE00
-#define CPWGR_MASK 0xFE00
-asmlinkage void handle_illegal_c(struct pt_regs * regs)
-{
-	int sig;
-/*
- * so far, FPU must solve all float point instruction by self.
- */
-#ifndef CONFIG_CPU_HAS_FPU
-	unsigned short inst;
-	unsigned int fp_inst;
-	unsigned int inst_ptr = instruction_pointer(regs);
-
-	if (__get_user(inst, (unsigned short *)inst_ptr) != 0) {
-		goto fault;
-	}
-
-//	printk("inst_ptr = %x, inst = %x\n", inst_ptr, inst);
-
-	if (inst == 0x000d) {
-		emulate_cprc_inst(inst, regs);
-		goto success;
-	}
-
-	if ((inst & CPWGR_MASK) == 0x2600) {
-		emulate_cpwgr_inst(inst, regs);
-		goto success;
-	}
-
-	if ((inst & CPRGR_MASK) == 0x0800) {
-		emulate_cprgr_inst(inst, regs);
-		goto success;
-	}
-
-	if ((inst & CPWIR_MASK) == 0x3200) {
-		fp_inst = get_cpwir_instruction(inst, regs);
-		if (fp_inst && !emulate_610fp_inst(fp_inst, regs)) {
-			goto success;
-		}
-	}
-fault:
-#endif
-	sig = SIGILL;
-	send_sig(sig, current, 0);
-	return;
-#ifndef CONFIG_CPU_HAS_FPU
-success:
-	regs->pc += 2;
-#endif
-}
-
-asmlinkage void handle_fpe_c(unsigned long fesr, struct pt_regs * regs)
-{
-	int sig;
-	siginfo_t info;
-	unsigned int inst, inst2;
-	inst = get_fp610_inst1();
-
-	if (!inst) {
-		goto fault;
-	}
-
-	if (!(fesr & (FPE_REGULAR_EXCEPTION | FPE_IDC))) {
-		goto fault;
-	}
-
-	clear_fesr(fesr);
-
-	if (emulate_610fp_inst(inst, regs)) {
-		goto fault;
-	}
-
-//	regs->pc += 2;
-
-	inst2 = get_fp610_inst2();
-
-	if ((!inst2) || (inst2 == inst)){
-		goto success;
-	}
-
-	if (!(fesr & (FPE_REGULAR_EXCEPTION | FPE_IDC))) {
-		goto fault;
-	}
-
-	if (emulate_610fp_inst(inst2, regs)) {
-		goto fault;
-	}
-
-//	regs->pc += 2;
-
-success:
-	return;
-fault:
-	info.si_code = __SI_FAULT;
-	sig = SIGFPE;
-	info.si_signo = SIGFPE;
-	info.si_errno = 0;
-	info.si_addr = (void *)regs->pc;
-	force_sig_info(sig, &info, current);
-}
-
-#else /* CONFIG_CPU_CSKYV1 */
-asmlinkage void handle_illegal_c(struct pt_regs * regs)
-{
-	int sig;
-/*
- * so far, FPU must solve all float point instruction by self.
- */
-#ifndef CONFIG_CPU_HAS_FPU
-	unsigned int inst = get_fp810_instruction(regs);
-
-//	printk("inst = %x\n", inst);
-	if (inst && !emulate_810fp_inst(inst, regs)) {
-		regs->pc += 4;
-		return;
-	}
-#endif
-	sig = SIGILL;
-	send_sig(sig, current, 0);
-}
-
-asmlinkage void handle_fpe_c(unsigned long fesr, struct pt_regs * regs)
-{
-	int sig;
-	siginfo_t info;
-	unsigned int inst = get_fp810_instruction(regs);
-
-//	printk("inst = %x\n", inst);
-	if(inst && (fesr & (FPE_REGULAR_EXCEPTION | FPE_IDC))) {
-		clear_fesr(fesr);
-		if(emulate_810fp_inst(inst, regs) == 0) {
-			regs->pc += 4;
-			return;
-		}
-	}
-
-	info.si_code = __SI_FAULT;
-	sig = SIGFPE;
-	info.si_signo = SIGFPE;
-	info.si_errno = 0;
-	info.si_addr = (void *)regs->pc;
-	force_sig_info(sig, &info, current);
-}
-#endif /* CONFIG_CPU_CSKYV1 */
-#else /* CONFIG_CSKY_FPE  */
 asmlinkage void handle_fpe_c(unsigned long fesr, struct pt_regs * regs)
 {
 	int sig;
@@ -626,7 +455,6 @@ asmlinkage void handle_illegal_c(struct pt_regs * regs)
 	sig = SIGILL;
 	send_sig(sig, current, 0);
 }
-#endif /* CONFIG_CSKY_FPE */
 
 asmlinkage void set_esp0 (unsigned long ssp)
 {
@@ -677,7 +505,7 @@ void show_registers(struct pt_regs *fp)
 	}
 
 	printk("PC: 0x%08lx\n", (long)fp->pc);
- 	printk("orig_a0: 0x%08lx\n", fp->orig_a0);
+	printk("orig_a0: 0x%08lx\n", fp->orig_a0);
 	printk("PSR: 0x%08lx\n", (long)fp->sr);
 	/*
 	 * syscallr1->orig_a0

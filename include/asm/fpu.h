@@ -90,19 +90,6 @@
 	"ldw    %2, (%4, "#c") \n\r"    \
 	"ldw    %3, (%4, "#d") \n\r"
 
-#ifdef CONFIG_CSKY_FPE
-inline void emulate_cpwgr_inst(unsigned int inst, struct pt_regs *regs);
-inline void emulate_cprgr_inst(unsigned int inst, struct pt_regs *regs);
-inline void emulate_cprc_inst(unsigned int inst, struct pt_regs *regs);
-inline unsigned int get_cpwir_instruction(unsigned int inst, struct pt_regs *regs);
-int emulate_610fp_inst(unsigned long inst, struct pt_regs *regs);
-inline unsigned int get_fp610_inst1(void);
-inline unsigned int get_fp610_inst2(void);
-inline void clear_fesr(unsigned int fesr);
-int emulate_810fp_inst(unsigned long inst, struct pt_regs *regs);
-inline unsigned int get_fp810_instruction(struct pt_regs *regs);
-#endif
-
 static inline void save_fp_to_thread(unsigned long  * fpregs,
 	   unsigned long * fcr, unsigned long * fsr, unsigned long * fesr)
 {

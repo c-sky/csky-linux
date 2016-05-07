@@ -22,7 +22,7 @@
 #include <asm/errno.h>
 #include <asm/setup.h>
 #include <asm/traps.h>
-#include <asm/pgtable-bits.h>
+#include <hal/pgtable-bits.h>
 #include <asm/unistd.h>
 #include <asm/asm-offsets.h>
 #include <linux/threads.h>
@@ -1003,33 +1003,7 @@ ENTRY(autohandler)
 2:	
 	jmpi     ret_from_exception
 
-/* 
- * This is the fast interrupt handler (for certain hardware interrupt
- * sources). Unlike the normal interrupt handler it doesn't bother
- * doing the bottom half handlers.
- *
- */
-
-#ifdef CONFIG_CPU_USE_FIQ
-ENTRY(fasthandler)
-	mfcr     a0, psr                /* Get PSR register */
-	lsri     a0, 16                 /* Get vector in base 8 bits */
-	sextb    a0                     /* Fill upper bytes with 0 */
-	subi     a0, 32                  /* Real irq nomber need sub VEC offset(32)*/
-	jbsr     csky_do_FIQ          /* Call handler */
-	rfi 
-#endif
-
-/*
- * This is the fast aotu-vector interrupt handler (for certain hardware
- * interrupt sources). Unlike the normal interrupt handler it doesn't
- * bother doing the bottom half handlers.
- *
- */
 ENTRY(fastautohandler)
-#ifdef CONFIG_CPU_USE_FIQ
-	jbsr     csky_do_auto_FIQ          /* Call handler */
-#endif
 	rfi 
 
 ENTRY(sys_fork)

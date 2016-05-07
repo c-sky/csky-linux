@@ -16,6 +16,4 @@ obj-y := entry.o signal.o traps.o alignment.o ints.o ptrace.o \
 obj-y += setup.o csky_ksyms.o process.o cpu-probe.o
 
 obj-$(CONFIG_MODULES)       += module.o
-obj-$(CONFIG_CPU_USE_FIQ)   += fiq.o
-
 

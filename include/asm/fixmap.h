@@ -51,13 +51,13 @@ enum fixed_addresses {
  * the start of the fixmap, and leave one page empty
  * at the top of mem..
  */
-#define FIXADDR_TOP	    ((unsigned long)(long)(int)0xfffe0000)
+#define FIXADDR_TOP	((unsigned long)(long)(int)0xfffe0000)
 #define FIXADDR_SIZE	(__end_of_fixed_addresses << PAGE_SHIFT)
 #define FIXADDR_START	(FIXADDR_TOP - FIXADDR_SIZE)
 
 #include <asm-generic/fixmap.h>
 
-#define kmap_get_fixmap_pte(vaddr)					\
+#define kmap_get_fixmap_pte(vaddr) \
 	pte_offset_kernel(pmd_offset(pud_offset(pgd_offset_k(vaddr), (vaddr)), (vaddr)), (vaddr))
 
 #endif /* __ASM_CSKY_FIXMAP_H */

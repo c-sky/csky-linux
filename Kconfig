@@ -2,7 +2,7 @@
 # For a description of the syntax of this configuration file,
 # see Documentation/kbuild/kconfig-language.txt.
 #
-config CSKY 
+config CSKY
 	bool
 	default y
 	select HAVE_GENERIC_DMA_COHERENT
@@ -33,7 +33,7 @@ config CSKY
 	select MODULES_USE_ELF_RELA if MODULES
 
 config UID16
-	bool 
+	bool
 	default n
 
 config RWSEM_GENERIC_SPINLOCK
@@ -47,13 +47,9 @@ config ARCH_HAS_ILOG2_U32
 	bool
 	default n
 
-#config ARCH_HAS_ILOG2_U64
-#	bool
-#	default n
-
 config GENERIC_FIND_NEXT_BIT
 	bool
-	default n 
+	default n
 
 config GENERIC_HWEIGHT
 	bool
@@ -96,11 +92,6 @@ config TRACE_IRQFLAGS_SUPPORT
 	bool
 	default y
 
-config FORCE_MAX_ZONEORDER
-	int
-	depends on !MMU
-	default "14"
-
 config NO_IOPORT
 	def_bool y
 
@@ -108,12 +99,15 @@ config HZ
 	int
 	default 100
 
+config MMU
+	def_bool y
+
 config SYS_SUPPORTS_APM_EMULATION
-    bool
+	bool
 
 config PGTABLE_LEVELS
-    int
-    default 2
+	int
+	default 2
 
 source "init/Kconfig"
 
@@ -123,42 +117,33 @@ menu "Processor type and features"
 
 comment "Processor type"
 
+config CPU_MMU_V1
+	def_bool n
+
+config CPU_MMU_V1
+	def_bool n
+
 choice
         prompt "CPU's arch version"
         default CPU_CSKYV1
 
 config CPU_CSKYV1
-        bool "CSKY CPU V1.0(ck510/ck610)"
+        bool "CSKY CPU V1.0(ck6xx)"
+	select CPU_MMU_V1
 
 config CPU_CSKYV2
-        bool "CSKY CPU V2.0(ck803/ck810)"
+        bool "CSKY CPU V2.0(ck8xx)"
+	select CPU_MMU_V2
 endchoice
-
-config MMU
-	bool "MMU-based Paged Memory Management Support"
-	default y
-	help
-	  Select if you want MMU-based virtualised addressing space
-	  support by paged memory management. If unsure, say 'Y'.
-
-config CPU_MMU_V1
-	bool
-	default y
-	depends on CPU_CSKYV1 && MMU
-
-config CPU_MMU_V2
-	bool
-	default y
-	depends on CPU_CSKYV2 && MMU
 
 config MMU_HARD_REFILL
 	bool "Hard refill TLB miss exception"
 	depends on MMU
 	default n if CPU_MMU_V1
 	default y
-	help 
-	   This control whether the hardware refill is enable or not when there 
-	     is TLB miss exception 
+	help
+	   This control whether the hardware refill is enable or not when there
+	     is TLB miss exception
 
 config CSKY_INSTRUCTION_CACHE
 	bool "Instruction Cache On"
@@ -239,7 +224,7 @@ config CPU_PRFL
 	default n
 	depends on CPU_CSKYV2
 	---help---
-       say Y to let cpu support hardware profiling preformance. 
+       say Y to let cpu support hardware profiling preformance.
 
 menuconfig CPU_HAS_FPU
 	bool "CPU has FPU coprocessor"
@@ -247,17 +232,17 @@ menuconfig CPU_HAS_FPU
 	---help---
 	  You can say N here if you C-SKY CPU don't have Floating-Point Coprocessor 	  or the user program need not to support FPU.
 
-	  You'll have say N here if you C-SKY CPU have Floating-Point Coprocessor 
+	  You'll have say N here if you C-SKY CPU have Floating-Point Coprocessor
 	  and the user program need to support FPU. Floating-Point Coprocessor (FPC)
 	  is a coprocessor of CK serial processor. The function of FPC is to provide
 	  low-cost high-speed float point computation, which is full compliance with
 	  ANSI/IEEE Std 754, IEEE Standard for Binary Floating-Point Arithmetic.
 
-	  Generally, the FPU need not to open exception. See also "FPC User Guide" 
-	  and " C-SKY CPU Linux-2.6 User Guide" for more details.  
+	  Generally, the FPU need not to open exception. See also "FPC User Guide"
+	  and " C-SKY CPU Linux-2.6 User Guide" for more details.
 
 if CPU_HAS_FPU
-	
+
 comment "FPU coprocessor exception options"
 
 config OPEN_FPU_IDE
@@ -301,23 +286,23 @@ config CPU_HAS_DSP
 
 config CPU_BIG_ENDIAN
 	bool "Build big-endian kernel"
-	default y 
+	default n
 	---help---
 	  Say Y if you plan on running a kernel in big-endian mode.
 	  Note that your board must be properly built and your board
 	  port must properly enable any big-endian related features
 	   of your chipset/board/processor.
 
-config CPU_USE_FIQ 
+config CPU_USE_FIQ
 	bool "Fast Interrupt mode support"
 	default n
 	---help---
-	  The C-SKY CPU support Fast Interrupt mode. But the FIQ mode isn't linux 
-	  common interface. So it need careful to use the Fast Interrupt. The FIQ 
+	  The C-SKY CPU support Fast Interrupt mode. But the FIQ mode isn't linux
+	  common interface. So it need careful to use the Fast Interrupt. The FIQ
 	  can be use in estecial situation suah as DMA.
 
-	  The Fast Interrupt of C-SKY CPU use optional registers and couldn't be 
-	  nesting. So the FIQ need not to wake up thread and handle schedule. 
+	  The Fast Interrupt of C-SKY CPU use optional registers and couldn't be
+	  nesting. So the FIQ need not to wake up thread and handle schedule.
 
 config FIQ_STACK_SIZE
 	int "Fast Interrupt Stack size(Byte)"
@@ -337,7 +322,7 @@ config	SOFT_HANDMISSALIGN
           fetch/store instructions will be emulated in software if you say
           here, which has a severe performance impact. This is necessary for
           correct operation of some network protocols. With an IP-only
-          configuration it is safe to say N, otherwise say Y. 
+          configuration it is safe to say N, otherwise say Y.
 
 comment "*****System type*****"
 
@@ -346,7 +331,7 @@ source "kernel/time/Kconfig"
 config HIGHMEM
 	bool "High Memory Support"
 	depends on MMU
-	default n 
+	default n
 	help
 	  The address space of CSKY CPU is only 4 Gigabytes large
 	  and it has to accommodate user address space, kernel address
@@ -354,12 +339,12 @@ config HIGHMEM
 	  have a large amount of physical memory and/or IO, not all of the
 	  memory can be "permanently mapped" by the kernel. The physical
 	  memory that is not permanently mapped is called "high memory".
-	
+
 	  If unsure, say n.
 
 config CPU_CLOCK_FREQ
 	int "CPU Clock Frequency"
-	default 40000000 
+	default 40000000
 
 config APB_FREQ
 	int "APB Frequency(Hz)"
@@ -425,14 +410,6 @@ config DMA_UNCACHED_NONE
 
 endchoice
 
-config HEARTBEAT
-	bool "Use power LED as a heartbeat" if CK6408EVB 
-	default n
-	help
-	  Use the power-on LED on your machine as a load meter.  The exact
-	  behavior is platform-dependent, but normally the flash frequency is
-	  a hyperbolic function of the 5-minute load average.
-
 config CMDLINE
 	string "Default kernel command string"
 	default ""
@@ -450,15 +427,8 @@ choice
 config GX3211
 	bool "Nationalchip GX3211/GX6622"
 
-config GX3201
-	bool "Nationalchip GX3201/GX6602"
-
 endchoice
 
-config GXAV_NDS
-    bool "Enable NDS"
-    default n
-        depends on GX3211
 source "arch/csky/gx3xxx/Kconfig"
 
 endmenu
