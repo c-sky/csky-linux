@@ -422,7 +422,7 @@ config CMDLINE
 endmenu
 
 menuconfig CSKY_EXT
-	bool "Extension for arch csky"
+	bool "Addons for arch csky"
 	default n
 	help
 	  This is easy way to seperate vendor code and kernel code.
@@ -430,7 +430,7 @@ menuconfig CSKY_EXT
 
 if CSKY_EXT
 
-source "arch/csky/Kconfig.ext"
+source "arch/csky/Kconfig.addons"
 
 endif
 

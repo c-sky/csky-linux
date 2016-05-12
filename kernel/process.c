@@ -229,15 +229,17 @@ int dump_task_regs(struct task_struct *tsk, elf_gregset_t *pr_regs)
 }
 
 /* use to set tls */
-asmlinkage int sys_set_thread_area(void * addr, struct pt_regs *reg)
+asmlinkage int sys_set_thread_area(void * addr)
 {
 	struct thread_info *ti = task_thread_info(current);
 
-	ti->tp_value = (unsigned long)addr;
-
+	printk("ti %p, name %s.\n", ti, ti->task->comm);
 #if defined(CONFIG_CPU_CSKYV2)
+	struct pt_regs *reg = current_pt_regs();
 	reg->exregs[15] = (long)addr;  // write r31 int pt_regs
 #endif
+
+	ti->tp_value = (unsigned long)addr;
 
 	return 0;
 }

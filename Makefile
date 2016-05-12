@@ -56,7 +56,7 @@ core-y		+= $(machdirs)
 libs-y		+= arch/csky/lib/ 
 
 ifdef CONFIG_CSKY_EXT
-core-y		+= csky_ext/
+core-y		+= addons/
 endif
 
 CLEAN_FILES += \
