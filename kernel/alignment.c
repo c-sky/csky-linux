@@ -1048,14 +1048,14 @@ static int __init alignment_init(void)
 	res = proc_mkdir("cpu", NULL);
 	if (!res)
 		return -ENOMEM;
-
+#if 0
 	res = create_proc_entry("alignment", S_IWUSR | S_IRUGO, res);
 	if (!res)
 		return -ENOMEM;
 
 	res->read_proc = proc_alignment_read;
 	res->write_proc = proc_alignment_write;
-
+#endif
 	ai_usermode = UM_FIXUP | UM_KFIX;
 
 	return 0;

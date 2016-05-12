@@ -1,12 +1,3 @@
-/*
- * This file is subject to the terms and conditions of the GNU General Public
- * License.  See the file "COPYING" in the main directory of this archive
- * for more details.
- *
- * Copyright (C) 2006  Hangzhou C-SKY Microsystems co.,ltd.
- * Copyright (C) 2006  Li Chunqiang (chunqiang_li@c-sky.com)
- * Copyright (C) 2009  Ye Yun (yun_ye@c-sky.com)
- */
 #include <linux/kernel.h>
 #include <linux/mm.h>
 #include <linux/fs.h>
@@ -64,13 +55,13 @@ void __update_cache(struct vm_area_struct *vma, unsigned long address,
 	unsigned long addr;
 	struct page *page;
 	unsigned long pfn;
-	int exec = vma->vm_flags & VM_EXEC;
 
 	pfn = pte_pfn(pte);
 	if (unlikely(!pfn_valid(pfn)))
 		return;
 	page = pfn_to_page(pfn);
 		addr = (unsigned long) page_address(page);
+/* gary? */
 #if defined (CONFIG_HIGHMEM) && defined (CONFIG_CPU_CSKYV1)
 	if (PageHighMem(page)){
 		cache_op_all(
@@ -79,7 +70,8 @@ void __update_cache(struct vm_area_struct *vma, unsigned long address,
 			CACHE_INV);
 	}
 #endif
-	if (exec || pages_do_alias(addr, address & PAGE_MASK))
+	if (vma->vm_flags & VM_EXEC ||
+	    pages_do_alias(addr, address & PAGE_MASK))
 		cache_op_all(
 			DATA_CACHE|
 			CACHE_CLR|

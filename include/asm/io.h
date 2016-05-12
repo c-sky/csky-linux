@@ -2,9 +2,9 @@
 #define __ASM_CSKY_IO_H
 
 #include <hal/pgtable-bits.h>
-#include <asm/types.h>
+#include <linux/types.h>
 
-extern void __iomem * __ioremap_mode(phys_addr_t offset, unsigned long size,
+extern void * __ioremap_mode(phys_addr_t offset, unsigned long size,
 	unsigned long flags);
 
 extern inline void *ioremap(phys_addr_t physaddr, unsigned long size)

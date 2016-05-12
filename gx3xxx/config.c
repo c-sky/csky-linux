@@ -15,7 +15,13 @@
 
 extern void __init gx3xxx_init_IRQ(void);
 extern unsigned int gx3201_get_irqno(void);
-
+#if 0
+void INIT_LIST_HEAD(struct list_head *list)
+{
+	WRITE_ONCE(list->next, list);
+	list->prev = list;
+}
+#endif
 static int gx3201_hwclk(int set, struct rtc_time *t)
 {
 	t->tm_year = 1980;

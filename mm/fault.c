@@ -64,7 +64,6 @@ int fixup_exception(struct pt_regs *regs)
  * and the problem, and then passes it off to one of the appropriate
  * routines.
  */
-# ifdef CONFIG_MMU
 asmlinkage void do_page_fault(struct pt_regs *regs, unsigned long write,
                               unsigned long address)
 {
@@ -289,12 +288,4 @@ vmalloc_fault:
                 return;
         }
 }
-#else /*CONFIG_MMU*/
-
-asmlinkage void do_page_fault(struct pt_regs *regs, unsigned long write,
-                              unsigned long address)
-{
-}
-
-#endif /*CONFIG_MMU*/
 

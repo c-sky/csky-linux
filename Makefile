@@ -18,11 +18,11 @@ CSKYHAL	= v2
 endif
 
 KBUILD_CFLAGS +=	-fsigned-char -g -fno-builtin-memcpy \
-			-I$(INCGCC) \
+			-I$(INCGCC) -fno-tree-dse \
 			-pipe -DNO_FPU -D__ELF__ -DMAGIC_ROM_PTR \
 			-D__linux__ -DNO_TEXT_SECTIONS $(CPUTYPE) 
 
-machine-$(CONFIG_GX3211)	:= gx3xxx
+machine-y	:= gx3xxx
 
 machdirs := $(patsubst %,arch/csky/%/,$(machine-y))
 haldirs := $(patsubst %,arch/csky/hal/%/,$(CSKYHAL)) 
@@ -48,14 +48,19 @@ endif
 ifdef CONFIG_CPU_CSKYV2
 core-y		+= arch/csky/hal/v2/
 endif
+
 core-y		+= arch/csky/kernel/
 core-y		+= arch/csky/mm/
 core-y		+= $(machdirs)
 
 libs-y		+= arch/csky/lib/ 
 
+ifdef CONFIG_CSKY_EXT
+core-y		+= csky_ext/
+endif
+
 CLEAN_FILES += \
-    arch/$(ARCH)/kernel/asm-offsets.s \
+    arch/$(ARCH)/kernel/asm-offsets.s
 
 all: zImage
 

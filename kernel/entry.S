@@ -878,7 +878,7 @@ ENTRY(trap3)                        /*added for get tls*/
 	not      a0
 	and      a0, sp                 /* thread_info local in bottom of stack */ 
 	
-	ldw      a0, (a0, TINFO_TP_VALURE) /* get tls */    
+	ldw      a0, (a0, TINFO_TP_VALUE) /* get tls */    
 	
 	addi     sp, 8  
 #if defined(CONFIG_CPU_CSKYV1)	
@@ -1010,16 +1010,6 @@ ENTRY(sys_fork)
 	PT_REGS_ADJUST a0	
 	jmpi     csky_fork            /* Call fork routine */
 
-ENTRY(sys_clone)
-	/* pt_regs in arg 6 */
-#if defined(__CSKYABIV2__)	
-	addi     t0, sp, 8            
-	stw      t0, (sp, 4)
-#else
-	mov      a5, sp             
-#endif
-	jmpi     csky_clone           /* Call clone routine */
-
 ENTRY(sys_vfork)
 	PT_REGS_ADJUST a0	
 	jmpi     csky_vfork           /* Call fork routine */
@@ -1033,10 +1023,6 @@ ENTRY(sys_rt_sigreturn)
 	PT_REGS_ADJUST a0
 	movi     r11_sig, 0             /* prevent syscall restart handling */
 	jmpi     do_rt_sigreturn
-
-ENTRY(sys_set_thread_area)
-	PT_REGS_ADJUST a1
-	jmpi     do_set_thread_area       /* Call set_thread_area routine */
 
 /*
  * Resume execution of a new process.
@@ -1129,7 +1115,7 @@ ENTRY(resume)
 #if  defined(CONFIG_CPU_CSKYV2)
 	/* set TLS register (r31) */
 	addi     r7, a1, TASK_THREAD_INFO
-	ldw      r31, (r7, TINFO_TP_VALURE)
+	ldw      r31, (r7, TINFO_TP_VALUE)
 #endif
 
 	RESTORE_SWITCH_STACK	

@@ -33,7 +33,7 @@ int main(void)
 	DEFINE(TINFO_FLAGS,       offsetof(struct thread_info, flags));
 	DEFINE(TINFO_PREEMPT,     offsetof(struct thread_info, preempt_count));
 	DEFINE(TINFO_ADDR_LIMIT,  offsetof(struct thread_info, addr_limit));
-	DEFINE(TINFO_TP_VALURE,   offsetof(struct thread_info, tp_value));
+	DEFINE(TINFO_TP_VALUE,   offsetof(struct thread_info, tp_value));
 	DEFINE(TINFO_TASK,        offsetof(struct thread_info, task));
 
 	/* offsets into the pt_regs */

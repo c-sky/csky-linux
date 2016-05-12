@@ -149,9 +149,9 @@ asmlinkage int csky_vfork(struct pt_regs *regs)
 	return do_fork(CLONE_VFORK | CLONE_VM | SIGCHLD, rdusp(), 0,NULL,NULL);
 }
 
-asmlinkage int csky_clone(unsigned long clone_flags, unsigned long newsp,
+asmlinkage int sys_clone(unsigned long clone_flags, unsigned long newsp,
 	    int __user *parent_tidptr, int __user *child_tidptr,
-	    int tls_val, struct pt_regs *regs)
+	    int tls_val)
 {
 	if (!newsp)
 		newsp = rdusp();
@@ -229,7 +229,7 @@ int dump_task_regs(struct task_struct *tsk, elf_gregset_t *pr_regs)
 }
 
 /* use to set tls */
-asmlinkage int do_set_thread_area(void * addr, struct pt_regs *reg)
+asmlinkage int sys_set_thread_area(void * addr, struct pt_regs *reg)
 {
 	struct thread_info *ti = task_thread_info(current);
 
@@ -270,7 +270,6 @@ unsigned long get_wchan(struct task_struct *p)
 	return 0;
 }
 
-#ifdef CONFIG_MMU
 /*
  * The vectors page is always readable from user space for the
  * atomic helpers and the signal restart code.  Let's declare a mapping
@@ -286,5 +285,4 @@ int vectors_user_mapping(void)
 //{
 //	return (vma->vm_start == 0xffff0000) ? "[vectors]" : NULL;
 //}
-#endif
 

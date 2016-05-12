@@ -36,6 +36,9 @@
                                  (void *)(kaddr) < high_memory)
 #define pfn_valid(pfn)          virt_addr_valid(pfn_to_virt(pfn))
 
+extern void *memset(void *dest, int c, size_t l);
+extern void *memcpy (void *to, const void *from, size_t l);
+
 #define clear_page(page)        memset((page), 0, PAGE_SIZE)
 #define copy_page(to,from)      memcpy((to), (from), PAGE_SIZE)
 
@@ -50,24 +53,10 @@ static inline unsigned long pages_do_alias(unsigned long addr1,
 }
 
 struct page;
-#ifdef CONFIG_CPU_CSKYV1
-extern void *memset(void *dest, int c, size_t l);
-extern void *memcpy (void *to, const void *from, size_t l);
-static inline void clear_user_page(void *addr, unsigned long vaddr,
-        struct page *page)
-{
-        clear_page(addr);
-        if (pages_do_alias((unsigned long) addr, vaddr & PAGE_MASK))
-                flush_dcache_page(page);
-}
 
-static inline void copy_user_page(void *to, void *from, unsigned long vaddr,
-	struct page *page)
-{
-	copy_page(to, from);
-	if (pages_do_alias((unsigned long) to, vaddr & PAGE_MASK))
-		flush_dcache_page(page);
-}
+#include <hal/page.h>
+#ifdef CONFIG_CPU_CSKYV1
+
 #else
 #define clear_user_page(addr, vaddr, page)      \
         do {                                    \
