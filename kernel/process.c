@@ -195,8 +195,12 @@ int copy_thread(unsigned long clone_flags,
 
 	p->thread.usp = usp;
 
-	if (clone_flags & CLONE_SETTLS)
+	if (clone_flags & CLONE_SETTLS) {
 		task_thread_info(p)->tp_value = regs->regs[0];
+#ifdef CONFIG_CPU_CSKYV2
+		childregs->exregs[15] = regs->regs[0];
+#endif
+	}
 
 	return 0;
 }
@@ -233,7 +237,6 @@ asmlinkage int sys_set_thread_area(void * addr)
 {
 	struct thread_info *ti = task_thread_info(current);
 
-	printk("ti %p, name %s.\n", ti, ti->task->comm);
 #if defined(CONFIG_CPU_CSKYV2)
 	struct pt_regs *reg = current_pt_regs();
 	reg->exregs[15] = (long)addr;  // write r31 int pt_regs
