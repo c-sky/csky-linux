@@ -87,7 +87,6 @@ struct thread_struct {
 	unsigned long  ksp;       /* kernel stack pointer */
 	unsigned long  usp;       /* user stack pointer */
 	unsigned long  sr;        /* saved status register */
-	unsigned long  crp[2];    /* cpu root pointer */
 	unsigned long  esp0;      /* points to SR of stack frame */
 	/* FPU regs */
 	unsigned long  fcr;       /* fpu control reg */
@@ -115,8 +114,8 @@ struct thread_struct {
 };
 
 #define INIT_THREAD  { \
-	.ksp = sizeof(init_stack) + (unsigned long) init_stack, \
-	.sr = PS_S, \
+	.ksp = (unsigned long) init_thread_union.stack + THREAD_SIZE, \
+	.sr = 0x8f000000, \
 }
 
 /*

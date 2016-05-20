@@ -167,17 +167,17 @@ int copy_thread(unsigned long clone_flags,
 
 	unsigned long reg_psr = 0;
 
+	struct pt_regs *childregs = task_pt_regs(p);
+
 	__asm__ __volatile__("mfcr   %0, psr\n\t"
 			             :"+r"(reg_psr) :);
 
-	struct pt_regs *childregs = task_pt_regs(p);
 
 	childstack = ((struct switch_stack *) childregs) - 1;
 	memset(childstack, 0, sizeof(struct switch_stack));
 
 	/* setup ksp for switch_to !!! */
 	p->thread.ksp = (unsigned long)childstack;
-	p->thread.sr = reg_psr;
 
 	if (unlikely(p->flags & PF_KTHREAD)) {
 	//	memset(childregs, 0, sizeof(struct pt_regs));
