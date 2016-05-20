@@ -208,7 +208,6 @@ void local_flush_tlb_one(unsigned long page)
 	int oldpid, idx;
 
 	page &= (PAGE_MASK << 1);
-	select_mmu_cp();
 	oldpid = read_mmu_entryhi();
 	local_irq_save(flags);
 	page = page | (oldpid & 0xff);

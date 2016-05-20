@@ -125,13 +125,7 @@ struct thread_struct {
  * pass the data segment into user programs if it exists,
  * it can't hurt anything as far as I can tell
  */
-#if defined(CONFIG_CPU_HAS_FPU) && defined(CONFIG_CPU_CSKYV1)
-#define PS_USE_MODE  ((~PS_S) & 0x70ffffff)
-#define PS_CP_MASK   0x01000000
-#else
-#define PS_USE_MODE  (~PS_S)
-#define PS_CP_MASK   0x00000000
-#endif
+#define PS_USE_MODE  0x7fffffff
 
 #define start_thread(_regs, _pc, _usp)					\
 do {									\
@@ -141,7 +135,6 @@ do {									\
 	(_regs)->regs[2] = 0;						\
 	(_regs)->regs[3] = 0; /* ABIV2 is R7, use it? */		\
 	(_regs)->sr &= PS_USE_MODE;					\
-	(_regs)->sr |= PS_CP_MASK;					\
 	wrusp(_usp);							\
 } while(0)
 
@@ -184,7 +177,8 @@ unsigned long get_wchan(struct task_struct *p);
 
 #define	KSTK_ESP(tsk) ((tsk) == current ? rdusp() : (tsk)->thread.usp)
 
-#define task_pt_regs(tsk) ((struct pt_regs *) ((tsk)->thread.esp0))
+#define task_pt_regs(p) \
+	((struct pt_regs *)(THREAD_SIZE + task_stack_page(p)) - 1)
 
 #define cpu_relax() barrier()
 

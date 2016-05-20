@@ -660,11 +660,12 @@ resume_userspace:
 1:  RESTORE_ALL
         
 exit_work:
+#if 0
 	lrw      a0, init_task          /* Address of init_task */
 	ldw      a0, (a0)               /* Address of task_struct of task[0]*/
 	cmpne    r10, a0
 	bf       1b                     /* Exit if task[0] */
-
+#endif
 	mov      a0, sp                 /* Stack address is arg[0] */
 	jbsr     set_esp0               /* Call C level */
 	btsti    r8, TIF_NEED_RESCHED
@@ -689,6 +690,7 @@ work_resched:
  */
 
 ENTRY(trap)
+	br .
 	SAVE_ALL
 	SET_SMOD_MMU_CP15
 
@@ -1034,7 +1036,8 @@ ENTRY(sys_rt_sigreturn)
 
 ENTRY(resume)
 	lrw      a3, TASK_THREAD        /* struct_thread offset in task_struct */ 
-	addu     a3, a0                 /* a3 point to thread in task_struct */
+	addu     a3, a0                 /* a3 point to thread in prev task_struct */
+
 	mfcr     a2, psr                /* Save PSR value */
 	stw      a2, (a3, THREAD_SR)    /* Save PSR in task struct */
 	bclri    a2, 6                  /* Disable interrupts */
@@ -1054,24 +1057,12 @@ ENTRY(resume)
 	FPU_SAVE_REGS
 #endif
 
-#if  defined(CONFIG_CPU_HAS_DSP) || defined(__CK810__) 
-	/* Save DSP regs */
-	lrw      r10, THREAD_DSPHI
-	add      r10, a3
-	mfhi     r6
-	mflo     r7
-	stw      r6, (r10, 0)           /* THREAD_DSPHI */
-	stw      r7, (r10, 4)           /* THREAD_DSPLO */
-	mfcr     r6, cr14
-	stw      r6, (r10, 8)           /* THREAD_DSPCSR */   
-#endif
-
-	lrw      a3, TASK_THREAD
-	addu     a3, a1                 /* Pointer to thread in task_struct */
-	
 	/* Set up next process to run */
-	ldw      sp, (a3, THREAD_KSP)   /* Set next ksp */
-	ldw      r6, (a3, THREAD_USP)   /* Set next usp */
+	lrw      a3, TASK_THREAD	/* struct_thread offset in task_struct */ 
+	addu     a3, a1			/* a3 point to thread in next task_struct */
+
+	ldw      sp, (a3, THREAD_KSP)	/* Set next ksp */
+	ldw      r6, (a3, THREAD_USP)	/* Set next usp */
 
 #if defined(__CSKYABIV2__)
 	mtcr     r6, cr<14, 1>           /* Get current usp */
@@ -1081,32 +1072,6 @@ ENTRY(resume)
 
 #ifdef CONFIG_CPU_HAS_FPU 
 	FPU_RESTORE_REGS
-#endif
-
-#if  defined(CONFIG_CPU_HAS_DSP) || defined(__CK810__)
-	lrw      r10, THREAD_DSPHI
-	add      r10, a3 
-	ldw      r6, (r10, 8)   /* THREAD_DSPCSR */
-#if defined(__CK810__)
-	mtcr     r6, cr14
-#else
-	/* 
-	 * Because bit 0 in CK610's cr14 is read only, we need to restore it by 
-	 * using special method
-	 */
-	btsti    r6, 0
-	movi     r7, 0xf
-	bf       1f
-	bmaski   r7, 0           /* old is "lrw r7, 0xffffffff" */
-1:
-	mthi     r7
-	mulua    r7, r7
-#endif
-	/* Restore DSP regs */
-	ldw      r6, (r10, 0)    /* THREAD_DSPHI */
-	ldw      r7, (r10, 4)    /* THREAD_DSPLO */
-	mthi     r6
-	mtlo     r7
 #endif
 
 	ldw      a2, (a3, THREAD_SR)    /* Set next PSR */

@@ -163,30 +163,32 @@ int copy_thread(unsigned long clone_flags,
 		unsigned long kthread_arg,
 		struct task_struct *p)
 {
-	struct pt_regs * childregs, *regs = current_pt_regs();
 	struct switch_stack * childstack;
 
 	unsigned long reg_psr = 0;
 
-	childregs = (struct pt_regs *) (task_stack_page(p) + THREAD_SIZE) - 1;
+	__asm__ __volatile__("mfcr   %0, psr\n\t"
+			             :"+r"(reg_psr) :);
+
+	struct pt_regs *childregs = task_pt_regs(p);
 
 	childstack = ((struct switch_stack *) childregs) - 1;
 	memset(childstack, 0, sizeof(struct switch_stack));
 
+	/* setup ksp for switch_to !!! */
 	p->thread.ksp = (unsigned long)childstack;
+	p->thread.sr = reg_psr;
 
 	if (unlikely(p->flags & PF_KTHREAD)) {
-		memset(childregs, 0, sizeof(struct pt_regs));
+	//	memset(childregs, 0, sizeof(struct pt_regs));
 		childstack->r15 = (unsigned long) ret_from_kernel_thread;
 		childstack->r8 = kthread_arg;
 		childstack->r9 = usp;
-		__asm__ __volatile__("mfcr   %0, psr\n\t"
-			             :"+r"(reg_psr) :);
 		childregs->sr = reg_psr;
 
 		return 0;
 	} else {
-		*childregs = *regs;
+		*childregs = *(current_pt_regs());
 		childstack->r15 = (unsigned long) ret_from_fork;
 	}
 
@@ -196,9 +198,9 @@ int copy_thread(unsigned long clone_flags,
 	p->thread.usp = usp;
 
 	if (clone_flags & CLONE_SETTLS) {
-		task_thread_info(p)->tp_value = regs->regs[0];
+		task_thread_info(p)->tp_value = (current_pt_regs())->regs[0];
 #ifdef CONFIG_CPU_CSKYV2
-		childregs->exregs[15] = regs->regs[0];
+		childregs->exregs[15] = task_thread_info(p)->tp_value;
 #endif
 	}
 
