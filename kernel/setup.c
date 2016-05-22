@@ -71,7 +71,6 @@ int (*mach_set_rtc_pll)(struct rtc_pll_info *);
 EXPORT_SYMBOL(mach_get_ss);
 EXPORT_SYMBOL(mach_get_rtc_pll);
 EXPORT_SYMBOL(mach_set_rtc_pll);
-void (*mach_trap_init) (void) = NULL;
 void (*mach_init_IRQ) (void) __initdata = NULL;
 unsigned int (*mach_get_auto_irqno) (void) = NULL;
 void (*mach_init_FIQ) (void) __initdata = NULL;
@@ -212,103 +211,6 @@ static int __init early_highmem(char *p)
 	return 0;
 }
 early_param("highmem", early_highmem);
-
-static int __init parse_tag_core(struct tag *tag)
-{
-	if (tag->hdr.size > 2) {
-		if ((tag->u.core.flags & 1) == 0)
-			root_mountflags &= ~MS_RDONLY;
-		ROOT_DEV = old_decode_dev(tag->u.core.rootdev);
-	}
-	return 0;
-}
-__tagtable(ATAG_CORE, parse_tag_core);
-
-static int __init parse_tag_mem(struct tag *tag)
-{
-	/*
-	 * Ignore zero-sized entries. If we're running standalone, the
-	 * SDRAM code may emit such entries if something goes
-	 * wrong...
-	 */
-	if (tag->u.mem_range.size == 0)
-		return 0;
-
-	add_memory_region(tag->u.mem_range.addr, tag->u.mem_range.size,
-		tag->u.mem_range.type);
-	return 0;
-}
-__tagtable(ATAG_MEM, parse_tag_mem);
-
-static int __init parse_tag_rdimg(struct tag *tag)
-{
-#ifdef CONFIG_BLK_DEV_INITRD
-	struct tag_mem_range *mem = &tag->u.mem_range;
-
-	if (initrd_start) {
-		printk(KERN_WARNING
-		       "Warning: Only the first initrd image will be used\n");
-		return 0;
-	}
-
-	initrd_start = (unsigned long)__va(mem->addr);
-	initrd_end = initrd_start + mem->size;
-#else
-	printk(KERN_WARNING "RAM disk image present, but "
-	       "no initrd support in kernel, ignoring\n");
-#endif
-
-	return 0;
-}
-__tagtable(ATAG_RDIMG, parse_tag_rdimg);
-
-static int __init parse_tag_cmdline(struct tag *tag)
-{
-	strlcpy(default_command_line, tag->u.cmdline.cmdline, COMMAND_LINE_SIZE);
-	return 0;
-}
-__tagtable(ATAG_CMDLINE, parse_tag_cmdline);
-
-static int __init parse_tag_clock(struct tag *tag)
-{
-	/*
-	 * We'll figure out the clocks by peeking at the system
-	 * manager regs directly.
-	 */
-	return 0;
-}
-__tagtable(ATAG_CLOCK, parse_tag_clock);
-
-/*
- * Scan the tag table for this tag, and call its parse function. The
- * tag table is built by the linker from all the __tagtable
- * declarations.
- */
-static int __init parse_tag(struct tag *tag)
-{
-	extern struct tagtable __tagtable_begin, __tagtable_end;
-	struct tagtable *t;
-
-	for (t = &__tagtable_begin; t < &__tagtable_end; t++)
-		if (tag->hdr.tag == t->tag) {
-			t->parse(tag);
-			break;
-		}
-
-	return t < &__tagtable_end;
-}
-
-/*
- * Parse all tags in the list we got from the boot loader
- */
-static void __init parse_tags(struct tag *t)
-{
-	for (; t->hdr.tag != ATAG_NONE; t = tag_next(t))
-		if (!parse_tag(t))
-			printk(KERN_WARNING
-			       "Ignoring unrecognised tag 0x%08x\n",
-			       t->hdr.tag);
-}
 
 #ifdef CONFIG_BLK_DEV_INITRD
 /* it returns the next free pfn after initrd */
@@ -635,8 +537,6 @@ void __init setup_arch(char **cmdline_p)
 	init_mm.brk = (unsigned long) 0;
 
 	cpu_probe();
-	if(bootloader_tags)
-		parse_tags(bootloader_tags);
 	config_BSP();
 	cpu_report();
 
@@ -669,7 +569,6 @@ void __init setup_arch(char **cmdline_p)
 #endif
 #endif
 
-	setup_memory();  // Revise memory region when nommu
 #ifndef CONFIG_MMU
 	pr_info("Real physical RAM map:\n");
 	print_memory_map();

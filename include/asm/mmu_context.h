@@ -50,14 +50,9 @@ do{                                                   \
 	            :);                               \
 }while(0)
 #endif /* CONFIG_CPU_CSKYV1 */
-
-#define TLBMISS_HANDLER_SETUP() \
-    TLBMISS_HANDLER_SETUP_PGD(swapper_pg_dir)
 #else
 #define TLBMISS_HANDLER_SETUP_PGD(pgd) \
 	pgd_current[smp_processor_id()] = (unsigned long)(pgd)
-#define TLBMISS_HANDLER_SETUP() \
-	TLBMISS_HANDLER_SETUP_PGD(swapper_pg_dir)
 extern unsigned long pgd_current[];
 #endif /* CONFIG_MMU_HARD_REFILL */
 

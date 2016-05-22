@@ -58,15 +58,6 @@ asmlinkage void handle_tlbmiss(void);
 asmlinkage void handle_fpe(void);
 asmlinkage void handle_illegal(void);
 
-/*
- * this must be called very early as the kernel might
- * use some instruction that are emulated on the 060
- */
-void __init base_trap_init(void)
-{
-
-}
-
 void __init per_cpu_trap_init(void)
 {
 	unsigned int cpu = smp_processor_id();
@@ -74,7 +65,7 @@ void __init per_cpu_trap_init(void)
 	csky_tlb_init();
 	cpu_data[cpu].asid_cache = ASID_FIRST_VERSION;
 	current_cpu_data.asid_cache = ASID_FIRST_VERSION;
-	TLBMISS_HANDLER_SETUP();
+	TLBMISS_HANDLER_SETUP_PGD(swapper_pg_dir);
 
 	atomic_inc(&init_mm.mm_count);
 	current->active_mm = &init_mm;
@@ -87,8 +78,6 @@ void __init trap_init (void)
 
 	per_cpu_trap_init();
 
-	if (mach_trap_init)
-		mach_trap_init();
 	  /*
 	 *      There is a common trap handler and common interrupt
 	 *      handler that handle almost every vector. We treat

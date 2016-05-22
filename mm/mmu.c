@@ -40,6 +40,7 @@
 #include <asm/fixmap.h>
 
 DEFINE_PER_CPU(struct mmu_gather, mmu_gathers);
+
 void pgd_init(unsigned long page)
 {
 	unsigned long *p = (unsigned long *) page;
@@ -72,69 +73,14 @@ void pgd_init(unsigned long page)
 #endif
 }
 
-#if 0
-static void __init fixrange_init (unsigned long start, unsigned long end,
-                   pgd_t *pgd_base)
-{
-#ifdef CONFIG_HIGHMEM
-	pgd_t *pgd;
-	pud_t *pud;
-	pmd_t *pmd;
-	pte_t *pte;
-	int i, j, k;
-	unsigned long vaddr;
-
-	vaddr = start;
-	i = __pgd_offset(vaddr);
-	j = __pud_offset(vaddr);
-	k = __pmd_offset(vaddr);
-	pgd = pgd_base + i;
-
-	for ( ; (i < PTRS_PER_PGD) && (vaddr != end); pgd++, i++) {
-		pud = (pud_t *)pgd;
-		for ( ; (j < PTRS_PER_PUD) && (vaddr != end); pud++, j++) {
-			pmd = (pmd_t *)pud;
-			for (; (k < PTRS_PER_PMD) && (vaddr != end); pmd++, k++) {
-				if (pmd_none(*pmd)) {
-					pte = (pte_t *) alloc_bootmem_low_pages(PAGE_SIZE);
-#ifdef CONFIG_MMU_HARD_REFILL
-/* hard refill need fill PA. */
-					set_pmd(pmd, __pmd(__pa(pte)));
-#else
-					set_pmd(pmd, __pmd((unsigned long)pte));
-#endif
-					BUG_ON(pte != pte_offset_kernel(pmd, 0));
-				}
-				vaddr += PMD_SIZE;
-			}
-			k = 0;
-		}
-		j = 0;
-	}
-#endif
-}
-#endif
-
-void __init pagetable_init(void)
-{
-	/* Initialize the entire pgd.  */
-	pgd_init((unsigned long)swapper_pg_dir);
-}
-
 void __init paging_init(void)
 {
 	unsigned long max_zone_pfns[MAX_NR_ZONES];
-	unsigned long lastpfn;
 
-	pagetable_init();
+	pgd_init((unsigned long)swapper_pg_dir);
 
 	max_zone_pfns[ZONE_NORMAL] = max_low_pfn;
-	lastpfn = max_low_pfn;
 
 	free_area_init_nodes(max_zone_pfns);
 }
 
-void __init setup_memory(void)
-{
-	/* nothing to do when cpu has mmu */
-}
