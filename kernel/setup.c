@@ -40,6 +40,7 @@
 #include <asm/io.h>
 #include <asm/cpu.h>
 #include <asm/machdep.h>
+#include <asm/mmu_context.h>
 
 #ifdef CONFIG_BLK_DEV_INITRD
 #include <asm/pgtable.h>
@@ -53,51 +54,17 @@ extern void setup_memory(void);
 extern char __cpu_name[NR_CPUS][32];
 struct boot_mem_map boot_mem_map;
 
-static char __initdata command_line[COMMAND_LINE_SIZE];
 static char default_command_line[COMMAND_LINE_SIZE] __initdata = CONFIG_CMDLINE;
 
 void (*mach_time_init) (void) __initdata = NULL;
-void (*mach_time_suspend) (void) = NULL;
-void (*mach_time_resume) (void) = NULL;
 void (*mach_tick)( void ) = NULL;
-int (*mach_keyb_init) (void);
 unsigned long (*mach_gettimeoffset) (void) = NULL;
 int  (*mach_set_clock_mmss) (unsigned long) = NULL;
-int (*mach_hwclk) (int, struct rtc_time*) = NULL;
-EXPORT_SYMBOL(mach_hwclk);
-unsigned int (*mach_get_ss)(void);
-int (*mach_get_rtc_pll)(struct rtc_pll_info *);
-int (*mach_set_rtc_pll)(struct rtc_pll_info *);
-EXPORT_SYMBOL(mach_get_ss);
-EXPORT_SYMBOL(mach_get_rtc_pll);
-EXPORT_SYMBOL(mach_set_rtc_pll);
 void (*mach_init_IRQ) (void) __initdata = NULL;
 unsigned int (*mach_get_auto_irqno) (void) = NULL;
-void (*mach_init_FIQ) (void) __initdata = NULL;
-unsigned int (*mach_get_auto_fiqno) (void) = NULL;
-void (*mach_get_model) (char *model);
-void (*mach_get_hardware_list) (struct seq_file *m);
 void (*mach_reset)( void ) = NULL;
 void (*mach_halt)( void ) = NULL;
 void (*mach_power_off)( void ) = NULL;
-#ifdef CONFIG_HEARTBEAT
-void (*mach_heartbeat) (int);
-EXPORT_SYMBOL(mach_heartbeat);
-#endif
-
-unsigned int system_rev;
-EXPORT_SYMBOL(system_rev);
-
-#if defined(CONFIG_VGA_CONSOLE) || defined(CONFIG_DUMMY_CONSOLE)
-struct screen_info screen_info = {
- .orig_video_lines      = 15,
- .orig_video_cols       = 40,
- .orig_video_mode       = 0,
- .orig_video_ega_bx     = 0,
- .orig_video_isVGA      = 1,
- .orig_video_points     = 8
-};
-#endif
 
 static struct resource code_resource = { .name = "Kernel code", };
 static struct resource data_resource = { .name = "Kernel data", };
@@ -477,7 +444,7 @@ static void __init resource_init(void)
 {
 	int i;
 
-	code_resource.start = __pa_symbol(&_text);
+	code_resource.start = __pa_symbol(&_stext);
 	code_resource.end = __pa_symbol(&_etext) - 1;
 	data_resource.start = __pa_symbol(&_etext);
 	data_resource.end = __pa_symbol(&_edata) - 1;
@@ -549,10 +516,9 @@ void __init setup_arch(char **cmdline_p)
 	print_memory_map();
 
 	/* Keep a copy of command line */
-	strlcpy(command_line, default_command_line, sizeof(command_line));
-	strlcpy(boot_command_line, command_line, COMMAND_LINE_SIZE);
+	strlcpy(boot_command_line, default_command_line, COMMAND_LINE_SIZE);
 
-	*cmdline_p = command_line;
+	*cmdline_p = default_command_line;
 
 	parse_early_param();
 
@@ -584,71 +550,22 @@ void __init setup_arch(char **cmdline_p)
 #endif
 }
 
-/*
- *	Get CPU information for use by the procfs.
- */
+extern unsigned int _sbss, _ebss, vec_base;
 
-static int show_cpuinfo(struct seq_file *m, void *v)
+asmlinkage void pre_start(unsigned int magic, void *param)
 {
-    unsigned long n = (unsigned long) v - 1;
-    char *fpu;
-    u_long clockfreq;
-    struct cpuinfo_csky * c=&cpu_data[n];
-    fpu = "none";
+	int vbr = (int) &vec_base;
 
-    seq_printf(m, "Processor\t: %ld\n", n);
-    seq_printf(m, "CPU\t\t: %s(0x%8x)\n", __cpu_name[n], c->processor_id[0]);
+	select_mmu_cp();
+	write_mmu_pagemask(0);
 
-	if(c->fpu_id) {
-        fpu = (c->fpu_id == CPUID_FPU_V1 ? "V1(FPU)" : "V2(VFP)");
-    }
+	__asm__ __volatile__(
+			"mtcr %0, vbr\n"
+			::"b"(vbr));
 
-    /*
-     * For the first processor also print the system type and version
-     */
-    if (n == 0) seq_printf(m, "Revision\t: %04x\n", system_rev);
 
-    /*
-     * The fiducial operation declt + bf need 2 cycle. So calculate CPU clock
-     *  need to multiply 2.
-     */
-    clockfreq = (loops_per_jiffy*HZ)*2;
-    seq_printf(m, "FPU\t\t: %s\n"
-		 "Clocking\t: %lu.%1luMHz\n"
-		 "BogoMips\t: %lu.%02lu\n"
-		 "Calibration\t: %lu loops\n",
-		 fpu, clockfreq / 1000000, (clockfreq / 10000) % 100,
-		 (loops_per_jiffy * HZ) / 500000, ((loops_per_jiffy * HZ) / 5000) % 100,
-		 (loops_per_jiffy * HZ));
-    seq_printf(m, "Dcache_size\t: %dKByte\n", ((c->cache_size >> 16) & 0xffff));
-    seq_printf(m, "Icache_size\t: %dKByte\n", (c->cache_size & 0xffff));
-    seq_printf(m, "Dsram_size\t: %dKByte\n", ((c->sram_size >> 16) & 0xffff));
-    seq_printf(m, "Isram_size\t: %dKByte\n", (c->sram_size & 0xffff));
+	memset((void *)&_sbss, 0,
+		(unsigned int)&_ebss - (unsigned int)&_sbss);
 
-    return 0;
+	return;
 }
-
-static void *c_start(struct seq_file *m, loff_t *pos)
-{
-	unsigned long i = *pos;
-
-	return i < NR_CPUS ? (void *) (i + 1) : NULL;
-}
-
-static void *c_next(struct seq_file *m, void *v, loff_t *pos)
-{
-	++*pos;
-	return c_start(m, pos);
-}
-
-static void c_stop(struct seq_file *m, void *v)
-{
-}
-
-struct seq_operations cpuinfo_op = {
-	start:	c_start,
-	next:	c_next,
-	stop:	c_stop,
-	show:	show_cpuinfo,
-};
-

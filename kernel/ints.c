@@ -8,7 +8,7 @@
  * Copyright (C) 1999  Greg Ungerer (gerg@snapgear.com)
  * Copyright (C) 1998  D. Jeff Dionne <jeff@ArcturusNetworks.com>
  *                     Kenneth Albanowski <kjahds@kjahds.com>,
- * Copyright (C) 2000  Lineo Inc. (www.lineo.com) 
+ * Copyright (C) 2000  Lineo Inc. (www.lineo.com)
  * Copyright (C) 2004  Kang Sun <sunk@vlsi.zju.edu.cn>
  * Copyright (C) 2009  Hu Junshan (junshan_hu@c-sky.com)
  *
@@ -44,9 +44,10 @@
 /* The number of spurious interrupts */
 volatile unsigned int num_spurious;
 
-extern e_vector *_ramvec;
+extern e_vector vec_base;
 void set_evector(int vecnum, void (*handler)(void))
 {
+	e_vector *_ramvec = &vec_base;
 	if (vecnum >= 0 && vecnum <= 255)
 		_ramvec[vecnum] = handler;
 }
@@ -73,7 +74,7 @@ static struct irq_desc bad_irq_desc = {
 asmlinkage void csky_do_IRQ(unsigned int irq, struct pt_regs *regs)
 {
 	struct pt_regs *old_regs = set_irq_regs(regs);
-        
+
 	irq_enter();
 
 	/*
@@ -92,7 +93,7 @@ asmlinkage void csky_do_IRQ(unsigned int irq, struct pt_regs *regs)
 asmlinkage void  csky_do_auto_IRQ(struct pt_regs *regs)
 {
 	unsigned int irq;
-	
+
 	if(mach_get_auto_irqno) {
 		irq = mach_get_auto_irqno();
 	}
@@ -100,7 +101,7 @@ asmlinkage void  csky_do_auto_IRQ(struct pt_regs *regs)
 		printk("Error: cant get irq number from auto IRQ!");
 		return;
 	}
-		
+
 	csky_do_IRQ(irq, regs);
 }
 
@@ -118,7 +119,7 @@ asmlinkage void  csky_do_auto_IRQ(struct pt_regs *regs)
 void __init init_IRQ(void)
 {
 	int i;
-	
+
 	for (i = 0; i < NR_IRQS; i++)
 		irq_set_noprobe(i);
 

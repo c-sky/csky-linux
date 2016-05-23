@@ -132,7 +132,7 @@ void __init mem_init(void)
 	totalram_pages += totalhigh_pages;
 #endif
 
-	codesize =  (unsigned long) &_etext - (unsigned long) &_text;
+	codesize =  (unsigned long) &_etext - (unsigned long) &_stext;
 	datasize =  (unsigned long) &_edata - (unsigned long) &_etext;
 	initsize =  (unsigned long) &__init_end - (unsigned long) &__init_begin;
 

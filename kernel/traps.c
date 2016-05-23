@@ -37,7 +37,6 @@
 #include <asm/mmu_context.h>
 
 extern void csky_tlb_init(void);
-extern e_vector *_ramvec;
 void show_registers(struct pt_regs *fp);
 /* assembler routines */
 asmlinkage void buserr(void);
@@ -65,6 +64,7 @@ void __init per_cpu_trap_init(void)
 	csky_tlb_init();
 	cpu_data[cpu].asid_cache = ASID_FIRST_VERSION;
 	current_cpu_data.asid_cache = ASID_FIRST_VERSION;
+
 	TLBMISS_HANDLER_SETUP_PGD(swapper_pg_dir);
 
 	atomic_inc(&init_mm.mm_count);
@@ -72,9 +72,12 @@ void __init per_cpu_trap_init(void)
 	BUG_ON(current->mm);
 }
 
+extern e_vector vec_base;
+
 void __init trap_init (void)
 {
 	int i;
+	e_vector *_ramvec = &vec_base;
 
 	per_cpu_trap_init();
 

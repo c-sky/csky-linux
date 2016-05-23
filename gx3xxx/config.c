@@ -19,18 +19,6 @@
 extern void __init gx3xxx_init_IRQ(void);
 extern unsigned int gx3201_get_irqno(void);
 
-static int gx3201_hwclk(int set, struct rtc_time *t)
-{
-	t->tm_year = 1980;
-	t->tm_mon  = 1;
-	t->tm_mday = 1;
-	t->tm_hour = 0;
-	t->tm_min  = 0;
-	t->tm_sec  = 0;
-
-	return 0;
-}
-
 static void gx3201_tick(void)
 {
 	__raw_writel(1, GX3201_VA_COUNTER_1_STATUS);
@@ -108,9 +96,9 @@ void __init config_BSP(void)
 {
 	mach_time_init = gx3201_timer_init;
 	mach_tick = gx3201_tick;
-	mach_hwclk = gx3201_hwclk;
-	mach_init_IRQ = gx3xxx_init_IRQ;
 	mach_gettimeoffset = gx3201_timer_offset;
+
+	mach_init_IRQ = gx3xxx_init_IRQ;
 	mach_get_auto_irqno = gx3201_get_irqno;
 
 	mach_reset = gx3xxx_restart;

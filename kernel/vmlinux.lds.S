@@ -1,8 +1,3 @@
-/* ld script to make csky Linux kernel */
-
-
-#define LOAD_OFFSET 0
-
 #include <asm-generic/vmlinux.lds.h>
 #include <asm/page.h>
 
@@ -24,9 +19,10 @@ jiffies = jiffies_64 + 4;
 SECTIONS
 {
   . = PAGE_OFFSET + (CONFIG_RAM_BASE - PHYS_OFFSET);
+  _stext = .;			/* Text and read-only data */
   _text = .;			/* Text and read-only data */
-  __LMA_START = _start - LOAD_OFFSET;
-  .text : AT(ADDR(.text) - LOAD_OFFSET) {
+  __LMA_START = _start ;
+  .text : AT(ADDR(.text) ) {
 	HEAD_TEXT
 	TEXT_TEXT
 	SCHED_TEXT
@@ -44,18 +40,26 @@ SECTIONS
 
   RODATA
 
-  .data : AT(ADDR(.data) - LOAD_OFFSET) {			/* Data */
-	_data = .;              /* address in memory */
-        _sdata = .;
-	DATA_DATA
-	CONSTRUCTORS
-	_edata = .;
+	.data : AT(ADDR(.data) )
+	{
+		_data = .;
+	        _sdata = .;
+		DATA_DATA
+		CONSTRUCTORS
+		_edata = .;
+		. = ALIGN(PAGE_SIZE);
+		swapper_pg_dir = .;
+		. += PAGE_SIZE;
+		invalid_pte_table = .;
+		. += PAGE_SIZE;
+		vec_base = .;
+		. += 512;
 	}
 
   . = ALIGN(16);
   .data.cacheline_aligned : { *(.data.cacheline_aligned) }
 
-  .bss : AT(ADDR(.bss) - LOAD_OFFSET) {
+  .bss : AT(ADDR(.bss) ) {
 	VMLINUX_SYMBOL(__bss_start) = .;	
 	_sbss = . ; 
 	 *(.bss) 
@@ -68,7 +72,7 @@ SECTIONS
   /* will be freed after init */
   . = ALIGN(4096);		/* Init code and data */
   __init_begin = .;
-  .init.text : AT(ADDR(.init.text) - LOAD_OFFSET) {
+  .init.text : AT(ADDR(.init.text) ) {
 	_sinittext = .;
 	INIT_TEXT
 	_einittext = .;
@@ -76,20 +80,20 @@ SECTIONS
 	*(.taglist.init)
 	__tagtable_end = .;  
   } :data
-  .init.data : AT(ADDR(.init.data) - LOAD_OFFSET) { INIT_DATA }
+  .init.data : AT(ADDR(.init.data) ) { INIT_DATA }
   . = ALIGN(16);
   __setup_start = .;
-  .init.setup : AT(ADDR(.init.setup) - LOAD_OFFSET) { *(.init.setup) }
+  .init.setup : AT(ADDR(.init.setup) ) { *(.init.setup) }
   __setup_end = .;
   __initcall_start = .;
-  .initcall.init : AT(ADDR(.initcall.init) - LOAD_OFFSET) {
+  .initcall.init : AT(ADDR(.initcall.init) ) {
 	INIT_CALLS
   }
   __initcall_end = .;
   __con_initcall_start = .;
-  .con_initcall.init : AT(ADDR(.con_initcall.init) - LOAD_OFFSET) { *(.con_initcall.init) }
+  .con_initcall.init : AT(ADDR(.con_initcall.init) ) { *(.con_initcall.init) }
   __con_initcall_end = .;
-  .csky_fixup : AT(ADDR(.csky_fixup) - LOAD_OFFSET) {
+  .csky_fixup : AT(ADDR(.csky_fixup) ) {
 	__start_fixup = .;
 	*(.csky_fixup)
 	__stop_fixup = .;
@@ -98,14 +102,14 @@ SECTIONS
 #ifdef CONFIG_BLK_DEV_INITRD
   . = ALIGN(8192);
   __initramfs_start = .;
-  .init.ramfs : AT(ADDR(.init.ramfs) - LOAD_OFFSET) { *(.init.ramfs) }
+  .init.ramfs : AT(ADDR(.init.ramfs) ) { *(.init.ramfs) }
   __initramfs_end = .;
 #endif
   NOTES
   . = ALIGN(8192);
   __init_end = .;
 
-  .data..init_task : AT(ADDR(.data..init_task) - LOAD_OFFSET) { *(.data..init_task) }	/* The initial task and kernel stack */
+  .data..init_task : AT(ADDR(.data..init_task) ) { *(.data..init_task) }	/* The initial task and kernel stack */
 
   _end = . ;
 

@@ -1,20 +1,12 @@
-/*
- * Processor capabilities determination functions.
- *
- * Copyright (C) 2011  Hangzhou C-SKY Microsystems co.,ltd.
- * Copyright (C) 2011  Hu junshan (junshan_hu@c-sky.com)
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version
- * 2 of the License, or (at your option) any later version.
- */
 #include <linux/init.h>
 #include <linux/kernel.h>
 #include <linux/ptrace.h>
 #include <linux/smp.h>
 #include <linux/stddef.h>
+#include <linux/delay.h>
 #include <asm/cpu.h>
+#include <linux/proc_fs.h>
+#include <linux/seq_file.h>
 
 char __cpu_name[NR_CPUS][32];
 
@@ -305,5 +297,64 @@ __init void cpu_report(void)
 	}
 #endif
 }
+
+/*
+ *	Get CPU information for use by the procfs.
+ */
+
+static int show_cpuinfo(struct seq_file *m, void *v)
+{
+    unsigned long n = (unsigned long) v - 1;
+    char *fpu;
+    u_long clockfreq;
+    struct cpuinfo_csky * c=&cpu_data[n];
+    fpu = "none";
+
+    seq_printf(m, "Processor\t: %ld\n", n);
+    seq_printf(m, "CPU\t\t: %s(0x%8x)\n", __cpu_name[n], c->processor_id[0]);
+
+	if(c->fpu_id) {
+        fpu = (c->fpu_id == CPUID_FPU_V1 ? "V1(FPU)" : "V2(VFP)");
+    }
+
+    /*
+     * The fiducial operation declt + bf need 2 cycle. So calculate CPU clock
+     *  need to multiply 2.
+     */
+    clockfreq = (loops_per_jiffy*HZ)*2;
+    seq_printf(m, "FPU\t\t: %s\n"
+		 "Clocking\t: %lu.%1luMHz\n"
+		 "BogoMips\t: %lu.%02lu\n"
+		 "Calibration\t: %lu loops\n",
+		 fpu, clockfreq / 1000000, (clockfreq / 10000) % 100,
+		 (loops_per_jiffy * HZ) / 500000, ((loops_per_jiffy * HZ) / 5000) % 100,
+		 (loops_per_jiffy * HZ));
+
+    return 0;
+}
+
+static void *c_start(struct seq_file *m, loff_t *pos)
+{
+	unsigned long i = *pos;
+
+	return i < NR_CPUS ? (void *) (i + 1) : NULL;
+}
+
+static void *c_next(struct seq_file *m, void *v, loff_t *pos)
+{
+	++*pos;
+	return c_start(m, pos);
+}
+
+static void c_stop(struct seq_file *m, void *v)
+{
+}
+
+struct seq_operations cpuinfo_op = {
+	start:	c_start,
+	next:	c_next,
+	stop:	c_stop,
+	show:	show_cpuinfo,
+};
 
 
