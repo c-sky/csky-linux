@@ -5,8 +5,11 @@
 #include <linux/interrupt.h>
 #include <linux/irq.h>
 #include <linux/rtc.h>
+#include <linux/sizes.h>
 #include <linux/platform_device.h>
 #include <linux/serial_8250.h>
+#include <linux/dma-mapping.h>
+#include <linux/usb/ehci_pdriver.h>
 #include <asm/machdep.h>
 #include <asm/irq.h>
 #include <asm/io.h>
@@ -15,13 +18,7 @@
 
 extern void __init gx3xxx_init_IRQ(void);
 extern unsigned int gx3201_get_irqno(void);
-#if 0
-void INIT_LIST_HEAD(struct list_head *list)
-{
-	WRITE_ONCE(list->next, list);
-	list->prev = list;
-}
-#endif
+
 static int gx3201_hwclk(int set, struct rtc_time *t)
 {
 	t->tm_year = 1980;
@@ -120,6 +117,36 @@ void __init config_BSP(void)
 	mach_halt = gx3xxx_halt;
 }
 
+/* USB EHCI */
+#if 1
+static u64 gx_ehci_dmamask = DMA_BIT_MASK(32);
+
+static struct resource gx_ehci_resources[] = {
+	[0] = {
+		.start	= 0x00900000,
+		.end	= 0x00900000 + SZ_1K - 1,
+		.flags	= IORESOURCE_MEM,
+	},
+	[1] = {
+		.start	= 59,
+		.flags	= IORESOURCE_IRQ,
+	},
+};
+
+static struct usb_ehci_pdata gx_ehci_pdata;
+
+struct platform_device gx_ehci_pdev = {
+	.name		= "ehci-platform",
+	.id		= -1,
+	.num_resources	= ARRAY_SIZE(gx_ehci_resources),
+	.resource	= gx_ehci_resources,
+	.dev		= {
+		.dma_mask = &gx_ehci_dmamask,
+		.platform_data = &gx_ehci_pdata,
+	},
+};
+#endif
+
 #ifdef CONFIG_SERIAL_8250
 static struct plat_serial8250_port gx3211_8250_uart0_data[] = {
 	[0] = {
@@ -156,6 +183,7 @@ static int __init board_devices_init(void)
 
 	*(volatile unsigned int *) 0xa030a14c |= (1 << 22) | (1 << 23);
 	platform_device_register(&gx3211_8250_uart0);
+	platform_device_register(&gx_ehci_pdev);
 	return 0;
 }
 
