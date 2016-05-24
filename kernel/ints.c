@@ -98,7 +98,7 @@ asmlinkage void  csky_do_auto_IRQ(struct pt_regs *regs)
 		irq = mach_get_auto_irqno();
 	}
 	else {
-		printk("Error: cant get irq number from auto IRQ!");
+		pr_emerg("No mach_get_auto_irqno.\n");
 		return;
 	}
 
@@ -126,6 +126,8 @@ void __init init_IRQ(void)
 
 	if (mach_init_IRQ)
 		mach_init_IRQ();
+	else
+		pr_emerg("No mach_init_IRQ.\n");
 }
 
 

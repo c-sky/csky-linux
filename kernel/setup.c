@@ -1,17 +1,3 @@
-/*
- * linux/arch/csky/kernel/setup.c
- * This file handles the architecture-dependent parts of system setup
- *
- * This file is subject to the terms and conditions of the GNU General Public
- * License.  See the file "COPYING" in the main directory of this archive
- * for more details.
- *
- * Copyright (C) 2006  Hangzhou C-SKY Microsystems co.,ltd.
- * Copyright (C) 2006  Li Chunqiang (chunqiang_li@c-sky.com)
- * Copyright (C) 2009  Hu junshan (junshan_hu@c-sky.com)
- *
- */
-
 #include <linux/kernel.h>
 #include <linux/mm.h>
 #include <linux/sched.h>
@@ -49,9 +35,7 @@
 extern void cpu_probe(void);
 extern void cpu_report(void);
 extern void paging_init(void);
-extern void setup_memory(void);
 
-extern char __cpu_name[NR_CPUS][32];
 struct boot_mem_map boot_mem_map;
 
 static char default_command_line[COMMAND_LINE_SIZE] __initdata = CONFIG_CMDLINE;
@@ -62,8 +46,12 @@ unsigned int (*mach_get_auto_irqno) (void) = NULL;
 static struct resource code_resource = { .name = "Kernel code", };
 static struct resource data_resource = { .name = "Kernel data", };
 
-void __init add_memory_region(phys_addr_t start, phys_addr_t size,
-			      long type)
+void __init
+add_memory_region(
+	phys_addr_t start,
+	phys_addr_t size,
+	long type
+	)
 {
 	int x = boot_mem_map.nr_map;
 
@@ -485,11 +473,7 @@ static void __init resource_init(void)
 
 void __init setup_arch(char **cmdline_p)
 {
-#ifdef CONFIG_MMU
 	printk("Linux C-SKY port done by C-SKY Microsystems co.,ltd.  www.c-sky.com\n");
-#else
-	printk("uClinux C-SKY port done by C-SKY Microsystems co.,ltd.  www.c-sky.com\n");
-#endif
 
 	init_mm.start_code = (unsigned long) &_stext;
 	init_mm.end_code = (unsigned long) &_etext;
@@ -508,9 +492,8 @@ void __init setup_arch(char **cmdline_p)
 	pr_info("Determined physical RAM map:\n");
 	print_memory_map();
 
-	/* Keep a copy of command line */
-	strlcpy(boot_command_line, default_command_line, COMMAND_LINE_SIZE);
-
+	strlcpy(boot_command_line,
+		default_command_line, COMMAND_LINE_SIZE);
 	*cmdline_p = default_command_line;
 
 	parse_early_param();
@@ -520,20 +503,8 @@ void __init setup_arch(char **cmdline_p)
 		print_memory_map();
 	}
 
-#ifdef CONFIG_VT
-#if defined(CONFIG_VGA_CONSOLE)
-        conswitchp = &vga_con;
-#elif defined(CONFIG_DUMMY_CONSOLE)
-        conswitchp = &dummy_con;
-#endif
-#endif
-
-#ifndef CONFIG_MMU
-	pr_info("Real physical RAM map:\n");
-	print_memory_map();
-#endif
-
-	bootmem_init();  // setup the bitmap for all the whole ram
+	/* setup bitmap for ram */
+	bootmem_init();
 	sparse_init();
 	paging_init();
 	resource_init();
@@ -541,24 +512,30 @@ void __init setup_arch(char **cmdline_p)
 #ifdef CONFIG_CPU_HAS_FPU
 	init_fpu();
 #endif
+
+#if defined(CONFIG_VT) && defined(CONFIG_DUMMY_CONSOLE)
+	conswitchp = &dummy_con;
+#endif
 }
 
+/*
+ * Call from head.S before start_kernel, prepare vbr mmu bss
+ */
 extern unsigned int _sbss, _ebss, vec_base;
-
 asmlinkage void pre_start(unsigned int magic, void *param)
 {
 	int vbr = (int) &vec_base;
-
-	select_mmu_cp();
-	write_mmu_pagemask(0);
 
 	__asm__ __volatile__(
 			"mtcr %0, vbr\n"
 			::"b"(vbr));
 
+	select_mmu_cp();
+	write_mmu_pagemask(0);
 
 	memset((void *)&_sbss, 0,
 		(unsigned int)&_ebss - (unsigned int)&_sbss);
 
 	return;
 }
+

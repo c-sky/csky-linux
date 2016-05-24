@@ -24,10 +24,8 @@ KBUILD_CFLAGS +=	-fsigned-char -g -fno-builtin-memcpy \
 
 machine-y	:= gx3xxx
 
-machdirs := $(patsubst %,arch/csky/%/,$(machine-y))
 haldirs := $(patsubst %,arch/csky/hal/%/,$(CSKYHAL)) 
 
-KBUILD_CFLAGS += $(patsubst %,-I$(srctree)/%include,$(machdirs))
 KBUILD_CFLAGS += $(patsubst %,-I$(srctree)/%inc,$(haldirs))
 
 ifeq ($(CONFIG_CPU_BIG_ENDIAN),y)
@@ -51,7 +49,6 @@ endif
 
 core-y		+= arch/csky/kernel/
 core-y		+= arch/csky/mm/
-core-y		+= $(machdirs)
 
 libs-y		+= arch/csky/lib/ 
 
