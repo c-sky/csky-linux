@@ -45,64 +45,16 @@ static struct irqaction gx3201_timer_irq = {
 void __init gx3201_timer_init(void)
 {
 	gx3201_timer_reset();
-//	jiffies_64 = 0;
 	setup_irq(10,&gx3201_timer_irq);
 }
 
-static unsigned long gx3201_timer_offset(void)
-{
-	return ((__raw_readl(GX3201_VA_COUNTER_1_VALUE) - 0xFFFFD8EF)/(0xFFFFFFFF - 0xFFFFD8EF))/10000;
-}
-
-void gx3xxx_halt(void)
-{
-	printk("%s.\n", __func__);
-	/* close mmu */
-	asm volatile (
-		"mfcr   r7, cr18;"
-		"bclri  r7, 0;"
-		"bclri  r7, 1;"
-		"mtcr   r7, cr18;"
-		:
-		:
-		:"r7"
-	);
-
-	/* jmp */
-	((void (*)(u32 WakeTime,u32 GpioMask,u32 GpioData,u32 key))0x00100000)
-			(*(unsigned int *) (0x00103000 - 0x10),
-			*(unsigned int *)  (0x00103000 - 0xc),
-			*(unsigned int *)  (0x00103000 - 0x8),
-			*(unsigned int *)  (0x00103000 - 0x4));
-	while(1);
-}
-
-void gx3xxx_restart(void)
-{
-	printk("%s.\n", __func__);
-
-	__raw_writel(
-	((28800000/1000000 - 1) << 16)|(0x10000 - 10000),
-	(void*) 0xa020b004
-	);
-
-	__raw_writel( 3, (void*) 0xa020b000);
-	while(1);
-
-}
-
-extern int gxav_memhole_init(void);
 void __init config_BSP(void)
 {
 	mach_time_init = gx3201_timer_init;
 	mach_tick = gx3201_tick;
-	mach_gettimeoffset = gx3201_timer_offset;
 
 	mach_init_IRQ = gx3xxx_init_IRQ;
 	mach_get_auto_irqno = gx3201_get_irqno;
-
-	mach_reset = gx3xxx_restart;
-	mach_halt = gx3xxx_halt;
 }
 
 /* USB EHCI */

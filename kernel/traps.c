@@ -95,6 +95,7 @@ void __init trap_init (void)
 	{
 		_ramvec[i] = inthandler;
 	}
+
 	_ramvec[VEC_ACCESS] = buserr;
 	_ramvec[VEC_ALIGN] = alignment;
 	_ramvec[VEC_TRAP1]=trap1;
@@ -102,7 +103,6 @@ void __init trap_init (void)
 	_ramvec[VEC_TRAP3]=trap3;
 	_ramvec[VEC_SYS] = system_call;
 	_ramvec[VEC_AUTOVEC] = autohandler;
-	_ramvec[VEC_FAUTOVEC] = (void *)((unsigned int)fastautohandler | 1);
 
 	_ramvec[VEC_TLBINVALIDL] = handle_tlbinvalidl;
 	_ramvec[VEC_TLBINVALIDS] = handle_tlbinvalids;

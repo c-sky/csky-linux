@@ -19,7 +19,6 @@ extern void (*mach_power_off)( void );
 
 extern void config_BSP(void);
 extern void (*mach_tick)(void);
-extern void (*mach_trap_init)(void);
 extern const char *get_machine_type(void);
 
 #endif /* __ASM_CSKY_MACHDEP_H */

@@ -1005,17 +1005,6 @@ ENTRY(autohandler)
 2:	
 	jmpi     ret_from_exception
 
-ENTRY(fastautohandler)
-	rfi 
-
-ENTRY(sys_fork)
-	PT_REGS_ADJUST a0	
-	jmpi     csky_fork            /* Call fork routine */
-
-ENTRY(sys_vfork)
-	PT_REGS_ADJUST a0	
-	jmpi     csky_vfork           /* Call fork routine */
-
 ENTRY(sys_sigreturn)
 	PT_REGS_ADJUST a0
 	movi     r11_sig, 0             /* prevent syscall restart handling */

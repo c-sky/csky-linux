@@ -19,6 +19,9 @@
 
 #define TICK_SIZE (tick_nsec / 1000)
 
+void (*mach_time_init) (void) __initdata = NULL;
+void (*mach_tick)( void ) = NULL;
+
 /*
  * timer_interrupt() needs to keep up the real-time clock,
  * as well as call the "do_timer()" routine every clocktick
@@ -41,9 +44,3 @@ void __init time_init(void)
 	mach_time_init();
 }
 
-#ifdef CONFIG_ARCH_USES_GETTIMEOFFSET
-u32 arch_gettimeoffset(void)
-{
-	return mach_gettimeoffset() * 1000;
-}
-#endif /* CONFIG_ARCH_USES_GETTIMEOFFSET */

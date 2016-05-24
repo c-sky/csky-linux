@@ -56,15 +56,8 @@ struct boot_mem_map boot_mem_map;
 
 static char default_command_line[COMMAND_LINE_SIZE] __initdata = CONFIG_CMDLINE;
 
-void (*mach_time_init) (void) __initdata = NULL;
-void (*mach_tick)( void ) = NULL;
-unsigned long (*mach_gettimeoffset) (void) = NULL;
-int  (*mach_set_clock_mmss) (unsigned long) = NULL;
 void (*mach_init_IRQ) (void) __initdata = NULL;
 unsigned int (*mach_get_auto_irqno) (void) = NULL;
-void (*mach_reset)( void ) = NULL;
-void (*mach_halt)( void ) = NULL;
-void (*mach_power_off)( void ) = NULL;
 
 static struct resource code_resource = { .name = "Kernel code", };
 static struct resource data_resource = { .name = "Kernel data", };
