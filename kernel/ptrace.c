@@ -1,24 +1,7 @@
-/*
- * linux/arch/csky/kernel/ptrace.c
- *
- * Taken from linux/kernel/ptrace.c and modified for csky.
- *
- * This file is subject to the terms and conditions of the GNU General
- * Public License.  See the file COPYING in the main directory of
- * this archive for more details.
- *
- * Copyright (C) 2006  Hangzhou C-SKY Microsystems co.,ltd.
- * Copyright (C) 2006  Li Chunqiang (chunqiang_li@c-sky.com)
- * Copyright (C) 2009  Hu junshan<junshan_hu@c-sky.com>
- *
- */
-
-//#include <asm/system.h>
 #include <linux/kernel.h>
 #include <linux/sched.h>
 #include <linux/mm.h>
 #include <linux/smp.h>
-//#include <linux/smp_lock.h>
 #include <linux/errno.h>
 #include <linux/ptrace.h>
 #include <linux/user.h>

@@ -1,22 +1,3 @@
-/*
- *
- * linux/arch/csky/entry.S
- *
- * entry.S  contains the system-call and fault low-level handling routines.
- * This also contains the timer-interrupt handler, as well as all interrupts
- * and faults that can result in a task-switch.
- *
- * NOTE: This code handles signal-recognition, which happens every time
- * after a timer-interrupt and after each system call.
- *
- * This file is subject to the terms and conditions of the GNU General Public
- * License.  See the file README.legal in the main directory of this archive
- * for more details.
- *
- * Copyright (C) 2009 Hangzhou C-SKY Microsystems co.,ltd. 
- *
- */
-
 #include <linux/linkage.h>
 #include <asm/entry.h>
 #include <asm/errno.h>
@@ -189,12 +170,12 @@ tlbinvalidl:
 	mfcr    a2, ss4
 	rte
 
-readtlbinvalid: 
+readtlbinvalid:
 	mfcr    a3, ss2
 	mfcr    r6, ss3
 	mfcr    a2, ss4
 	SAVE_ALL
-	
+
 	SET_CP_MMU
 	RD_MEH	a3
 	bmaski  r8, 12
@@ -202,7 +183,7 @@ readtlbinvalid:
 	mov     a2, a3
 	psrset  ee, ie          /* Enable exception & interrupt */
 	mov     a0, sp
-	movi    a1, 0   
+	movi    a1, 0
 	jbsr    do_page_fault
 	movi    r11_sig, 0             /* r11 = 0, Not a syscall. */
 	jmpi    ret_from_exception
@@ -252,7 +233,7 @@ tlbinvalids:
 	xor     a3, a2
 	cmpnei  a3, 0
 	bt      writetlbinvalid  /* PTE not present, jump to fix it. */
-	
+
 	/* PTE resent, set it to be valid. */
 	ldw     a3, (r6)
 
@@ -267,11 +248,11 @@ tlbinvalids:
 
 	or      a3, a2
 	stw     a3, (r6)
-	/* 
+	/*
 	 * Below, fill a jTLB with two PTEs of which we have set one above.
 	 * When do this, we make sure set Entrylo0 with the low PTE in Page
 	 * Table, and Entrylo1 with the high one.
-	 */     
+	 */
 	bclri   r6, PTE_BIT
 #ifdef CONFIG_CPU_CSKYV1
 	ldw     a2, (r6,4)
@@ -297,7 +278,7 @@ tlbinvalids:
 
 1:
 	WR_MCIR	a2
-	
+
 	mfcr    a3, ss2
 	mfcr    r6, ss3
 	mfcr    a2, ss4
@@ -308,7 +289,7 @@ writetlbinvalid:
 	mfcr    r6, ss3
 	mfcr    a2, ss4
 	SAVE_ALL
-	
+
 	SET_CP_MMU
 	RD_MEH	    a3
 	bmaski  r8, 12
@@ -329,7 +310,7 @@ tlbmiss:
 #ifndef CONFIG_MMU_HARD_REFILL
 	lrw     a0, (pgd_current)
 	ldw     a0, (a0)
-	
+
 	SET_CP_MMU
 	RD_MEH  a1
 #ifdef CONFIG_CPU_CSKYV1
@@ -337,7 +318,7 @@ tlbmiss:
 	lsri    a2, _PGDIR_SHIFT
 	ixw     a0, a2
 	ldw     a0, (a0)
-	
+
 	lsri    a1, PTE_INDX_SHIFT
 	lrw     a2, PTE_INDX_MSK
 	and     a1, a2
@@ -353,7 +334,7 @@ tlbmiss:
 	lsri    a2, a1, _PGDIR_SHIFT
 	ixw     a0, a2
 	ldw     a0, (a0)
-	
+
 	zext    a1, a1, 21, 12
 	ixw     a0, a1
 	bclri   a0, PTE_BIT
@@ -435,8 +416,8 @@ ENTRY(handle_tlbmodified)
 	bf      tlbmodified
 	ldw     a3, (r6)
 
-	/* 
-	 * Present and writable bits set, set accessed and dirty bits. 
+	/*
+	 * Present and writable bits set, set accessed and dirty bits.
 	 * a2 = (_PAGE_ACCESSED | _PAGE_MODIFIED | _PAGE_VALID | _PAGE_DIRTY)
 	 */
 #ifdef CONFIG_CPU_CSKYV1
@@ -475,7 +456,7 @@ ENTRY(handle_tlbmodified)
 
 1:
 	WR_MCIR	a2
-	
+
 	mfcr    a3, ss2
 	mfcr    r6, ss3
 	mfcr    a2, ss4
@@ -487,7 +468,7 @@ tlbmodified:
 	mfcr    a2, ss4
 	SAVE_ALL
 	kuser_cmpxchg_check
-	
+
 	SET_CP_MMU
 	RD_MEH	a3
 	bmaski  r8, 12
@@ -508,7 +489,7 @@ ENTRY(handle_tlbmodified)
 #endif
 
 /*
- * This function is used to handle access exception. 
+ * This function is used to handle access exception.
  */
 ENTRY(buserr)
 	SAVE_ALL
@@ -516,19 +497,19 @@ ENTRY(buserr)
 	movi    r11_sig, 0        /* r11 = 0, Not a syscall. use in signal handle */
 	mov     a0, sp            /* Stack address is arg[0] */
 	jbsr    buserr_c          /* Call C level handler */
-	jmpi    ret_from_exception 
+	jmpi    ret_from_exception
 
 ENTRY(system_call)
 	SAVE_ALL
 	SET_SMOD_MMU_CP15
-	
+
 	/*
 	 * Do not use r2-r7 here, because the arguments are saved in r2-r6
-	 * and the syscall number is saved in syscallid when the exception is a 
-	 * systemcall. 
-	 * Use temp regs instead 
-	 * 
-	 * When excuting a trap instruction, the pc does not increase. 
+	 * and the syscall number is saved in syscallid when the exception is a
+	 * systemcall.
+	 * Use temp regs instead
+	 *
+	 * When excuting a trap instruction, the pc does not increase.
 	 * The pc should
 	 * be increased manully and save in epc register.
 	 */
@@ -543,10 +524,10 @@ ENTRY(system_call)
 	mtcr    r13, epc                /* Save return point */
 	stw     r13, (sp)               /* Save it in stack*/
 	psrset  ee, ie                 /* Enable Exception & interrupt */
-	
+
 	/* Stack frame for syscall, origin call set_esp0 */
 	mov     r12, sp
-	
+
 	bmaski  r11, 13
 	andn    r12, r11
 	bgeni   r11, 9
@@ -557,7 +538,7 @@ ENTRY(system_call)
 	lrw     r11, NR_syscalls
 	cmphs   syscallid, r11                 /* Check nr of syscall */
 	bt      ret_from_exception
-	
+
 	lrw     r13, sys_call_table
 	ixw     r13, syscallid                 /* Index into syscall table */
 	ldw     r11, (r13)               /* Get syscall function */
@@ -565,18 +546,18 @@ ENTRY(system_call)
 	bf      ret_from_exception
 
 	mov     r9, sp				 /* Get task pointer */
-	bmaski  r10, THREADSIZE_MASK_BIT 
+	bmaski  r10, THREADSIZE_MASK_BIT
 	andn    r9, r10                      /* Get thread_info */
 	ldw     r8, (r9, TINFO_FLAGS)       /* Get thread_info.flags value */
 	btsti   r8, TIF_SYSCALL_TRACE       /* Check if TIF_SYSCALL_TRACE set */
 	bt      1f
 #if defined(__CSKYABIV2__)
-	subi    sp, 8                                 
+	subi    sp, 8
 	stw  	r5, (sp, 0x4)
 	stw  	r4, (sp, 0x0)
 	jsr     r11                      /* Do system call */
 	addi 	sp, 8
-#else	
+#else
 	jsr     r11
 #endif
 	stw     a0, (sp, LSAVE_A0)      /* Save return value */
@@ -613,7 +594,7 @@ syscall_exit_work:
 	ld       syscallid, (sp, 8)     /* get psr, is user mode? */
 	btsti    syscallid, 31
 	bt       2f
-	
+
 	jmpi     resume_userspace
 
 2:      RESTORE_ALL
@@ -628,7 +609,7 @@ ENTRY(ret_from_kernel_thread)
 ENTRY(ret_from_fork)
 	jbsr     schedule_tail
 	mov      r9, sp				 /* Get task pointer */
-	bmaski   r10, THREADSIZE_MASK_BIT 
+	bmaski   r10, THREADSIZE_MASK_BIT
 	andn     r9, r10                     /* Get thread_info */
 	ldw      r8, (r9, TINFO_FLAGS)       /* Get thread_info.flags value */
 	movi     r11_sig, 1                  /* is a syscall */
@@ -647,9 +628,9 @@ ENTRY(ret_from_exception)
 	/*
 	 * Load address of current->thread_info, Then get address of task_struct
 	 * Get task_needreshed in task_struct
-	 */ 
+	 */
 	mov     r9, sp     					 /* Get current stack  pointer */
-	bmaski  r10, THREADSIZE_MASK_BIT 
+	bmaski  r10, THREADSIZE_MASK_BIT
 	andn    r9, r10                      /* Get task_struct */
 
 resume_userspace:
@@ -658,7 +639,7 @@ resume_userspace:
 	cmpnei   r8, 0
 	bt       exit_work
 1:  RESTORE_ALL
-        
+
 exit_work:
 #if 0
 	lrw      a0, init_task          /* Address of init_task */
@@ -680,12 +661,12 @@ exit_work:
 	jbsr     do_notify_resume	/* do signals */
 	br       resume_userspace
 
-work_resched:	
-	lrw      syscallid, ret_from_exception 
+work_resched:
+	lrw      syscallid, ret_from_exception
 	mov      r15, syscallid                /* Return address in link */
 	jmpi     schedule
 
-/*  
+/*
  * Common trap handler. Standard traps come through here first
  */
 
@@ -714,8 +695,8 @@ ENTRY(handle_illegal)
 	jbsr     handle_illegal_c       /* Call C-level trap handler */
 	jmpi     ret_from_exception
 
-/*  
- * Alignment_exception handler. 
+/*
+ * Alignment_exception handler.
  */
 ENTRY(alignment)
 	SAVE_ALL
@@ -742,10 +723,10 @@ ENTRY(trap1)
 	addi     a1, 4                  /* Increase the epc, because the Instruct "trap x" in CK ISA V2 is 32 bit */
 #endif
 	mtcr     a1, epc                /* Save return point */
-	
+
 	movi     a1, 0x32
 	mtcr     a1, cr17
-#if defined(CONFIG_CPU_CSKYV1)	
+#if defined(CONFIG_CPU_CSKYV1)
 	mfcr     a1, ss4
 	mtcr     sp, ss0
 	mfcr     sp, ss1
@@ -754,7 +735,7 @@ ENTRY(trap1)
 	addi     sp, 8
 #endif
 	rte
-	
+
 /*
  * exception  trap 2 use to cmpxchg, reference prototype:
  *      int __kernel_cmpxchg(int oldval, int newval, int *ptr)
@@ -770,7 +751,7 @@ ENTRY(trap1)
  *      a0 = returned value (zero or non-zero)
  *
  * Clobbered:
- *      a3! 
+ *      a3!
  *
  * Attention: trap 2 is not a atomic function!
  * The "stw a1, (a2)" may produce tlbmodified exception, then may cause schedule.
@@ -875,15 +856,15 @@ ENTRY(trap3)                        /*added for get tls*/
 	addi     a0, 4                  /* Increase the epc, because the Instruct "trap x" in CK ISA V2 is 32 bit */
 #endif
 	mtcr     a0, epc                /* Save return point */
-	
+
 	bmaski   a0, (PAGE_SHIFT + 1)   /* kernel stack is 2*page if page is 4k */
 	not      a0
-	and      a0, sp                 /* thread_info local in bottom of stack */ 
-	
-	ldw      a0, (a0, TINFO_TP_VALUE) /* get tls */    
-	
-	addi     sp, 8  
-#if defined(CONFIG_CPU_CSKYV1)	
+	and      a0, sp                 /* thread_info local in bottom of stack */
+
+	ldw      a0, (a0, TINFO_TP_VALUE) /* get tls */
+
+	addi     sp, 8
+#if defined(CONFIG_CPU_CSKYV1)
 	mtcr     sp, ss0
 	mfcr     sp, ss1
 #endif
@@ -900,7 +881,7 @@ ENTRY(handle_fpe)
 	mfcr      a0,cr15
 	bseti     a0, 28
 	mtcr      a0, cr15     	       /* clear the exceptional state */
-	cprcr     a0, cpcr4            /* read fesr to check the exception type */ 
+	cprcr     a0, cpcr4            /* read fesr to check the exception type */
 #else
 	mfcr      a0, cr<2, 2>	       /* fpu fesr is cr<2,2> in CSKY_CPUV2 */
 #endif
@@ -918,15 +899,15 @@ ENTRY(inthandler)
 	SAVE_ALL
 	SET_SMOD_MMU_CP15
 	psrset   ee                     /* Enable exceptions */
-	
+
 	movi    r11_sig, 0                   /* r11 = 0, Not a syscall. */
 	mov     r9, sp     					 /* Get current stack  pointer */
-	bmaski  r10, THREADSIZE_MASK_BIT 
+	bmaski  r10, THREADSIZE_MASK_BIT
 	andn    r9, r10                      /* Get thread_info */
 
 #ifdef CONFIG_PREEMPT
 	/*
-	 * Get task_struct->stack.preempt_count for current, 
+	 * Get task_struct->stack.preempt_count for current,
 	 * and increase 1.
 	 */
 	ldw      r8, (r9, TINFO_PREEMPT)
@@ -938,7 +919,7 @@ ENTRY(inthandler)
 	sextb    a0                     /* Fill upper bytes with zero */
 	subi     a0, 32                 /* Real irq nomber need sub VEC offset(32)*/
 	mov      a1, sp                 /* arg[1] is stack pointer */
-	jbsr     csky_do_IRQ          /* Call handler */ 
+	jbsr     csky_do_IRQ          /* Call handler */
 
 #ifdef CONFIG_PREEMPT
 	subi     r8, 1
@@ -955,8 +936,8 @@ ENTRY(inthandler)
 	bt       1b                     /* go again */
 #endif
 2:
-	jmpi     ret_from_exception 
- 
+	jmpi     ret_from_exception
+
 /*
  * This is the auto-vectored interrupt handler (for all hardware interrupt
  * sources). It figures out the vector number and calls the appropriate
@@ -1002,7 +983,7 @@ ENTRY(autohandler)
 	btsti    r7, TIF_NEED_RESCHED
 	bt       1b                     /* go again */
 #endif
-2:	
+2:
 	jmpi     ret_from_exception
 
 ENTRY(sys_sigreturn)
@@ -1024,7 +1005,7 @@ ENTRY(sys_rt_sigreturn)
  */
 
 ENTRY(resume)
-	lrw      a3, TASK_THREAD        /* struct_thread offset in task_struct */ 
+	lrw      a3, TASK_THREAD        /* struct_thread offset in task_struct */
 	addu     a3, a0                 /* a3 point to thread in prev task_struct */
 
 	mfcr     a2, psr                /* Save PSR value */
@@ -1042,12 +1023,12 @@ ENTRY(resume)
 	stw      r6, (a3, THREAD_USP)   /* Save usp in task struct */
 	stw      sp, (a3, THREAD_KSP)   /* Save ksp in task struct */
 
-#ifdef CONFIG_CPU_HAS_FPU 
+#ifdef CONFIG_CPU_HAS_FPU
 	FPU_SAVE_REGS
 #endif
 
 	/* Set up next process to run */
-	lrw      a3, TASK_THREAD	/* struct_thread offset in task_struct */ 
+	lrw      a3, TASK_THREAD	/* struct_thread offset in task_struct */
 	addu     a3, a1			/* a3 point to thread in next task_struct */
 
 	ldw      sp, (a3, THREAD_KSP)	/* Set next ksp */
@@ -1059,20 +1040,20 @@ ENTRY(resume)
 	mtcr     r6, ss1                /* Get current usp */
 #endif
 
-#ifdef CONFIG_CPU_HAS_FPU 
+#ifdef CONFIG_CPU_HAS_FPU
 	FPU_RESTORE_REGS
 #endif
 
 	ldw      a2, (a3, THREAD_SR)    /* Set next PSR */
 	mtcr     a2, psr
-	
+
 #if  defined(CONFIG_CPU_CSKYV2)
 	/* set TLS register (r31) */
 	addi     r7, a1, TASK_THREAD_INFO
 	ldw      r31, (r7, TINFO_TP_VALUE)
 #endif
 
-	RESTORE_SWITCH_STACK	
+	RESTORE_SWITCH_STACK
 
 	rts
 
@@ -1153,12 +1134,12 @@ sys_call_table:
 	.long sys_setregid16
 	.long sys_sigsuspend
 	.long sys_sigpending
-	.long sys_sethostname   
+	.long sys_sethostname
 	.long sys_setrlimit     /* 75 */
 	.long sys_old_getrlimit
 	.long sys_getrusage
 	.long sys_gettimeofday
-	.long sys_settimeofday  
+	.long sys_settimeofday
 	.long sys_getgroups16   /* 80 */
 	.long sys_setgroups16
 	.long old_select
@@ -1183,12 +1164,12 @@ sys_call_table:
 	.long sys_ni_syscall    /* ioperm for i386 */
 	.long sys_socketcall
 	.long sys_syslog
-	.long sys_setitimer     
+	.long sys_setitimer
 	.long sys_getitimer     /* 105 */
 	.long sys_newstat
 	.long sys_newlstat
 	.long sys_newfstat
-	.long sys_ni_syscall    
+	.long sys_ni_syscall
 	.long sys_ni_syscall    /* 110 iopl for i386 */
  	.long sys_vhangup
 	.long sys_ni_syscall    /* obsolete idle() syscall */
@@ -1260,7 +1241,7 @@ sys_call_table:
 	.long sys_rt_sigqueueinfo
 	.long sys_rt_sigsuspend
 	.long sys_pread64               /* 180 */
-	.long sys_pwrite64                
+	.long sys_pwrite64
 	.long sys_lchown16;
 	.long sys_getcwd
 	.long sys_capget
@@ -1270,7 +1251,7 @@ sys_call_table:
 	.long sys_ni_syscall    /* streams1 */
 	.long sys_ni_syscall    /* streams2 */
 	.long sys_vfork         /* 190 */
-	.long sys_getrlimit     
+	.long sys_getrlimit
 	.long sys_mmap2
 	.long sys_truncate64
 	.long sys_ftruncate64
@@ -1395,7 +1376,7 @@ sys_call_table:
 	.long sys_kexec_load
 	.long sys_getcpu
 	.long sys_epoll_pwait           /* 315 */
-	.long sys_utimensat     
+	.long sys_utimensat
 	.long sys_signalfd
 	.long sys_timerfd_create
 	.long sys_eventfd
@@ -1413,7 +1394,7 @@ sys_call_table:
 	.long sys_rt_tgsigqueueinfo
 	.long sys_perf_event_open
 	.long sys_recvmmsg
-	.long sys_accept4 
+	.long sys_accept4
 	.long sys_fanotify_init         /* 335 */
 	.long sys_fanotify_mark
 	.long sys_prlimit64

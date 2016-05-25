@@ -1,13 +1,3 @@
-/*
- * This file is subject to the terms and conditions of the GNU General Public
- * License.  See the file COPYING in the main directory of this archive
- * for more details.
- *
- * Copyright (C) 2009  Hangzhou C-SKY Microsystems co.,ltd.
- * Copyright (C) 2009  Hu junshan (junshan_hu@c-sky.com)
- *
- */
-
 #include <linux/moduleloader.h>
 #include <linux/elf.h>
 #include <linux/mm.h>
@@ -17,35 +7,16 @@
 #include <linux/string.h>
 #include <linux/kernel.h>
 #include <linux/spinlock.h>
-#include <asm/pgtable.h>        
+#include <asm/pgtable.h>
 
-#if 0
-#define DEBUGP printk
-#else
 #define DEBUGP(fmt...)
-#endif
-
-#ifdef CONFIG_MODULES
 
 void *module_alloc(unsigned long size)
 {
-#ifdef MODULE_START
-	struct vm_struct *area;
-	
-	size = PAGE_ALIGN(size);
-	if (!size)
+	if (size == 0)
 		return NULL;
-	
-	area = __get_vm_area(size, VM_ALLOC, MODULE_START, MODULE_END);
-	if (!area)
-		return NULL;
-	
-	return __vmalloc_area(area, GFP_KERNEL, PAGE_KERNEL);
-#else
-        if (size == 0)
-        	return NULL;
-        return vmalloc(size);
-#endif
+
+	return vmalloc(size);
 }
 
 /*
@@ -58,15 +29,6 @@ void module_free(struct module *mod, void *module_region)
 	   table entries. */
 }
 
-/*
- * We don't need anything special.
- */
-int module_frob_arch_sections(Elf_Ehdr *hdr, Elf_Shdr *sechdrs,
-           char *secstrings, struct module *mod)
-{
-	return 0;
-}
-
 int apply_relocate(Elf_Shdr *sechdrs, const char *strtab, unsigned int symindex,
                 unsigned int relsec, struct module *me)
 {
@@ -75,9 +37,9 @@ int apply_relocate(Elf_Shdr *sechdrs, const char *strtab, unsigned int symindex,
 	Elf32_Sym *sym;
 	uint32_t *location;
 	short * temp;
-	
+
 	DEBUGP("Applying relocate section %u to %u\n", relsec,
-		sechdrs[relsec].sh_info); 
+		sechdrs[relsec].sh_info);
 	for (i = 0; i < sechdrs[relsec].sh_size / sizeof(*rel); i++) {
 		/* This is where to make the change */
 		location = (void *)sechdrs[sechdrs[relsec].sh_info].sh_addr
@@ -186,15 +148,3 @@ int apply_relocate_add(Elf32_Shdr *sechdrs, const char *strtab,
 	return 0;
 }
 
-int module_finalize(const Elf_Ehdr *hdr, const Elf_Shdr *sechdrs,
-            struct module *mod)
-{
-
-	return 0;
-}
-
-void module_arch_cleanup(struct module *mod)
-{
-}
-
-#endif /* CONFIG_MODULES */

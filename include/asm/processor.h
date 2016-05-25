@@ -154,13 +154,6 @@ extern int kernel_thread(int (*fn)(void *), void * arg, unsigned long flags);
 #define release_segments(mm)		do { } while (0)
 #define forget_segments()		do { } while (0)
 
-/*
- * Free current thread data structures etc..
- */
-static inline void exit_thread(void)
-{
-}
-
 extern unsigned long thread_saved_pc(struct task_struct *tsk);
 
 unsigned long get_wchan(struct task_struct *p);
