@@ -33,6 +33,7 @@
 #include <linux/types.h>
 #include <linux/errno.h>
 #include <linux/rtc.h>
+#include <linux/irqchip.h>
 
 #include <asm/atomic.h>
 #include <asm/uaccess.h>
@@ -92,17 +93,7 @@ asmlinkage void csky_do_IRQ(unsigned int irq, struct pt_regs *regs)
 
 asmlinkage void  csky_do_auto_IRQ(struct pt_regs *regs)
 {
-	unsigned int irq;
-
-	if(mach_get_auto_irqno) {
-		irq = mach_get_auto_irqno();
-	}
-	else {
-		pr_emerg("No mach_get_auto_irqno.\n");
-		return;
-	}
-
-	csky_do_IRQ(irq, regs);
+	csky_do_IRQ(mach_get_auto_irqno(), regs);
 }
 
 /*
@@ -123,12 +114,6 @@ void __init init_IRQ(void)
 	for (i = 0; i < NR_IRQS; i++)
 		irq_set_noprobe(i);
 
-
-	if (mach_init_IRQ)
-		mach_init_IRQ();
-	else
-		pr_emerg("No mach_init_IRQ.\n");
+	irqchip_init();
 }
-
-
 

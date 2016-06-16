@@ -18,7 +18,9 @@
 #include <linux/initrd.h>
 #include <linux/root_dev.h>
 #include <linux/rtc.h>
-#include <linux/screen_info.h>
+#include <linux/of.h>
+#include <linux/of_fdt.h>
+#include <linux/of_platform.h>
 
 #include <asm/sections.h>
 #include <asm/setup.h>
@@ -37,8 +39,6 @@ extern void cpu_report(void);
 extern void paging_init(void);
 
 struct boot_mem_map boot_mem_map;
-
-static char default_command_line[COMMAND_LINE_SIZE] __initdata = CONFIG_CMDLINE;
 
 void (*mach_init_IRQ) (void) __initdata = NULL;
 unsigned int (*mach_get_auto_irqno) (void) = NULL;
@@ -83,6 +83,11 @@ add_memory_region(
 	boot_mem_map.nr_map++;
 }
 
+void __init early_init_dt_add_memory_arch(u64 base, u64 size)
+{
+	add_memory_region(base, size, BOOT_MEM_RAM);
+}
+
 static void __init print_memory_map(void)
 {
 	int i;
@@ -108,57 +113,6 @@ static void __init print_memory_map(void)
 		}
 	}
 }
-
-/*
- * Pick out the memory size.  We look for mem=size@start,
- * where start and size are "size[KkMm]"
- */
-static int usermem __initdata;
-static int __init early_mem(char *p)
-{
-	unsigned long size, start;
-	/*
-	 * If the user specifies memory size, we
-	 * blow away any automatically generated
-	 * size.
-	 */
-	if (usermem == 0) {
-		usermem = 1;
-		boot_mem_map.nr_map = 0;
-	}
-
-	start = PHY_OFFSET;
-	size  = memparse(p, &p);
-	if (*p == '@')
-		start = memparse(p + 1, &p);
-
-	add_memory_region(start, size, BOOT_MEM_RAM);
-	return 0;
-}
-early_param("mem", early_mem);
-
-static int __init early_highmem(char *p)
-{
-	unsigned long size, start;
-	/*
-	 * If the user specifies memory size, we
-	 * blow away any automatically generated
-	 * size.
-	 */
-	if (usermem == 0) {
-		usermem = 1;
-		boot_mem_map.nr_map = 0;
-	}
-
-	start = HIGHMEM_START;
-	size  = memparse(p, &p);
-	if (*p == '@')
-		start = memparse(p + 1, &p);
-
-	add_memory_region(start, size, BOOT_MEM_RAM);
-	return 0;
-}
-early_param("highmem", early_highmem);
 
 #ifdef CONFIG_BLK_DEV_INITRD
 /* it returns the next free pfn after initrd */
@@ -298,8 +252,8 @@ static void __init bootmem_init(void)
 		pr_info("%lu free pages won't be used\n",
 	                ARCH_PFN_OFFSET - min_low_pfn);
 	}
-	min_low_pfn = ARCH_PFN_OFFSET;
 
+	min_low_pfn = ARCH_PFN_OFFSET;
 	/*
 	 * Determine low and high memory ranges
 	 */
@@ -311,12 +265,6 @@ static void __init bootmem_init(void)
 #endif
 		max_low_pfn = PFN_DOWN(HIGHMEM_START);
 	}
-
-	/*
-	 * Initialize the boot-time allocator with low memory only.
-	 */
-	bootmap_size = init_bootmem_node(NODE_DATA(0), mapstart,
-	                                 min_low_pfn, max_low_pfn);
 
 
 	for (i = 0; i < boot_mem_map.nr_map; i++) {
@@ -343,6 +291,13 @@ static void __init bootmem_init(void)
 
 		memblock_add_node(PFN_PHYS(start), PFN_PHYS(end - start), 0);
 	}
+
+	/*
+	 * Initialize the boot-time allocator with low memory only.
+	 */
+	bootmap_size = init_bootmem_node(NODE_DATA(0), mapstart,
+	                                 min_low_pfn, max_low_pfn);
+
 
 	/*
 	 * Register fully available low RAM pages with the bootmem allocator.
@@ -473,7 +428,7 @@ static void __init resource_init(void)
 
 void __init setup_arch(char **cmdline_p)
 {
-	printk("Linux C-SKY port done by C-SKY Microsystems co.,ltd.  www.c-sky.com\n");
+	printk("Linux C-SKY port done by C-SKY Microsystems co.,ltd. www.c-sky.com\n");
 
 	init_mm.start_code = (unsigned long) &_stext;
 	init_mm.end_code = (unsigned long) &_etext;
@@ -481,7 +436,6 @@ void __init setup_arch(char **cmdline_p)
 	init_mm.brk = (unsigned long) 0;
 
 	cpu_probe();
-	config_BSP();
 	cpu_report();
 
 #ifdef CONFIG_BLK_DEV_BLKMEM
@@ -491,20 +445,18 @@ void __init setup_arch(char **cmdline_p)
 
 	pr_info("Determined physical RAM map:\n");
 	print_memory_map();
-
-	strlcpy(boot_command_line,
-		default_command_line, COMMAND_LINE_SIZE);
-	*cmdline_p = default_command_line;
+	*cmdline_p = boot_command_line;
 
 	parse_early_param();
 
-	if (usermem) {
-		pr_info("User-defined physical RAM map:\n");
-		print_memory_map();
-	}
+	pr_info("User-defined physical RAM map:\n");
+	print_memory_map();
 
 	/* setup bitmap for ram */
 	bootmem_init();
+
+	unflatten_and_copy_device_tree();
+
 	sparse_init();
 	paging_init();
 	resource_init();
@@ -518,6 +470,13 @@ void __init setup_arch(char **cmdline_p)
 #endif
 }
 
+static int __init customize_machine(void)
+{
+	of_platform_default_populate(NULL, NULL, NULL);
+	return 0;
+}
+arch_initcall(customize_machine);
+
 /*
  * Call from head.S before start_kernel, prepare vbr mmu bss
  */
@@ -526,15 +485,29 @@ asmlinkage void pre_start(unsigned int magic, void *param)
 {
 	int vbr = (int) &vec_base;
 
+	/* Setup vbr reg */
 	__asm__ __volatile__(
 			"mtcr %0, vbr\n"
 			::"b"(vbr));
 
+	/* Setup mmu as coprocessor */
 	select_mmu_cp();
+
+	/* Setup page mask to 4k */
 	write_mmu_pagemask(0);
 
+	/* Clean up bss section */
 	memset((void *)&_sbss, 0,
 		(unsigned int)&_ebss - (unsigned int)&_sbss);
+
+	if (magic == 0x20150401) {
+		early_init_dt_scan(param);
+	}
+
+#ifdef CONFIG_CMDLINE
+	strlcpy(boot_command_line,
+		CONFIG_CMDLINE_STR, COMMAND_LINE_SIZE);
+#endif
 
 	return;
 }

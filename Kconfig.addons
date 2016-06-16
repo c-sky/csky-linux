@@ -1,4 +1,6 @@
-#
-# Empty Kconfig for arch/csky/Kconfig.
-# This should be replaced by addons/Kconfig
-#
+config SYNOP_MAC
+	tristate "gx synop_mac"
+
+source "addons/irr/Kconfig"
+
+source "addons/gxav/Kconfig"

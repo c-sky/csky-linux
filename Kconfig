@@ -31,6 +31,10 @@ config CSKY
 	select GENERIC_CPU_DEVICES
 	select MODULES_USE_ELF_REL if MODULES
 	select MODULES_USE_ELF_RELA if MODULES
+	select OF
+	select OF_EARLY_FLATTREE
+	select COMMON_CLK
+	select CLKSRC_OF
 
 config UID16
 	bool
@@ -423,15 +427,14 @@ config DMA_UNCACHED_NONE
 
 endchoice
 
+
 config CMDLINE
+	bool "Enable default kernel command string"
+
+config CMDLINE_STR
 	string "Default kernel command string"
 	default ""
-	help
-	  On some architectures, there is currently no way
-	  for the boot loader to pass arguments to the kernel. For these
-	  architectures, you should supply some command-line options at build
-	  time by entering them here. As a minimum, you should specify the
-	  memory size and the root device (e.g., mem=64M root=/dev/nfs).
+	depends on CMDLINE
 endmenu
 
 menu "Power management options"

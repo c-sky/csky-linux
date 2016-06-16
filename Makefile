@@ -17,7 +17,7 @@ CPUTYPE= -mcpu=ck810$(DSPEXT)$(FPUEXT)
 CSKYHAL	= v2
 endif
 
-KBUILD_CFLAGS +=	-fsigned-char -g -fno-builtin-memcpy \
+KBUILD_CFLAGS +=	-fsigned-char -fno-builtin-memcpy \
 			-I$(INCGCC) -fno-tree-dse \
 			-pipe -DNO_FPU -D__ELF__ -DMAGIC_ROM_PTR \
 			-D__linux__ -DNO_TEXT_SECTIONS $(CPUTYPE) 
@@ -51,6 +51,8 @@ core-y		+= arch/csky/kernel/
 core-y		+= arch/csky/mm/
 
 libs-y		+= arch/csky/lib/ 
+
+drivers-$(CONFIG_OPROFILE)	+= arch/csky/oprofile/
 
 ifdef CONFIG_CSKY_EXT
 core-y		+= addons/

@@ -544,15 +544,3 @@ void show_registers(struct pt_regs *fp)
 	return;
 }
 
-#ifdef TRAP_DBG_INTERRUPT
-
-asmlinkage void dbginterrupt_c(struct frame *fp)
-{
-        extern void show_registers(struct pt_regs *fp);
-        printk("%s(%d): BUS ERROR TRAP\n", __FILE__, __LINE__);
-        show_registers((struct pt_regs *) fp);
-        asm("bkpt");
-}
-
-#endif
-

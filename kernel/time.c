@@ -1,8 +1,9 @@
 #include <linux/sched.h>
 #include <linux/profile.h>
-#include <asm/irq_regs.h>
-
-void (*mach_time_init) (void) __initdata = NULL;
+#include <linux/interrupt.h>
+#include <linux/clk.h>
+#include <linux/clk-provider.h>
+#include <linux/clocksource.h>
 
 void csky_tick(void)
 {
@@ -14,7 +15,7 @@ void csky_tick(void)
 
 void __init time_init(void)
 {
-	if (mach_time_init)
-		mach_time_init();
+	of_clk_init(NULL);
+	clocksource_probe();
 }
 
