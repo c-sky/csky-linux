@@ -1,6 +1,0 @@
-config SYNOP_MAC
-	tristate "gx synop_mac"
-
-source "addons/irr/Kconfig"
-
-source "addons/gxav/Kconfig"
