@@ -36,6 +36,17 @@
 			interrupt-parent = <&intc>;
 			interrupts = <59>;
 		};
+
+		uart0: serial@403000 {
+			compatible = "ns16550a";
+			reg = <0x00403000 0x400>;
+			interrupt-parent = <&intc>;
+			interrupts = <15>;
+			clock-frequency = <29491200>;
+			baud = <115200>;
+			reg-shift = <2>;
+			reg-io-width = <1>;
+		};
 	};
 
 	chosen {
