@@ -10,13 +10,6 @@
 		reg = <0x10000000 0x04000000>;
 	};
 
-	timer0 {
-		compatible = "nationalchip,timer-v1";
-		reg = <0x0020a000 0x400>;
-		interrupts = <10>;
-		interrupt-parent = <&intc>;
-	};
-
 	soc {
 		#address-cells = <1>;
 		#size-cells = <1>;
@@ -28,6 +21,14 @@
 			reg = <0x00500000 0x400>;
 			interrupt-controller;
 			#interrupt-cells = <1>;
+		};
+
+		timer0 {
+			compatible = "nationalchip,timer-v1";
+			reg = <0x0020a000 0x400>;
+			interrupts = <10>;
+			interrupt-parent = <&intc>;
+			clock-frequency = <125000000>;
 		};
 
 		ehci: ehci-hcd {
