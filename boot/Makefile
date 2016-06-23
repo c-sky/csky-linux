@@ -1,25 +1,24 @@
-MKIMAGE := $(srctree)/scripts/mkuboot.sh
-
-targets := Image uImage
-extra-y += Image
-
-quiet_cmd_uimage = UIMAGE  $@
-	cmd_uimage = $(MKIMAGE) -A mips -O linux -T kernel \
-		-C none -n 'Linux-$(KERNELRELEASE)' -a 0x90000000 \
-		-e 0x90000000 \
-		-d $< $@
-
+targets := Image zImage uImage
 
 $(obj)/Image: vmlinux FORCE
 	$(call if_changed,objcopy)
 	@echo '  Kernel: $@ is ready'
 
-$(obj)/uImage: $(obj)/Image
+compress-$(CONFIG_KERNEL_GZIP) = gzip
+compress-$(CONFIG_KERNEL_LZO)  = lzo
+compress-$(CONFIG_KERNEL_LZMA) = lzma
+compress-$(CONFIG_KERNEL_XZ)   = xzkern
+compress-$(CONFIG_KERNEL_LZ4)  = lz4
+
+$(obj)/zImage:  $(obj)/Image FORCE
+	$(call if_changed,$(compress-y))
+	@echo '  Kernel: $@ is ready'
+
+UIMAGE_ARCH		= sandbox
+UIMAGE_COMPRESSION	= $(compress-y)
+UIMAGE_LOADADDR		= $(shell $(NM) vmlinux | awk '$$NF == "_start" {print $$1}')
+
+$(obj)/uImage: $(obj)/zImage
 	$(call if_changed,uimage)
 	@echo 'Image: $@ is ready'
-
-install:
-	sh $(srctree)/$(src)/install.sh $(KERNELRELEASE) $(BOOTIMAGE) System.map "$(INSTALL_PATH)
-
-subdir-     := compressed
 

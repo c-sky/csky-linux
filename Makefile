@@ -22,8 +22,6 @@ KBUILD_CFLAGS +=	-fsigned-char -fno-builtin-memcpy \
 			-pipe -DNO_FPU -D__ELF__ -DMAGIC_ROM_PTR \
 			-D__linux__ -DNO_TEXT_SECTIONS $(CPUTYPE) 
 
-machine-y	:= gx3xxx
-
 haldirs := $(patsubst %,arch/csky/hal/%/,$(CSKYHAL)) 
 
 KBUILD_CFLAGS += $(patsubst %,-I$(srctree)/%inc,$(haldirs))
@@ -38,41 +36,26 @@ endif
 
 KBUILD_AFLAGS += $(KBUILD_CFLAGS)
 
-head-y		:= arch/csky/kernel/head.o
+head-y				:= arch/csky/kernel/head.o
 
-ifdef CONFIG_CPU_CSKYV1
-core-y		+= arch/csky/hal/v1/
-endif
-ifdef CONFIG_CPU_CSKYV2
-core-y		+= arch/csky/hal/v2/
-endif
+core-y				+= arch/csky/kernel/
+core-y				+= arch/csky/mm/
+libs-y				+= arch/csky/lib/
 
-core-y		+= arch/csky/kernel/
-core-y		+= arch/csky/mm/
-
-libs-y		+= arch/csky/lib/ 
-
+core-$(CONFIG_CPU_CSKYV1)	+= arch/csky/hal/v1/
+core-$(CONFIG_CPU_CSKYV2)	+= arch/csky/hal/v2/
 drivers-$(CONFIG_OPROFILE)	+= arch/csky/oprofile/
-
-ifdef CONFIG_CSKY_EXT
-core-y		+= addons/
-endif
-
-CLEAN_FILES += \
-    arch/$(ARCH)/kernel/asm-offsets.s
+drivers-$(CONFIG_CSKY_EXT)	+= addons/
 
 all: zImage
 
-boot := arch/csky/boot
+boot	:= arch/csky/boot
 
-zImage Image bootpImage uImage: vmlinux
+dtbs: prepare scripts
+	$(Q)$(MAKE) $(build)=$(boot)/dts
+
+zImage Image uImage: vmlinux
 	$(Q)$(MAKE) $(build)=$(boot) $(boot)/$@
-
-bootstrap:
-	$(Q)$(MAKEBOOT) bootstrap
-
-install:
-	$(Q)$(MAKE) $(build)=$(boot) BOOTIMAGE=$(KBUILD_IMAGE) install
 
 archmrproper:
 
