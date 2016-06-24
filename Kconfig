@@ -118,16 +118,16 @@ source "init/Kconfig"
 
 source "kernel/Kconfig.freezer"
 
-menuconfig CSKY_EXT
+menuconfig CSKY_ADDONS
 	bool "Addons for arch csky"
-	default n
+	default y
 	help
 	  This is easy way to seperate vendor code and kernel code.
 	  It will make merging "kernel csky vendor" easier.
 
-if CSKY_EXT
+if CSKY_ADDONS
 
-source "arch/csky/Kconfig.addons"
+source "addons/Kconfig"
 
 endif
 
