@@ -45,7 +45,7 @@ libs-y				+= arch/csky/lib/
 core-$(CONFIG_CPU_CSKYV1)	+= arch/csky/hal/v1/
 core-$(CONFIG_CPU_CSKYV2)	+= arch/csky/hal/v2/
 drivers-$(CONFIG_OPROFILE)	+= arch/csky/oprofile/
-drivers-$(CONFIG_CSKY_EXT)	+= addons/
+drivers-$(CONFIG_CSKY_ADDONS)	+= addons/
 
 all: zImage
 
