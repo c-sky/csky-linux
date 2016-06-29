@@ -428,14 +428,6 @@ config DMA_UNCACHED_NONE
 
 endchoice
 
-
-config CMDLINE
-	bool "Enable default kernel command string"
-
-config CMDLINE_STR
-	string "Default kernel command string"
-	default ""
-	depends on CMDLINE
 endmenu
 
 menu "Power management options"

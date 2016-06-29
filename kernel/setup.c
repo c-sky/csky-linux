@@ -88,30 +88,9 @@ void __init early_init_dt_add_memory_arch(u64 base, u64 size)
 	add_memory_region(base, size, BOOT_MEM_RAM);
 }
 
-static void __init print_memory_map(void)
+void * __init early_init_dt_alloc_memory_arch(u64 size, u64 align)
 {
-	int i;
-
-	for (i = 0; i < boot_mem_map.nr_map; i++) {
-		printk(" memory: %08Lx @ %08Lx ",
-			  (unsigned long long) boot_mem_map.map[i].size,
-		          (unsigned long long) boot_mem_map.map[i].addr);
-
-		switch (boot_mem_map.map[i].type) {
-		case BOOT_MEM_RAM:
-			printk("(usable)\n");
-			break;
-		case BOOT_MEM_ROM_DATA:
-			printk("(ROM data)\n");
-			break;
-		case BOOT_MEM_RESERVED:
-			printk("(reserved)\n");
-			break;
-		default:
-			printk("type %lu\n", boot_mem_map.map[i].type);
-			break;
-		}
-	}
+	return alloc_bootmem_align(size, align);
 }
 
 #ifdef CONFIG_BLK_DEV_INITRD
@@ -428,29 +407,17 @@ static void __init resource_init(void)
 
 void __init setup_arch(char **cmdline_p)
 {
-	printk("Linux C-SKY port done by C-SKY Microsystems co.,ltd. www.c-sky.com\n");
+	*cmdline_p = boot_command_line;
+
+	printk("www.c-sky.com\n");
 
 	init_mm.start_code = (unsigned long) &_stext;
 	init_mm.end_code = (unsigned long) &_etext;
 	init_mm.end_data = (unsigned long) &_edata;
 	init_mm.brk = (unsigned long) 0;
-
-	cpu_probe();
 	cpu_report();
 
-#ifdef CONFIG_BLK_DEV_BLKMEM
-	ROOT_DEV = BLKMEM_MAJOR;
-	ROOT_DEV <<= MINORBITS;
-#endif
-
-	pr_info("Determined physical RAM map:\n");
-	print_memory_map();
-	*cmdline_p = boot_command_line;
-
 	parse_early_param();
-
-	pr_info("User-defined physical RAM map:\n");
-	print_memory_map();
 
 	/* setup bitmap for ram */
 	bootmem_init();
@@ -469,13 +436,6 @@ void __init setup_arch(char **cmdline_p)
 	conswitchp = &dummy_con;
 #endif
 }
-
-static int __init customize_machine(void)
-{
-	of_platform_default_populate(NULL, NULL, NULL);
-	return 0;
-}
-arch_initcall(customize_machine);
 
 /*
  * Call from head.S before start_kernel, prepare vbr mmu bss
@@ -503,11 +463,6 @@ asmlinkage void pre_start(unsigned int magic, void *param)
 	if (magic == 0x20150401) {
 		early_init_dt_scan(param);
 	}
-
-#ifdef CONFIG_CMDLINE
-	strlcpy(boot_command_line,
-		CONFIG_CMDLINE_STR, COMMAND_LINE_SIZE);
-#endif
 
 	return;
 }
