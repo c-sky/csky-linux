@@ -70,24 +70,10 @@ static inline unsigned long setup_zero_pages(void)
 #ifndef CONFIG_NEED_MULTIPLE_NODES
 static inline int hupage_is_ram(unsigned long pagenr)
 {
-	int i;
-
-	for (i = 0; i < boot_mem_map.nr_map; i++) {
-		unsigned long addr, end;
-
-		if (boot_mem_map.map[i].type != BOOT_MEM_RAM)
-			/* not usable memory */
-			continue;
-
-		addr = PFN_UP(boot_mem_map.map[i].addr);
-		end = PFN_DOWN(boot_mem_map.map[i].addr
-			       + boot_mem_map.map[i].size);
-
-		if (pagenr >= addr && pagenr < end)
-			return 1;
-	}
-
-	return 0;
+	if (pagenr >= min_low_pfn && pagenr < max_low_pfn)
+		return 1;
+	else
+		return 0;
 }
 
 void __init mem_init(void)

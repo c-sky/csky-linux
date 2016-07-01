@@ -54,7 +54,7 @@ boot	:= arch/csky/boot
 dtbs: prepare scripts
 	$(Q)$(MAKE) $(build)=$(boot)/dts
 
-zImage Image uImage: vmlinux
+zImage Image uImage: vmlinux dtbs
 	$(Q)$(MAKE) $(build)=$(boot) $(boot)/$@
 
 archmrproper:

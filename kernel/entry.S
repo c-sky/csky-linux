@@ -671,7 +671,7 @@ work_resched:
  */
 
 ENTRY(trap)
-	br .
+	bkpt
 	SAVE_ALL
 	SET_SMOD_MMU_CP15
 

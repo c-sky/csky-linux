@@ -2,7 +2,8 @@
 #include <linux/interrupt.h>
 #include <linux/irq.h>
 #include <linux/irqchip.h>
-#include <asm/machdep.h>
+
+unsigned int (*mach_get_auto_irqno) (void) = NULL;
 
 int arch_show_interrupts(struct seq_file *p, int prec)
 {
