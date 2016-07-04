@@ -169,3 +169,31 @@ void free_initmem(void)
 	printk(KERN_INFO "Freeing unused kernel memory: %dk freed\n",
 	        ((unsigned int)&__init_end - (unsigned int)&__init_begin) >> 10);
 }
+
+void pgd_init(unsigned long page)
+{
+	int i;
+	unsigned long *p = (unsigned long *) page;
+
+#ifdef CONFIG_MMU_HARD_REFILL
+#define val	(unsigned long) __pa(invalid_pte_table);
+#else
+#define val	(unsigned long) invalid_pte_table;
+#endif
+
+	for (i = 0; i < USER_PTRS_PER_PGD*2; i+=8) {
+		p[i + 0] = val;
+		p[i + 1] = val;
+		p[i + 2] = val;
+		p[i + 3] = val;
+		p[i + 4] = val;
+		p[i + 5] = val;
+		p[i + 6] = val;
+		p[i + 7] = val;
+	}
+
+#ifdef CONFIG_MMU_HARD_REFILL
+	clear_dcache_range((unsigned long)p, USER_PTRS_PER_PGD);
+#endif
+}
+
