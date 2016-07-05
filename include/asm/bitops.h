@@ -24,7 +24,7 @@ static inline int ffs(int x)
 /*
  * asm-generic/bitops/__ffs.h
  */
-static inline int __ffs(unsigned int x)
+static __always_inline unsigned long __ffs(unsigned long x)
 {
 	__asm__ __volatile__ (
 			"brev %0\n\t"
@@ -37,7 +37,7 @@ static inline int __ffs(unsigned int x)
 /*
  * asm-generic/bitops/fls.h
  */
-static inline int fls(int x)
+static __always_inline int fls(int x)
 {
 	__asm__ __volatile__(
 			"ff1 %0\n\t"
@@ -50,7 +50,7 @@ static inline int fls(int x)
 /*
  * asm-generic/bitops/__fls.h
  */
-static inline int __fls(int x)
+static __always_inline unsigned long __fls(unsigned long x)
 {
 	return fls(x) - 1;
 }

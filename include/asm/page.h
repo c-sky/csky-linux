@@ -11,9 +11,9 @@
  * PAGE_SHIFT determines the page size
  */
 #define PAGE_SHIFT	12
-#define PAGE_SIZE	4096
-#define PAGE_MASK	(~(PAGE_SIZE-1))
-#define THREAD_SIZE	(8192)
+#define PAGE_SIZE	(_AC(1, UL) << PAGE_SHIFT)
+#define PAGE_MASK	(~(PAGE_SIZE - 1))
+#define THREAD_SIZE	(PAGE_SIZE * 2)
 
 /*
  * NOTE: virtual isn't really correct, actually it should be the offset into the
