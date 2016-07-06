@@ -1,9 +1,8 @@
-#include <asm-generic/vmlinux.lds.h>
+#include <asm/vmlinux.lds.h>
 #include <asm/page.h>
 
-OUTPUT_ARCH(csky) 
-
-ENTRY(__LMA_START)
+OUTPUT_ARCH(csky)
+ENTRY(_start)
 PHDRS {
 	text PT_LOAD FLAGS(7);  /* RWX */
 	data PT_LOAD FLAGS(7);
@@ -18,35 +17,29 @@ jiffies = jiffies_64 + 4;
 
 SECTIONS
 {
-  . = PAGE_OFFSET + (CONFIG_RAM_BASE - PHYS_OFFSET);
-  _stext = .;			/* Text and read-only data */
-  _text = .;			/* Text and read-only data */
-  __LMA_START = _start ;
-  .text : AT(ADDR(.text) ) {
-	HEAD_TEXT
-	TEXT_TEXT
-	SCHED_TEXT
-	LOCK_TEXT
-	*(.fixup)
-	*(.gnu.warning)
+	. = PAGE_OFFSET + (CONFIG_RAM_BASE - PHYS_OFFSET);
+	_start = .;			/* Text and read-only data */
+  
+	.text : AT(ADDR(.text) ) {
+		_text = .;
+		_stext = .;
+		HEAD_TEXT
+		TEXT_TEXT
+		SCHED_TEXT
+		LOCK_TEXT
+		*(.fixup)
+		*(.gnu.warning)
+		_etext = .;
 	} :text = 0
 
-  _etext = .;			/* End of text section */
+	EXCEPTION_TABLE(0x10)
 
-  . = ALIGN(16);		/* Exception table */
-  __start___ex_table = .;
-  __ex_table : { *(__ex_table) }
-  __stop___ex_table = .;
+	_sdata = .;
+	_data = .;
+	RO_DATA_SECTION(PAGE_SIZE)
+	RW_DATA_SECTION(0x20, PAGE_SIZE, THREAD_SIZE)
+	_edata = .;
 
-  RODATA
-
-	.data : AT(ADDR(.data) )
-	{
-		_data = .;
-	        _sdata = .;
-		DATA_DATA
-		CONSTRUCTORS
-		_edata = .;
 		. = ALIGN(PAGE_SIZE);
 		swapper_pg_dir = .;
 		. += PAGE_SIZE;
@@ -54,20 +47,9 @@ SECTIONS
 		. += PAGE_SIZE;
 		vec_base = .;
 		. += 512;
-	}
 
-  . = ALIGN(16);
-  .data.cacheline_aligned : { *(.data.cacheline_aligned) }
 
-  .bss : AT(ADDR(.bss) ) {
-	VMLINUX_SYMBOL(__bss_start) = .;	
-	_sbss = . ; 
-	 *(.bss) 
-	_ebss = . ;
-	VMLINUX_SYMBOL(__bss_stop) = .;
-	}		/* BSS */
-
-  _edata = .;			/* End of data section */
+	BSS_SECTION(0x20, 0, 0x20)
 
   /* will be freed after init */
   . = ALIGN(4096);		/* Init code and data */
@@ -109,29 +91,10 @@ SECTIONS
   . = ALIGN(8192);
   __init_end = .;
 
-  .data..init_task : AT(ADDR(.data..init_task) ) { *(.data..init_task) }	/* The initial task and kernel stack */
+	_end = . ;
 
-  _end = . ;
-
-  /* Sections to be discarded */
-  /DISCARD/ : {
-	EXIT_TEXT
-	EXIT_DATA
-	*(.exitcall.exit)
-	}
-
-  /* Stabs debugging sections.  */
 	STABS_DEBUG
-        DWARF_DEBUG
+	DWARF_DEBUG
 
-        /* These must appear regardless of  .  */
-        .gptab.sdata : {
-                *(.gptab.data)
-                *(.gptab.sdata)
-        }
-        .gptab.sbss : {
-                *(.gptab.bss)
-                *(.gptab.sbss)
-        }
-
+	DISCARDS
 }

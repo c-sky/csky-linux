@@ -88,8 +88,8 @@ asmlinkage void pre_start(unsigned int magic, void *param)
 	write_mmu_pagemask(0);
 
 	/* Clean up bss section */
-	memset((void *)&_sbss, 0,
-		(unsigned int)&_ebss - (unsigned int)&_sbss);
+	memset((void *)&__bss_start, 0,
+		(unsigned int)&__bss_stop - (unsigned int)&__bss_start);
 
 	if (magic == 0x20150401) {
 		early_init_dt_scan(param);
