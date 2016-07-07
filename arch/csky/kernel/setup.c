@@ -68,11 +68,12 @@ void __init setup_arch(char **cmdline_p)
 #endif
 }
 
-/*
- * Call from head.S before start_kernel, prepare vbr mmu bss
- */
 extern unsigned int _sbss, _ebss, vec_base;
-asmlinkage void pre_start(unsigned int magic, void *param)
+asmlinkage __visible void __init
+pre_start(
+	unsigned int	magic,
+	void		*param
+	)
 {
 	int vbr = (int) &vec_base;
 
@@ -89,7 +90,7 @@ asmlinkage void pre_start(unsigned int magic, void *param)
 
 	/* Clean up bss section */
 	memset((void *)&__bss_start, 0,
-		(unsigned int)&__bss_stop - (unsigned int)&__bss_start);
+		(unsigned int)&_end - (unsigned int)&__bss_start);
 
 	if (magic == 0x20150401) {
 		early_init_dt_scan(param);
