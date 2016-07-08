@@ -104,7 +104,7 @@
 #define __S110	PAGE_SHARED
 #define __S111	PAGE_SHARED
 
-extern unsigned long empty_zero_page;
+extern unsigned long empty_zero_page[PAGE_SIZE / sizeof(unsigned long)];
 #define ZERO_PAGE(vaddr)	(virt_to_page(empty_zero_page))
 
 extern void load_pgd(unsigned long pg_dir);

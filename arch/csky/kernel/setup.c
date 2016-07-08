@@ -68,19 +68,11 @@ void __init setup_arch(char **cmdline_p)
 #endif
 }
 
-extern unsigned int _sbss, _ebss, vec_base;
-asmlinkage __visible void __init
-pre_start(
+asmlinkage __visible void __init pre_start(
 	unsigned int	magic,
-	void		*param
+	void *		param
 	)
 {
-	/* Setup vbr reg */
-	int vbr = (int) &vec_base;
-	__asm__ __volatile__(
-			"mtcr %0, vbr\n"
-			::"b"(vbr));
-
 	/* Setup mmu as coprocessor */
 	select_mmu_cp();
 

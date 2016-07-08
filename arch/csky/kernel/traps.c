@@ -66,6 +66,10 @@ void __init trap_init (void)
 	int i;
 	e_vector *_ramvec = &vec_base;
 
+	__asm__ __volatile__(
+		"mtcr %0, vbr\n"
+		::"b"(_ramvec));
+
 	per_cpu_trap_init();
 
 	  /*

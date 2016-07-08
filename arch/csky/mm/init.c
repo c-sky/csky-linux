@@ -42,22 +42,9 @@
 unsigned long pgd_current[NR_CPUS];
 #endif
 
-unsigned long empty_zero_page;
-EXPORT_SYMBOL(empty_zero_page);
-
 pgd_t swapper_pg_dir[PTRS_PER_PGD] __page_aligned_bss;
 pte_t invalid_pte_table[PTRS_PER_PTE] __page_aligned_bss;
-
-static inline unsigned long setup_zero_pages(void)
-{
-	empty_zero_page = __get_free_pages(GFP_KERNEL | __GFP_ZERO, 0);
-	if (!empty_zero_page)
-		panic("Oh boy, that early out of memory?");
-
-	SetPageReserved(virt_to_page((void *)empty_zero_page));
-
-	return 1UL;
-}
+unsigned long empty_zero_page[PAGE_SIZE / sizeof(unsigned long)] __page_aligned_bss;
 
 #ifndef CONFIG_NEED_MULTIPLE_NODES
 static inline int hupage_is_ram(unsigned long pagenr)
@@ -84,7 +71,6 @@ void __init mem_init(void)
 	high_memory = (void *) __va(max_low_pfn << PAGE_SHIFT);
 
 	totalram_pages += free_all_bootmem();
-	totalram_pages -= setup_zero_pages();   /* Setup zeroed pages.  */
 
 	reservedpages = ram = 0;
 	for (tmp = 0; tmp < max_low_pfn; tmp++)
