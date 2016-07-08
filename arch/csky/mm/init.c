@@ -45,6 +45,9 @@ unsigned long pgd_current[NR_CPUS];
 unsigned long empty_zero_page;
 EXPORT_SYMBOL(empty_zero_page);
 
+pgd_t swapper_pg_dir[PTRS_PER_PGD] __page_aligned_bss;
+pte_t invalid_pte_table[PTRS_PER_PTE] __page_aligned_bss;
+
 static inline unsigned long setup_zero_pages(void)
 {
 	empty_zero_page = __get_free_pages(GFP_KERNEL | __GFP_ZERO, 0);

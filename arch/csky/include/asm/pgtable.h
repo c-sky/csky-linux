@@ -29,6 +29,10 @@
 #define PGD_ORDER	0
 #define PTE_ORDER	0
 
+#define PTRS_PER_PGD	((PAGE_SIZE << PGD_ORDER) / sizeof(pgd_t))
+#define PTRS_PER_PMD	1
+#define PTRS_PER_PTE	((PAGE_SIZE << PTE_ORDER) / sizeof(pte_t))
+
 #define pte_ERROR(e) \
 	printk("%s:%d: bad pte %08lx.\n", __FILE__, __LINE__, (e).pte_low)
 #define pgd_ERROR(e) \
@@ -104,7 +108,7 @@ extern unsigned long empty_zero_page;
 #define ZERO_PAGE(vaddr)	(virt_to_page(empty_zero_page))
 
 extern void load_pgd(unsigned long pg_dir);
-extern pmd_t invalid_pte_table[PAGE_SIZE/sizeof(pmd_t)];
+extern pte_t invalid_pte_table[PTRS_PER_PTE];
 
 static inline int pte_special(pte_t pte) { return 0; }
 static inline pte_t pte_mkspecial(pte_t pte) { return pte; }
@@ -274,10 +278,6 @@ static inline pte_t pte_mkyoung(pte_t pte)
 #define PGD_T_LOG2	ffz(~sizeof(pgd_t))
 #define PMD_T_LOG2	ffz(~sizeof(pmd_t))
 #define PTE_T_LOG2	ffz(~sizeof(pte_t))
-
-#define PTRS_PER_PGD	((PAGE_SIZE << PGD_ORDER) / sizeof(pgd_t))
-#define PTRS_PER_PMD	1
-#define PTRS_PER_PTE	((PAGE_SIZE << PTE_ORDER) / sizeof(pte_t))
 
 #define page_pte(page)	page_pte_prot(page, __pgprot(0))
 

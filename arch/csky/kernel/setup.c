@@ -48,7 +48,7 @@ void __init setup_arch(char **cmdline_p)
 
 	printk("www.c-sky.com\n");
 
-	init_mm.start_code = (unsigned long) _text;
+	init_mm.start_code = (unsigned long) _stext;
 	init_mm.end_code = (unsigned long) _etext;
 	init_mm.end_data = (unsigned long) _edata;
 	init_mm.brk = (unsigned long) _end;
@@ -75,9 +75,8 @@ pre_start(
 	void		*param
 	)
 {
-	int vbr = (int) &vec_base;
-
 	/* Setup vbr reg */
+	int vbr = (int) &vec_base;
 	__asm__ __volatile__(
 			"mtcr %0, vbr\n"
 			::"b"(vbr));
@@ -89,12 +88,10 @@ pre_start(
 	write_mmu_pagemask(0);
 
 	/* Clean up bss section */
-	memset((void *)&__bss_start, 0,
-		(unsigned int)&_end - (unsigned int)&__bss_start);
+	memset(__bss_start, 0, __bss_stop - __bss_start);
 
-	if (magic == 0x20150401) {
+	if (magic == 0x20150401)
 		early_init_dt_scan(param);
-	}
 
 	return;
 }
