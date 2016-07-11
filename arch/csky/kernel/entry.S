@@ -1,5 +1,5 @@
 #include <linux/linkage.h>
-#include <asm/entry.h>
+#include <hal/entry.h>
 #include <asm/errno.h>
 #include <asm/setup.h>
 #include <asm/traps.h>

@@ -27,7 +27,6 @@ typedef void (*e_vector)(void);
 #define	VEC_TLBMISS	    14
 #define	VEC_TLBMODIFIED	15
 
-#define VEC_SYS         16
 #define VEC_TRAP0       16
 #define VEC_TRAP1       17
 #define VEC_TRAP2       18
