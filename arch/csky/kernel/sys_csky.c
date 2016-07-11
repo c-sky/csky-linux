@@ -112,38 +112,6 @@ asmlinkage int sys_getpagesize(void)
 }
 
 /*
- * Do a system call from kernel instead of calling sys_execve so we
- * end up with proper pt_regs.
- */
-int kernel_execve(const char *filename, const char *const argv[],
-	const char *const envp[])
-{
-        register long __res;
-        __asm__ __volatile__(
-#if defined(__CSKYABIV2__)
-		"movi   r7, %4\n\t"
-#else
-		"movi	r1, %4\n\t"
-#endif
-		"mov    a0, %1\n\t"
-                "mov    a1, %2\n\t"
-                "mov    a2, %3\n\t"
-                "trap   0     \n\t"
-                "mov    %0, a0\n\t"
-                : "=r" (__res)
-                : "r" (filename),
-                  "r" (argv),
-                  "r" (envp),
-                  "i" (__NR_execve)
-#if defined(__CSKYABIV2__)
-		: "r7", "a0", "a1", "a2");
-#else
-		: "r1", "a0", "a1", "a2");
-#endif
-        return __res;
-}
-
-/*
  * Since loff_t is a 64 bit type we avoid a lot of ABI hassle
  * with a different argument ordering.
  */

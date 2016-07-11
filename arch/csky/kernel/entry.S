@@ -82,7 +82,6 @@ sw_usp:
 /*
  * Tlbinvalidl exception handle routine.
  */
-#if defined(CONFIG_MMU)
 ENTRY(handle_tlbinvalidl)
 tlbinvalidl:
 	mtcr    a3, ss2
@@ -480,13 +479,6 @@ tlbmodified:
 	jbsr    (do_page_fault)
 	movi    r11_sig, 0             /* r11 = 0, Not a syscall. */
 	jmpi    (ret_from_exception)
-#else
-ENTRY(handle_tlbinvalidl)
-ENTRY(handle_tlbinvalids)
-ENTRY(handle_tlbmiss)
-ENTRY(handle_tlbmodified)
-	rte
-#endif
 
 /*
  * This function is used to handle access exception.
