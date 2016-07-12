@@ -94,7 +94,10 @@ int copy_thread(unsigned long clone_flags,
 	/* Return 0 for subprocess when return from fork(),vfork(),clone() */
 	childregs->a0 = 0;
 
-	p->thread.usp = usp;
+	if (usp != 0)
+		p->thread.usp = usp;
+	else
+		p->thread.usp = rdusp();
 
 	if (clone_flags & CLONE_SETTLS) {
 		task_thread_info(p)->tp_value = (current_pt_regs())->regs[0];

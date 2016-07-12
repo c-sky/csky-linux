@@ -65,7 +65,6 @@
 .export handle_illegal
 
 .import irq_stat
-.export sys_call_table
 
 #ifndef CONFIG_MMU_HARD_REFILL
 .import pgd_current
@@ -531,7 +530,7 @@ ENTRY(system_call)
 	cmphs   syscallid, r11                 /* Check nr of syscall */
 	bt      ret_from_exception
 
-	lrw     r13, sys_call_table
+	lrw     r13, sys_call_table2
 	ixw     r13, syscallid                 /* Index into syscall table */
 	ldw     r11, (r13)               /* Get syscall function */
 	cmpnei  r11, 0                  /* Check for not null */
@@ -1051,7 +1050,7 @@ ENTRY(resume)
 
 .data
 ALIGN
-sys_call_table:
+sys_call_table2:
 	.long sys_restart_syscall /* 0 old "setup" system call, used for restart*/
 	.long sys_exit
 	.long sys_fork
