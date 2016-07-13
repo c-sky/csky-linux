@@ -21,7 +21,7 @@
 #include <asm/regdef.h>
 #include <asm/user.h>
 
-asmlinkage void sys_set_thread_area(unsigned long addr)
+SYSCALL_DEFINE1(set_thread_area, unsigned long, addr)
 {
 	struct thread_info *ti = task_thread_info(current);
 
@@ -30,13 +30,15 @@ asmlinkage void sys_set_thread_area(unsigned long addr)
 	reg->exregs[15] = (long)addr;
 #endif
 	ti->tp_value = addr;
+
+	return 0;
 }
 
 /* common code for old and new mmaps */
-static inline long do_mmap2(
-	unsigned long addr, unsigned long len,
-	unsigned long prot, unsigned long flags,
-	unsigned long fd, unsigned long pgoff)
+SYSCALL_DEFINE6(mmap2,
+	unsigned long, addr, unsigned long, len,
+	unsigned long, prot, unsigned long, flags,
+	unsigned long, fd, unsigned long, pgoff)
 {
 	int error = -EBADF;
 	struct file * file = NULL;
@@ -59,11 +61,9 @@ out:
 	return error;
 }
 
-asmlinkage long sys_mmap2(unsigned long addr, unsigned long len,
-	unsigned long prot, unsigned long flags,
-	unsigned long fd, unsigned long pgoff)
+SYSCALL_DEFINE0(getpagesize)
 {
-	return do_mmap2(addr, len, prot, flags, fd, pgoff);
+	return PAGE_SIZE;
 }
 
 /*
@@ -82,7 +82,7 @@ struct mmap_arg_struct {
 	unsigned long offset;
 };
 
-asmlinkage int old_mmap(struct mmap_arg_struct *arg)
+SYSCALL_DEFINE1(mmap, struct mmap_arg_struct *, arg)
 {
 	struct mmap_arg_struct a;
 	int error = -EFAULT;
@@ -96,7 +96,7 @@ asmlinkage int old_mmap(struct mmap_arg_struct *arg)
 
 	a.flags &= ~(MAP_EXECUTABLE | MAP_DENYWRITE);
 
-	error = do_mmap2(a.addr, a.len, a.prot, a.flags, a.fd, a.offset >> PAGE_SHIFT);
+	error = sys_mmap2(a.addr, a.len, a.prot, a.flags, a.fd, a.offset >> PAGE_SHIFT);
 out:
 	return error;
 }
@@ -107,7 +107,7 @@ struct sel_arg_struct {
 	struct timeval *tvp;
 };
 
-asmlinkage int old_select(struct sel_arg_struct *arg)
+SYSCALL_DEFINE1(old_select, struct sel_arg_struct *, arg)
 {
 	struct sel_arg_struct a;
 
@@ -116,19 +116,3 @@ asmlinkage int old_select(struct sel_arg_struct *arg)
 	/* sys_select() does the appropriate kernel locking */
 	return sys_select(a.n, a.inp, a.outp, a.exp, a.tvp);
 }
-
-asmlinkage int sys_getpagesize(void)
-{
-	return PAGE_SIZE;
-}
-
-/*
- * Since loff_t is a 64 bit type we avoid a lot of ABI hassle
- * with a different argument ordering.
- */
-asmlinkage long sys_csky_fadvise64_64(int fd, int advice,
-                                     loff_t offset, loff_t len)
-{
-	return sys_fadvise64_64(fd, offset, len, advice);
-}
-

@@ -1133,7 +1133,7 @@ sys_call_table2:
 	.long sys_settimeofday
 	.long sys_getgroups16   /* 80 */
 	.long sys_setgroups16
-	.long old_select
+	.long sys_old_select
 	.long sys_symlink
 	.long sys_lstat
 	.long sys_readlink      /* 85 */
@@ -1141,7 +1141,7 @@ sys_call_table2:
 	.long sys_swapon
 	.long sys_reboot
 	.long sys_old_readdir
-	.long old_mmap          /* 90 */
+	.long sys_mmap          /* 90 */
 	.long sys_munmap
 	.long sys_truncate
 	.long sys_ftruncate
@@ -1220,7 +1220,7 @@ sys_call_table2:
 	.long sys_getpagesize
 	.long sys_ni_syscall    /* old sys_query_module */
 	.long sys_poll
-	.long 0
+	.long sys_ni_syscall
 	.long sys_setresgid16   /* 170 */
 	.long sys_getresgid16
 	.long sys_prctl
@@ -1241,7 +1241,8 @@ sys_call_table2:
 	.long sys_sendfile
 	.long sys_ni_syscall    /* streams1 */
 	.long sys_ni_syscall    /* streams2 */
-	.long sys_vfork         /* 190 */
+	.long sys_vfork
+         /* 190 */
 	.long sys_getrlimit
 	.long sys_mmap2
 	.long sys_truncate64
@@ -1318,7 +1319,7 @@ sys_call_table2:
 	.long sys_fstatfs64
 	.long sys_tgkill        /* 265 */
 	.long sys_utimes
-	.long sys_csky_fadvise64_64
+	.long sys_fadvise64_64
 	.long sys_mbind
 	.long sys_get_mempolicy
 	.long sys_set_mempolicy /* 270 */
