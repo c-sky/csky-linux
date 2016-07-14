@@ -12,7 +12,7 @@
 
 ## Make
 
-	$ make ARCH=csky O=/tmp/kernel_build gx6605s_defconfig uImage
+	$ make ARCH=csky CROSS_COMPILE=csky-linux- O=/tmp/kernel_build gx6605s_defconfig uImage
 
 ## Run
 	$ cp addons/gdbinit .gdbinit
