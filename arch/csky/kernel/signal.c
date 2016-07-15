@@ -25,77 +25,6 @@
 
 #define _BLOCKABLE (~(sigmask(SIGKILL) | sigmask(SIGSTOP)))
 
-
-asmlinkage void do_notify_resume(unsigned int thread_flags,
-		struct pt_regs *regs, int syscall);
-
-/*
- * Atomically swap in the new signal mask, and wait for a signal.
- */
-asmlinkage int sys_sigsuspend(int restart, unsigned long oldmask,
-		old_sigset_t mask)
-{
-	mask &= _BLOCKABLE;
-	spin_lock_irq(&current->sighand->siglock);
-	current->saved_sigmask = current->blocked;
-	siginitset(&current->blocked, mask);
-	recalc_sigpending();
-	spin_unlock_irq(&current->sighand->siglock);
-
-	current->state = TASK_INTERRUPTIBLE;
-	schedule();
-	set_restore_sigmask();
-	return -ERESTARTNOHAND;
-}
-
-asmlinkage int sys_sigaction(int sig, const struct old_sigaction *act,
-		struct old_sigaction *oact)
-{
-	struct k_sigaction new_ka, old_ka;
-	int ret;
-
-	if (act) {
-		old_sigset_t mask;
-		if (verify_area(VERIFY_READ, act, sizeof(*act)) ||
-				__get_user(new_ka.sa.sa_handler, &act->sa_handler) ||
-				__get_user(new_ka.sa.sa_restorer, &act->sa_restorer))
-			return -EFAULT;
-		__get_user(new_ka.sa.sa_flags, &act->sa_flags);
-		__get_user(mask, &act->sa_mask);
-		siginitset(&new_ka.sa.sa_mask, mask);
-	}
-
-	ret = do_sigaction(sig, act ? &new_ka : NULL, oact ? &old_ka : NULL);
-
-	if (!ret && oact) {
-		if (verify_area(VERIFY_WRITE, oact, sizeof(*oact)) ||
-				__put_user(old_ka.sa.sa_handler, &oact->sa_handler) ||
-				__put_user(old_ka.sa.sa_restorer, &oact->sa_restorer))
-			return -EFAULT;
-		__put_user(old_ka.sa.sa_flags, &oact->sa_flags);
-		__put_user(old_ka.sa.sa_mask.sig[0], &oact->sa_mask);
-	}
-
-	return ret;
-}
-
-#if 0
-asmlinkage int
-sys_sigaltstack(const stack_t *uss, stack_t *uoss)
-{
-	return do_sigaltstack(uss, uoss, rdusp());
-}
-#endif
-
-struct sigframe
-{
-	int sig;
-	int code;
-	struct sigcontext *psc;
-	unsigned long extramask[_NSIG_WORDS-1];
-	struct sigcontext sc;
-};
-
 struct rt_sigframe
 {
 	int sig;
@@ -235,42 +164,13 @@ restore_sigframe(struct pt_regs *regs, struct sigcontext *usc, int *pr2)
 	return err;
 }
 
-asmlinkage int do_sigreturn(struct pt_regs *regs)
-{
-	unsigned long usp = rdusp();
-	struct sigframe *frame = (struct sigframe *)usp;
-	sigset_t set;
-	int a0;
-
-	if (verify_area(VERIFY_READ, frame, sizeof(*frame)))
-		goto badframe;
-	if (__get_user(set.sig[0], &frame->sc.sc_mask) ||
-			(_NSIG_WORDS > 1 &&
-			 __copy_from_user(&set.sig[1], &frame->extramask,
-				 sizeof(frame->extramask))))
-		goto badframe;
-
-	sigdelsetmask(&set, ~_BLOCKABLE);
-	spin_lock_irq(&current->sighand->siglock);
-	current->blocked = set;
-	recalc_sigpending( );
-	spin_unlock_irq(&current->sighand->siglock);
-
-	if (restore_sigframe(regs, &frame->sc, &a0))
-		goto badframe;
-	return a0;
-
-badframe:
-	force_sig(SIGSEGV, current);
-	return 0;
-}
-
-asmlinkage int do_rt_sigreturn(struct pt_regs *regs)
+SYSCALL_DEFINE0(rt_sigreturn)
 {
 	unsigned long usp = rdusp();
 	struct rt_sigframe *frame = (struct rt_sigframe *)usp;
 	sigset_t set;
 	int a0;
+	struct pt_regs *regs = current_pt_regs();
 
 	if (verify_area(VERIFY_READ, frame, sizeof(*frame)))
 		goto badframe;
@@ -430,48 +330,6 @@ get_sigframe(struct k_sigaction *ka, struct pt_regs *regs, size_t frame_size)
 	return (void *)((usp - frame_size) & -8UL);
 }
 
-static int setup_frame (int sig, struct k_sigaction *ka,
-		sigset_t *set, struct pt_regs *regs)
-{
-	struct sigframe *frame;
-	int err = 0;
-#ifdef CONFIG_MMU
-	struct csky_vdso *vdso = current->mm->context.vdso;
-#else
-	struct csky_vdso *vdso = global_vdso;
-#endif
-
-	frame = get_sigframe(ka, regs, sizeof(*frame));
-	if (!frame)
-		return 1;
-
-	err |= __put_user(sig, &frame->sig);
-	err |= __put_user(&frame->sc, &frame->psc);
-
-	if (_NSIG_WORDS > 1)
-		err |= copy_to_user(frame->extramask, &set->sig[1],
-				sizeof(frame->extramask));
-
-	err |= setup_sigframe(&frame->sc, regs, set->sig[0]);
-
-	if (err)
-		goto give_sigsegv;
-
-	/* Set up registers for signal handler */
-	wrusp ((unsigned long) frame);
-	regs->pc = (unsigned long) ka->sa.sa_handler;
-	regs->r15 = (unsigned long)vdso->signal_retcode;
-	regs->a0 = sig;
-	return err;
-
-give_sigsegv:
-	if (sig == SIGSEGV)
-		ka->sa.sa_handler = SIG_DFL;
-	force_sig(SIGSEGV, current);
-
-	return err;
-}
-
 static int setup_rt_frame (int sig, struct k_sigaction *ka, siginfo_t *info,
 		sigset_t *set, struct pt_regs *regs)
 {
@@ -534,11 +392,8 @@ handle_signal(int sig, struct k_sigaction *ka, siginfo_t *info,
 	struct task_struct *tsk = current;
 	int ret;
 
-	/* set up the stack frame */
-	if (ka->sa.sa_flags & SA_SIGINFO)
-		ret = setup_rt_frame(sig, ka, info, oldset, regs);
-	else
-		ret = setup_frame(sig, ka, oldset, regs);
+	/* set up the stack frame, regardless of SA_SIGINFO, and pass info anyway. */
+	ret = setup_rt_frame(sig, ka, info, oldset, regs);
 
 	if (ret != 0) {
 		force_sigsegv(sig, tsk);

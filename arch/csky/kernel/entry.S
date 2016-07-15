@@ -977,16 +977,6 @@ ENTRY(autohandler)
 2:
 	jmpi     ret_from_exception
 
-ENTRY(sys_sigreturn)
-	PT_REGS_ADJUST a0
-	movi     r11_sig, 0             /* prevent syscall restart handling */
-	jmpi     do_sigreturn
-
-ENTRY(sys_rt_sigreturn)
-	PT_REGS_ADJUST a0
-	movi     r11_sig, 0             /* prevent syscall restart handling */
-	jmpi     do_rt_sigreturn
-
 /*
  * Resume execution of a new process.
  * Register definitions comming in:
@@ -1170,7 +1160,7 @@ sys_call_table2:
 	.long sys_sysinfo
 	.long sys_ipc
 	.long sys_fsync
-	.long sys_sigreturn
+	.long sys_ni_syscall
 	.long sys_clone         /* 120 */
 	.long sys_setdomainname
 	.long sys_newuname

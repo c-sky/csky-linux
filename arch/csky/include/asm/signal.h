@@ -128,16 +128,7 @@ typedef unsigned long sigset_t;
 #define SIG_UNBLOCK        1	/* for unblocking signals */
 #define SIG_SETMASK        2	/* for setting the signal mask */
 
-#ifdef __KERNEL__
-struct old_sigaction {
-	__sighandler_t sa_handler;
-	old_sigset_t sa_mask;
-	unsigned long sa_flags;
-	void (*sa_restorer)(void);
-};
-
-
-#else
+#ifndef __KERNEL__
 
 /* Here we must cater to libcs that poke about in kernel headers.  */
 
