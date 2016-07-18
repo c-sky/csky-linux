@@ -82,7 +82,8 @@ struct mmap_arg_struct {
 	unsigned long offset;
 };
 
-SYSCALL_DEFINE1(mmap, struct mmap_arg_struct *, arg)
+SYSCALL_DEFINE1(mmap,
+	struct mmap_arg_struct *, arg)
 {
 	struct mmap_arg_struct a;
 	int error = -EFAULT;
@@ -107,7 +108,8 @@ struct sel_arg_struct {
 	struct timeval *tvp;
 };
 
-SYSCALL_DEFINE1(old_select, struct sel_arg_struct *, arg)
+SYSCALL_DEFINE1(old_select,
+	struct sel_arg_struct *, arg)
 {
 	struct sel_arg_struct a;
 

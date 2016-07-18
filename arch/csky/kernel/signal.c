@@ -335,11 +335,8 @@ static int setup_rt_frame (int sig, struct k_sigaction *ka, siginfo_t *info,
 {
 	struct rt_sigframe *frame;
 	int err = 0;
-#ifdef CONFIG_MMU
+
 	struct csky_vdso *vdso = current->mm->context.vdso;
-#else
-	struct csky_vdso *vdso = global_vdso;
-#endif
 
 	frame = get_sigframe(ka, regs, sizeof(*frame));
 	if (!frame)

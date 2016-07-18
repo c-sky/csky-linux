@@ -47,7 +47,7 @@
 .export fasthandler
 
 .export fastautohandler
-.export resume, ret_from_exception
+.export resume
 .export sys_fork, sys_clone
 .export sw_usp
 .export sw_ksp
@@ -612,7 +612,7 @@ ENTRY(ret_from_fork)
 3:
 	jbsr     ret_from_exception
 
-ENTRY(ret_from_exception)
+ret_from_exception:
 	ld       syscallid, (sp,8)     /* get psr, is user mode? */
 	btsti    syscallid, 31
 	bt       1f
@@ -626,24 +626,18 @@ ENTRY(ret_from_exception)
 
 resume_userspace:
 	ldw      r8, (r9, TINFO_FLAGS)
-	andi     r8, 7
+	andi     r8, (_TIF_SIGPENDING | _TIF_NOTIFY_RESUME | _TIF_NEED_RESCHED)
 	cmpnei   r8, 0
 	bt       exit_work
 1:  RESTORE_ALL
 
 exit_work:
-#if 0
-	lrw      a0, init_task          /* Address of init_task */
-	ldw      a0, (a0)               /* Address of task_struct of task[0]*/
-	cmpne    r10, a0
-	bf       1b                     /* Exit if task[0] */
-#endif
 	mov      a0, sp                 /* Stack address is arg[0] */
 	jbsr     set_esp0               /* Call C level */
 	btsti    r8, TIF_NEED_RESCHED
 	bt       work_resched
-	cmpnei   r8, 0		/* check TIF_SIGPENDING and TIF_NOTIFY_RESUME*/
-	bf       1b
+	cmpnei   r8, 0		/* bugfix to be test 20160718! */
+	bf       .
 	mov      a1, sp
 	mov      a0, r8
 	mov      a2, r11_sig        /* syscall? */
@@ -889,18 +883,14 @@ ENTRY(handle_fpe)
 ENTRY(inthandler)
 	SAVE_ALL
 	SET_SMOD_MMU_CP15
-	psrset   ee                     /* Enable exceptions */
+	psrset	ee				/* Enable exceptions */
 
-	movi    r11_sig, 0                   /* r11 = 0, Not a syscall. */
-	mov     r9, sp     					 /* Get current stack  pointer */
+	movi	r11_sig, 0			/* r11 = 0, Not a syscall. */
+	mov	r9, sp				/* Get current stack  pointer */
 	bmaski  r10, THREADSIZE_MASK_BIT
-	andn    r9, r10                      /* Get thread_info */
+	andn    r9, r10				/* Get thread_info */
 
 #ifdef CONFIG_PREEMPT
-	/*
-	 * Get task_struct->stack.preempt_count for current,
-	 * and increase 1.
-	 */
 	ldw      r8, (r9, TINFO_PREEMPT)
 	addi     r8, 1
 	stw      r8, (r9, TINFO_PREEMPT)

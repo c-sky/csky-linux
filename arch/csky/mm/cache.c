@@ -1,12 +1,16 @@
 #include <linux/kernel.h>
 #include <linux/mm.h>
 #include <linux/fs.h>
+#include <linux/syscalls.h>
 #include <asm/uaccess.h>
 #include <asm/cache.h>
 #include <asm/cacheflush.h>
 #include <asm/cachectl.h>
 
-asmlinkage int sys_cacheflush(void __user *addr, unsigned long bytes, int cache)
+SYSCALL_DEFINE3(cacheflush,
+		void __user *, addr,
+		unsigned long, bytes,
+		int, cache)
 {
 	unsigned int start;
 	unsigned int end;
