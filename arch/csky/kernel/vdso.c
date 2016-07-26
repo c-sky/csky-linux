@@ -32,15 +32,13 @@ static int __init init_vdso(void)
 #if defined(CONFIG_CPU_CSKYV1)
 	/* 
 	 * movi r1,127 
-	 * addi r1,33 
-	 * addi r1,(__NR_rt_sigreturn-127-33)
+	 * addi r1,(__NR_rt_sigreturn-127)
 	 * trap 0 
 	 */
 	err |= __put_user(0x6000 + (127 << 4)+1, (vdso->rt_signal_retcode + 0));
-	err |= __put_user(0x2000 + (31  << 4)+1, (vdso->rt_signal_retcode + 1));
-	err |= __put_user(0x2000 + ((__NR_rt_sigreturn-127-33)  << 4)+1,
-			(vdso->rt_signal_retcode + 2));
-	err |= __put_user(0x08, (vdso->rt_signal_retcode + 3));
+	err |= __put_user(0x2000 + ((__NR_rt_sigreturn-128)  << 4) + 1,
+			(vdso->rt_signal_retcode + 1));
+	err |= __put_user(0x08, (vdso->rt_signal_retcode + 2));
 #else
 	/*
 	 * FIXME: For CSKY V2 ISA, we mast write instruction in half word, because 
