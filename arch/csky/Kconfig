@@ -39,6 +39,10 @@ config CSKY
 	select CLKSRC_OF
 	select GENERIC_CLOCKEVENTS
 
+config NR_CPUS
+	int
+	default "1"
+
 config UID16
 	bool
 	default n
@@ -68,18 +72,6 @@ config GENERIC_CALIBRATE_DELAY
 
 config GENERIC_GPIO
 	def_bool y
-
-config ARCH_USES_GETTIMEOFFSET
-    bool
-    default n
-
-config GENERIC_CLOCKEVENTS
-    bool
-
-config GENERIC_CLOCKEVENTS_BROADCAST
-    bool
-    depends on GENERIC_CLOCKEVENTS
-    default y if SMP
 
 config TIME_LOW_RES
 	bool
