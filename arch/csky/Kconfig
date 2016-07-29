@@ -338,8 +338,6 @@ config	SOFT_HANDMISSALIGN
 
 comment "*****System type*****"
 
-source "kernel/time/Kconfig"
-
 config HIGHMEM
 	bool "High Memory Support"
 	depends on MMU
