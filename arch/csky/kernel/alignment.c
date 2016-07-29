@@ -3,6 +3,7 @@
 #include <linux/errno.h>
 #include <linux/string.h>
 #include <linux/proc_fs.h>
+#include <linux/seq_file.h>
 #include <linux/init.h>
 #include <linux/sched.h>
 #include <linux/uaccess.h>
@@ -51,7 +52,6 @@ static int ai_usermode;
 #define UM_WARN		(1 << 0)
 #define UM_FIXUP	(1 << 1)
 #define UM_SIGNAL	(1 << 2)
-#define UM_KFIX		(1 << 3) // kernel alignment fix
 
 static const char *usermode_action[] = {
 	"ignored",
@@ -62,34 +62,27 @@ static const char *usermode_action[] = {
 	"signal+warn"
 };
 
-static int
-proc_alignment_read(char *page, char **start, off_t off, int count, int *eof,
-		    void *data)
+static int alignment_proc_show(struct seq_file *m, void *v)
 {
-	char *p = page;
-	int len;
-
-	p += sprintf(p, "User:\t\t%lu\n", ai_user);
-	p += sprintf(p, "System:\t\t%lu\n", ai_sys);
-	p += sprintf(p, "Skipped:\t%lu\n", ai_skipped);
-	p += sprintf(p, "Half:\t\t%lu\n", ai_half);
-	p += sprintf(p, "Word:\t\t%lu\n", ai_word);
-	p += sprintf(p, "Qword:\t\t%lu\n", ai_qword);
-	p += sprintf(p, "User faults:\t%i (%s)\n", ai_usermode,
+	seq_printf(m, "User:\t\t%lu\n", ai_user);
+	seq_printf(m, "System:\t\t%lu\n", ai_sys);
+	seq_printf(m, "Skipped:\t%lu\n", ai_skipped);
+	seq_printf(m, "Half:\t\t%lu\n", ai_half);
+	seq_printf(m, "Word:\t\t%lu\n", ai_word);
+	seq_printf(m, "Qword:\t\t%lu\n", ai_qword);
+	seq_printf(m, "User faults:\t%i (%s)\n", ai_usermode,
 			usermode_action[ai_usermode]);
 
-	len = (p - page) - off;
-	if (len < 0)
-		len = 0;
+	return 0;
+}
 
-	*eof = (len <= count) ? 1 : 0;
-	*start = page + off;
-
-	return len;
+static int alignment_proc_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, alignment_proc_show, NULL);
 }
 
 static int proc_alignment_write(struct file *file, const char __user *buffer,
-				unsigned long count, void *data)
+				size_t count, loff_t *pos)
 {
 	char mode;
 
@@ -97,10 +90,18 @@ static int proc_alignment_write(struct file *file, const char __user *buffer,
 		if (get_user(mode, buffer))
 			return -EFAULT;
 		if (mode >= '0' && mode <= '5')
-			ai_usermode = (mode - '0') | UM_KFIX;
+			ai_usermode = mode - '0';
 	}
 	return count;
 }
+
+static const struct file_operations alignment_proc_fops = {
+	.open		= alignment_proc_open,
+	.read		= seq_read,
+	.llseek		= seq_lseek,
+	.release	= single_release,
+	.write		= proc_alignment_write,
+};
 
 #ifdef  __cskyBE__
 #define BE		1
@@ -908,11 +909,9 @@ asmlinkage void alignment_c(struct pt_regs *regs)
 
 	if (user_mode(regs)) {
 		goto user;
-	} else if (ai_usermode & UM_KFIX) { // fix kernel alignment
-		ai_sys += 1;
-	} else {
-		goto bad_or_fault;
 	}
+
+	ai_sys += 1;
 fixup:
 	regs->pc += isize;
 
@@ -1037,15 +1036,12 @@ static int __init alignment_init(void)
 	res = proc_mkdir("cpu", NULL);
 	if (!res)
 		return -ENOMEM;
-#if 0
-	res = create_proc_entry("alignment", S_IWUSR | S_IRUGO, res);
+
+	res = proc_create("alignment", S_IWUSR | S_IRUGO, res, &alignment_proc_fops);
 	if (!res)
 		return -ENOMEM;
 
-	res->read_proc = proc_alignment_read;
-	res->write_proc = proc_alignment_write;
-#endif
-	ai_usermode = UM_FIXUP | UM_KFIX;
+	ai_usermode = UM_FIXUP;
 
 	return 0;
 }
