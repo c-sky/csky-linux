@@ -2,6 +2,7 @@
 #include <linux/init.h>
 #include <asm/page.h>
 
+__INIT
 ENTRY(_start)
 	/* set super user mode */
 	lrw	a5, 0x80000000
@@ -11,7 +12,6 @@ ENTRY(_start)
 	lrw     a5, init_thread_union + THREAD_SIZE
 	mov	sp, a5
 
-	jsri	pre_start
-	jmpi	start_kernel
+	jmpi	csky_start
 END(_start)
 

@@ -4,6 +4,7 @@
 #include <linux/initrd.h>
 #include <linux/of.h>
 #include <linux/of_fdt.h>
+#include <linux/start_kernel.h>
 #include <asm/sections.h>
 #include <asm/mmu_context.h>
 #include <asm/pgalloc.h>
@@ -68,7 +69,7 @@ void __init setup_arch(char **cmdline_p)
 #endif
 }
 
-asmlinkage __visible void __init pre_start(
+asmlinkage __visible void __init csky_start(
 	unsigned int	magic,
 	void *		param
 	)
@@ -85,6 +86,8 @@ asmlinkage __visible void __init pre_start(
 	if (magic == 0x20150401)
 		early_init_dt_scan(param);
 
-	return;
+	start_kernel();
+
+	while(1);
 }
 
