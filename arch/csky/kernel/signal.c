@@ -20,7 +20,7 @@
 #include <asm/pgtable.h>
 #include <asm/traps.h>
 #include <asm/ucontext.h>
-#include <asm/regdef.h>
+#include <hal/regdef.h>
 #include <asm/vdso.h>
 
 #define _BLOCKABLE (~(sigmask(SIGKILL) | sigmask(SIGSTOP)))

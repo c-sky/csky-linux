@@ -18,7 +18,7 @@
 #include <asm/uaccess.h>
 #include <asm/traps.h>
 #include <asm/unistd.h>
-#include <asm/regdef.h>
+#include <hal/regdef.h>
 #include <asm/user.h>
 
 SYSCALL_DEFINE1(set_thread_area, unsigned long, addr)

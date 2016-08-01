@@ -5,7 +5,7 @@
 
 #include <asm/types.h>
 #include <asm/page.h>
-#include <asm/regdef.h>
+#include <hal/regdef.h>
 #include <asm/processor.h>
 
 struct thread_info {

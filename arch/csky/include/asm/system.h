@@ -4,7 +4,7 @@
 #include <linux/linkage.h>
 #include <asm/segment.h>
 #include <linux/irqflags.h>
-#include <asm/regdef.h>
+#include <hal/regdef.h>
 
 #ifdef __KERNEL__
 

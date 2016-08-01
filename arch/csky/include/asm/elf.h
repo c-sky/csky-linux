@@ -7,7 +7,7 @@
 
 #include <asm/ptrace.h>
 #include <asm/user.h>
-#include <asm/regdef.h>
+#include <hal/regdef.h>
 
 #define ELF_ARCH 39
 
