@@ -1,14 +1,3 @@
-/*
- * linux/arch/csky/mm/init.c
- *
- * This file is subject to the terms and conditions of the GNU General Public
- * License.  See the file "COPYING" in the main directory of this archive
- * for more details.
- *
- * Copyright (C) 2006 C-SKY Microsystems co.,ltd.  All rights reserved.
- * Copyright (C) 2006  Li Chunqiang (chunqiang_li@c-sky.com)
- * Copyright (C) 2009  Ye Yun (yun_ye@c-sky.com)
- */
 #include <asm/system.h>
 #include <linux/bug.h>
 #include <linux/module.h>
