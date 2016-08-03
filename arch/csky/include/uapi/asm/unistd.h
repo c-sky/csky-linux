@@ -43,6 +43,10 @@ __SYSCALL(__NR_set_thread_area, sys_set_thread_area)
 __SYSCALL(__NR_ipc, sys_ipc)
 #define __NR_socketcall		(__NR_arch_specific_syscall + 2)
 __SYSCALL(__NR_socketcall, sys_socketcall)
+#define __NR_ugetrlimit		(__NR_arch_specific_syscall + 3)
+__SYSCALL(__NR_ugetrlimit, sys_getrlimit)
+#define __NR_cacheflush		(__NR_arch_specific_syscall + 4)
+__SYSCALL(__NR_cacheflush, sys_cacheflush)
 
 #define __NR_setgroups32	__NR_setgroups
 #define __NR_getgid32		__NR_getgid

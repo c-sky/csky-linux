@@ -128,7 +128,7 @@ info.si_code = SEGV_ACCERR;
          * make sure we exit gracefully rather than endlessly redo
          * the fault.
          */
-        fault = handle_mm_fault(mm, vma, address, write ? FAULT_FLAG_WRITE : 0);
+        fault = handle_mm_fault(vma, address, write ? FAULT_FLAG_WRITE : 0);
         if (unlikely(fault & VM_FAULT_ERROR)) {
                 if (fault & VM_FAULT_OOM)
                         goto out_of_memory;
