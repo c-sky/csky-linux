@@ -3,7 +3,6 @@
 
 #if defined(__cskyBE__)
 #include <linux/byteorder/big_endian.h>
-# error "csky __cskyBE__ ???"
 #elif defined(__cskyLE__)
 #include <linux/byteorder/little_endian.h>
 #else
