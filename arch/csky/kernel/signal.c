@@ -164,7 +164,8 @@ restore_sigframe(struct pt_regs *regs, struct sigcontext *usc, int *pr2)
 	return err;
 }
 
-SYSCALL_DEFINE0(rt_sigreturn)
+asmlinkage int
+do_rt_sigreturn(void)
 {
 	unsigned long usp = rdusp();
 	struct rt_sigframe *frame = (struct rt_sigframe *)usp;

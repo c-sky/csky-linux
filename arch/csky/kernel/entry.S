@@ -635,8 +635,8 @@ exit_work:
 	jbsr     set_esp0               /* Call C level */
 	btsti    r8, TIF_NEED_RESCHED
 	bt       work_resched
-	cmpnei   r8, 0		/* bugfix to be test 20160718! */
-	bf       .
+	cmpnei   r8, 0		/* If thread_info->flag is empty, RESTORE_ALL. */
+	bf       1b
 	mov      a1, sp
 	mov      a0, r8
 	mov      a2, r11_sig        /* syscall? */
@@ -649,6 +649,10 @@ work_resched:
 	lrw      syscallid, ret_from_exception
 	mov      r15, syscallid                /* Return address in link */
 	jmpi     schedule
+
+ENTRY(sys_rt_sigreturn)
+	movi	r11_sig, 0
+	jmpi	do_rt_sigreturn
 
 /*
  * Common trap handler. Standard traps come through here first
@@ -885,11 +889,12 @@ ENTRY(inthandler)
 	psrset	ee				/* Enable exceptions */
 
 	movi	r11_sig, 0			/* r11 = 0, Not a syscall. */
+
+#ifdef CONFIG_PREEMPT
 	mov	r9, sp				/* Get current stack  pointer */
 	bmaski  r10, THREADSIZE_MASK_BIT
 	andn    r9, r10				/* Get thread_info */
 
-#ifdef CONFIG_PREEMPT
 	ldw      r8, (r9, TINFO_PREEMPT)
 	addi     r8, 1
 	stw      r8, (r9, TINFO_PREEMPT)
