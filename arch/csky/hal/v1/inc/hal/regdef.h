@@ -21,6 +21,6 @@
 /*
  * use as judge restart syscall, see entry.S
  */
-#define r11_sig		r1
+#define r11_sig		r11
 
 #endif /* __ASM_CSKY_REGDEF_H */
