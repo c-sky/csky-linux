@@ -175,12 +175,6 @@ long arch_ptrace(struct task_struct *child, long request, unsigned long addr,
 	int i;
 
 	switch (request) {
-	/* when I and D space are separate, these will need to be fixed. */
-	case PTRACE_PEEKTEXT:   /* read word at location addr. */
-	case PTRACE_PEEKDATA:
-		ret = generic_ptrace_peekdata(child, addr, data);
-		break;
-
 	/* read the word at location addr in the USER area. */
 	case PTRACE_PEEKUSR:
 		if (addr & 3)
@@ -198,12 +192,6 @@ long arch_ptrace(struct task_struct *child, long request, unsigned long addr,
 		ret = put_user(tmp,(long unsigned int *) data);
 		break;
 
-	/* when I and D space are separate, this will have to be fixed. */
-	case PTRACE_POKETEXT:   /* write the word at location addr. */
-	case PTRACE_POKEDATA:
-		ret = generic_ptrace_pokedata(child, addr, data);
-		break;
-
 	case PTRACE_POKEUSR:  /* write the word at location addr in the USER area */
 		if (addr & 3)
 			goto out_eio;
@@ -219,21 +207,6 @@ long arch_ptrace(struct task_struct *child, long request, unsigned long addr,
 		}else
 			goto out_eio;
 		break;
-
-	case PTRACE_SYSCALL:  /* continue and stop at next (return from) syscall */
-	case PTRACE_CONT:     /* restart after signal. */
-		if (!valid_signal(data))
-			goto out_eio;
-
-		if (request == PTRACE_SYSCALL)
-			set_tsk_thread_flag(child, TIF_SYSCALL_TRACE);
-		else
-			clear_tsk_thread_flag(child, TIF_SYSCALL_TRACE);
-		child->exit_code = data;
-		singlestep_disable(child);
-		wake_up_process(child);
-		break;
-
 	/*
 	 * make the child exit.  Best I can do is send it a sigkill.
 	 * perhaps it should be put in the status that it wants to
