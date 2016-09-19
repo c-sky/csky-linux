@@ -134,6 +134,7 @@
  * CPU enter from user-mode to kernel super-mode except MMU exception.
  */
 .macro SET_SMOD_MMU_CP15
+	cpseti  cp15
 .endm
 
 /*
