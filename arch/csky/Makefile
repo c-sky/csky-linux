@@ -18,7 +18,7 @@ CSKYHAL	= v2
 endif
 
 KBUILD_CFLAGS +=	-fsigned-char -fno-builtin-memcpy \
-			-I$(INCGCC) -fno-tree-dse \
+			-fno-tree-dse \
 			-pipe -DNO_FPU -D__ELF__ -DMAGIC_ROM_PTR -Wno-uninitialized \
 			-D__linux__ -DNO_TEXT_SECTIONS $(CPUTYPE) 
 
