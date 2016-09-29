@@ -47,6 +47,8 @@ __SYSCALL(__NR_socketcall, sys_socketcall)
 __SYSCALL(__NR_ugetrlimit, sys_getrlimit)
 #define __NR_cacheflush		(__NR_arch_specific_syscall + 4)
 __SYSCALL(__NR_cacheflush, sys_cacheflush)
+#define __NR_sysfs		(__NR_arch_specific_syscall + 5)
+__SYSCALL(__NR_sysfs, sys_sysfs)
 
 #define __NR_setgroups32	__NR_setgroups
 #define __NR_getgid32		__NR_getgid
