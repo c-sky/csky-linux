@@ -370,13 +370,9 @@ asmlinkage void trap_c(int vector, struct frame *fp)
 			break;
 
 		    /* fp->ptregs.sr &= ~PS_T */
+		case VEC_TRAP1:    /* gdb server breakpoint */
 		case VEC_BREAKPOINT: /* breakpoint */
 			info.si_code = TRAP_BRKPT;
-			sig = SIGTRAP;
-			break;
-
-		case VEC_TRAP1:    /* gdb server breakpoint */
-			fp->ptregs.pc -= 2;
 			sig = SIGTRAP;
 			break;
 
