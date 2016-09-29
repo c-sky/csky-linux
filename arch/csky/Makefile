@@ -17,10 +17,11 @@ CPUTYPE= -mcpu=ck810$(DSPEXT)$(FPUEXT)
 CSKYHAL	= v2
 endif
 
-KBUILD_CFLAGS +=	-fsigned-char -fno-builtin-memcpy \
+KBUILD_CFLAGS +=	-fno-builtin-memcpy \
 			-fno-tree-dse \
-			-pipe -DNO_FPU -D__ELF__ -DMAGIC_ROM_PTR -Wno-uninitialized \
-			-D__linux__ -DNO_TEXT_SECTIONS $(CPUTYPE) 
+			-pipe \
+			-Wno-uninitialized \
+			$(CPUTYPE)
 
 haldirs := $(patsubst %,arch/csky/hal/%/,$(CSKYHAL)) 
 

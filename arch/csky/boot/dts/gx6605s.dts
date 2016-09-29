@@ -26,9 +26,9 @@
 		timer0 {
 			compatible = "nationalchip,timer-v1";
 			reg = <0x0020a000 0x400>;
+			clock-frequency = <1000000>;
 			interrupts = <10>;
 			interrupt-parent = <&intc>;
-			clock-frequency = <125000000>;
 		};
 
 		ehci: ehci-hcd {
@@ -51,6 +51,6 @@
 	};
 
 	chosen {
-		bootargs = "mem=68M videomem=48M fbmem=12M console=ttyS0,115200 init=/init root=/dev/nfs rw nfsroot=192.168.101.230:/opt/nfs/test,v3,tcp,nolock ip=192.168.101.23";
+		bootargs = "mem=128M videomem=48M fbmem=12M console=ttyS0,115200 init=/init root=/dev/nfs rw nfsroot=192.168.101.230:/opt/nfs/test,v3,tcp,nolock ip=192.168.101.23";
 	};
 };
