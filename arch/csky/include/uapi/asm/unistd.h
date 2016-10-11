@@ -12,7 +12,6 @@
 #define __ARCH_WANT_SYS_UTIME
 #define __ARCH_WANT_SYS_WAITPID
 #define __ARCH_WANT_SYS_SOCKETCALL
-#define __ARCH_WANT_SYS_FADVISE64
 #define __ARCH_WANT_SYS_GETPGRP
 #define __ARCH_WANT_SYS_LLSEEK
 #define __ARCH_WANT_SYS_NICE
@@ -49,6 +48,8 @@ __SYSCALL(__NR_ugetrlimit, sys_getrlimit)
 __SYSCALL(__NR_cacheflush, sys_cacheflush)
 #define __NR_sysfs		(__NR_arch_specific_syscall + 5)
 __SYSCALL(__NR_sysfs, sys_sysfs)
+
+__SYSCALL(__NR_fadvise64_64, sys_csky_fadvise64_64)
 
 #define __NR_setgroups32	__NR_setgroups
 #define __NR_getgid32		__NR_getgid
