@@ -659,7 +659,6 @@ ENTRY(sys_rt_sigreturn)
  */
 
 ENTRY(trap)
-	bkpt
 	SAVE_ALL
 	SET_SMOD_MMU_CP15
 

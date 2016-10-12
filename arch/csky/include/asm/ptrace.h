@@ -145,7 +145,7 @@ struct  switch_stack {
 #define PS_S            0x80000000              /* Supervisor Mode */
 #define PS_TM           0x0000c000              /* Trace mode */
 #endif
-
+#define arch_has_single_step() (1)
 #define current_pt_regs() \
 	(struct pt_regs *)((char *)current_thread_info() + THREAD_SIZE) - 1
 #define current_user_stack_pointer() rdusp()

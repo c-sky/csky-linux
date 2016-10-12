@@ -57,7 +57,7 @@ static int regoff[] = {
 /*
  * Get contents of register REGNO in task TASK.
  */
-static inline long get_reg(struct task_struct *task, int regno)
+static long get_reg(struct task_struct *task, int regno)
 {
 	unsigned long *addr;
 
@@ -79,7 +79,7 @@ static inline long get_reg(struct task_struct *task, int regno)
 /*
  * Write contents of register REGNO in task TASK.
  */
-static inline int put_reg(struct task_struct *task, int regno,
+static int put_reg(struct task_struct *task, int regno,
 			  unsigned long data)
 {
 	unsigned long *addr;
@@ -102,23 +102,37 @@ static inline int put_reg(struct task_struct *task, int regno,
 /*
  * Make sure the single step bit is not set.
  */
-static inline void singlestep_disable(struct task_struct *child)
+static void singlestep_disable(struct task_struct *child)
 {
 	unsigned long tmp;
 	tmp = (get_reg(child, REGNO_SR) & TRACE_MODE_MASK) | TRACE_MODE_RUN;
 	put_reg(child, REGNO_SR, tmp);
 	/* FIXME maybe wrong here: if clear flag of TIF_DELAYED_TRACE? */
 }
-/*
- * Make sure the single step bit is set.
- */
-static inline void singlestep_enable(struct task_struct *child)
+
+
+static void singlestep_enable(struct task_struct *child)
 {
 	unsigned long tmp;
     tmp = (get_reg(child, REGNO_SR) & TRACE_MODE_MASK) | TRACE_MODE_SI;
     put_reg(child, REGNO_SR, tmp);
 	/* FIXME maybe wrong here: if set flag of TIF_DELAYED_TRACE? */
 
+}
+
+/*
+ * Make sure the single step bit is set.
+ */
+void user_enable_single_step(struct task_struct *child)
+{
+	if (child->thread.esp0 == 0) return;
+	singlestep_enable(child);
+}
+
+void user_disable_single_step(struct task_struct *child)
+{
+	if (child->thread.esp0 == 0) return;
+	singlestep_disable(child);
 }
 
 int ptrace_getfpregs(struct task_struct *child, void __user *data)
@@ -141,7 +155,7 @@ int ptrace_setfpregs(struct task_struct *child, void __user *data)
 
 	if(copy_from_user(&child->thread.fcr, data,
                         sizeof(struct user_cskyfp_struct)))
-        	return -EFAULT;
+		return -EFAULT;
 	return 0;
 }
 
@@ -207,31 +221,6 @@ long arch_ptrace(struct task_struct *child, long request, unsigned long addr,
 		}else
 			goto out_eio;
 		break;
-	/*
-	 * make the child exit.  Best I can do is send it a sigkill.
-	 * perhaps it should be put in the status that it wants to
-	 * exit.
-	 */
-	case PTRACE_KILL:
-		if (child->exit_state == EXIT_ZOMBIE) /* already dead */
-			break;
-		child->exit_code = SIGKILL;
-		singlestep_disable(child);
-		wake_up_process(child);
-		break;
-
-	case PTRACE_SINGLESTEP: /* set the trap flag. */
-		if (!valid_signal(data))
-			goto out_eio;
-
-		clear_tsk_thread_flag(child, TIF_SYSCALL_TRACE);
-		singlestep_enable(child);
-
-		child->exit_code = data;
-		/* give it a chance to run. */
-		wake_up_process(child);
-		break;
-
 	case PTRACE_GETREGS:    /* Get all gp regs from the child. */
 		for (i = 0; i <= CSKY_GREG_NUM; i++) {
 			tmp = get_reg(child, i);
@@ -263,7 +252,6 @@ long arch_ptrace(struct task_struct *child, long request, unsigned long addr,
                 ret = put_user(task_thread_info(child)->tp_value,
                                (long unsigned int *) data);
                 break;
-
 	default:
 		ret = ptrace_request(child, request, addr, data);
 		break;
