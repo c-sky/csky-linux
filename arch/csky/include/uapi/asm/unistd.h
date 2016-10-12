@@ -33,6 +33,7 @@
 #define __ARCH_WANT_SYSCALL_OFF_T
 #define __ARCH_WANT_SYSCALL_NO_FLAGS
 #define __ARCH_WANT_SYS_OLD_SELECT
+#define __ARCH_WANT_SYNC_FILE_RANGE2
 
 #include <asm-generic/unistd.h>
 
