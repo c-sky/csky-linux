@@ -11,7 +11,7 @@ static void *csky_dma_alloc(
 	size_t size,
 	dma_addr_t *dma_handle,
 	gfp_t gfp,
-	struct dma_attrs *attrs
+	unsigned long attrs
 	)
 {
 	unsigned int ret;
@@ -27,7 +27,7 @@ static void *csky_dma_alloc(
 	memset((void *)ret, 0, size);
 	*dma_handle = virt_to_phys((void*)ret);
 
-	if (!dma_get_attr(DMA_ATTR_NON_CONSISTENT, attrs)) {
+	if (!(DMA_ATTR_NON_CONSISTENT & attrs)) {
 		cache_op_range(
 			ret, ret+size,
 			DATA_CACHE|
@@ -44,13 +44,13 @@ static void csky_dma_free(
 	size_t size,
 	void *vaddr,
 	dma_addr_t dma_handle,
-	struct dma_attrs *attrs
+	unsigned long attrs
 	)
 {
 	unsigned long addr = (unsigned long) vaddr;
 	int order = get_order(size);
 
-	if (!dma_get_attr(DMA_ATTR_NON_CONSISTENT, attrs))
+	if (!(DMA_ATTR_NON_CONSISTENT & attrs))
 		addr = CACHE_ADDR(addr);
 
 	free_pages(addr, order);
@@ -95,7 +95,7 @@ static int csky_dma_map_sg(
 	struct scatterlist *sg,
 	int nents,
 	enum dma_data_direction direction,
-	struct dma_attrs *attrs
+	unsigned long attrs
 	)
 {
 	int i;
@@ -119,7 +119,7 @@ void csky_dma_unmap_sg(
 	struct scatterlist *sg,
 	int nhwentries,
 	enum dma_data_direction direction,
-	struct dma_attrs *attrs
+	unsigned long attrs
 	)
 {
 	unsigned long addr;
@@ -142,7 +142,7 @@ static dma_addr_t csky_dma_map_page(
 	unsigned long offset,
 	size_t size,
 	enum dma_data_direction direction,
-	struct dma_attrs *attrs
+	unsigned long attrs
 	)
 {
 	unsigned long addr;
@@ -161,7 +161,7 @@ static void csky_dma_unmap_page(
 	dma_addr_t dma_handle,
 	size_t size,
 	enum dma_data_direction direction,
-	struct dma_attrs *attrs
+	unsigned long attrs
 	)
 {
 	unsigned long addr;
