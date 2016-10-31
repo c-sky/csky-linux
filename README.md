@@ -3,8 +3,8 @@
 ## Get codes
 
 	$ wget https://cdn.kernel.org/pub/linux/kernel/v4.x/linux-4.8.4.tar.xz
-	$ git clone -b https://github.com/c-sky/csky-linux.git
-	$ git clone -b https://github.com/c-sky/addons-linux.git
+	$ git clone https://github.com/c-sky/csky-linux.git
+	$ git clone https://github.com/c-sky/addons-linux.git
 
 ## Prepare linux kernel source-tree
 
