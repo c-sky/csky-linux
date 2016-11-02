@@ -35,8 +35,42 @@
 #define __ARCH_WANT_SYS_OLD_SELECT
 #define __ARCH_WANT_SYNC_FILE_RANGE2
 
+/*
+ * FIXME:
+ * __NR_rt_sigreturn must be 173
+ */
+#undef	__NR_rt_sigreturn
+#undef	__NR_getppid
+
 #include <asm-generic/unistd.h>
 
+/*
+ * FIXME:
+ * __NR_rt_sigreturn must be 173
+ * Because gcc/config/csky/linux-unwind.h
+ * use hard code design,
+ * and didn't use our kernel headers.
+ */
+#if __NR_rt_sigreturn != 139
+#error __NR_rt_sigreturn has changed.
+#endif
+
+#if __NR_getppid != 173
+#error __NR_getppid has changed.
+#endif
+
+#undef	__NR_rt_sigreturn
+#define	__NR_rt_sigreturn 173
+__SC_COMP(__NR_rt_sigreturn, sys_rt_sigreturn, compat_sys_rt_sigreturn)
+
+#undef	__NR_getppid
+#define	__NR_getppid 139
+__SYSCALL(__NR_getppid, sys_getppid)
+
+
+/*
+ * other define
+ */
 #define __NR_set_thread_area	(__NR_arch_specific_syscall + 0)
 __SYSCALL(__NR_set_thread_area, sys_set_thread_area)
 #define __NR_ipc		(__NR_arch_specific_syscall + 1)
@@ -71,3 +105,4 @@ __SYSCALL(__NR_fadvise64_64, sys_csky_fadvise64_64)
 #define __NR_setreuid32		__NR_setreuid
 #define __NR_setregid32		__NR_setregid
 #define __NR__llseek		__NR_llseek
+
