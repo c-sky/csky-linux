@@ -32,25 +32,25 @@
  */
 static int regoff[] = {
 #if defined(__CSKYABIV2__)
-        PT_A0,    PT_A1,     PT_A2,    PT_A3,
-        PT_REGS0, PT_REGS1,  PT_REGS2, PT_REGS3,
-        PT_REGS4, PT_REGS5,  PT_REGS6, PT_REGS7,
-        PT_REGS8, PT_REGS9,  -1,       PT_R15,
-        PT_R16,   PT_R17,    PT_R18,   PT_R19,
-        PT_R20,   PT_R21,    PT_R22,   PT_R23,
-        PT_R24,   PT_R25,    PT_R26,   PT_R27,
-        PT_R28,   PT_R29,    PT_R30,   PT_R31,
-        PT_SR,    PT_PC,     PT_RHI,   PT_RLO,
+	PT_A0,    PT_A1,     PT_A2,    PT_A3,
+	PT_REGS0, PT_REGS1,  PT_REGS2, PT_REGS3,
+	PT_REGS4, PT_REGS5,  PT_REGS6, PT_REGS7,
+	PT_REGS8, PT_REGS9,  -1,       PT_R15,
+	PT_R16,   PT_R17,    PT_R18,   PT_R19,
+	PT_R20,   PT_R21,    PT_R22,   PT_R23,
+	PT_R24,   PT_R25,    PT_R26,   PT_R27,
+	PT_R28,   PT_R29,    PT_R30,   PT_R31,
+	PT_SR,    PT_PC,     PT_RHI,   PT_RLO,
 #else
-        -1,       PT_REGS9,  PT_A0,    PT_A1,
-        PT_A2,    PT_A3,     PT_REGS0, PT_REGS1,
-        PT_REGS2, PT_REGS3,  PT_REGS4, PT_REGS5,
-        PT_REGS6, PT_REGS7,  PT_REGS8, PT_R15,
-        -1,       -1,        -1,       -1,
-        -1,       -1,        -1,       -1,
-        -1,       -1,        -1,       -1,
-        -1,       -1,        -1,       -1,
-        PT_SR,    PT_PC,     -1,       -1,
+	-1,       PT_REGS9,  PT_A0,    PT_A1,
+	PT_A2,    PT_A3,     PT_REGS0, PT_REGS1,
+	PT_REGS2, PT_REGS3,  PT_REGS4, PT_REGS5,
+	PT_REGS6, PT_REGS7,  PT_REGS8, PT_R15,
+	-1,       -1,        -1,       -1,
+	-1,       -1,        -1,       -1,
+	-1,       -1,        -1,       -1,
+	-1,       -1,        -1,       -1,
+	PT_SR,    PT_PC,     -1,       -1,
 #endif
 };
 
@@ -63,12 +63,6 @@ static long get_reg(struct task_struct *task, int regno)
 
 	if (regno == REGNO_USP)
 		addr = &task->thread.usp;
-#if !defined(__CSKYABIV2__)  // ABIV2 task->thread have no hi & lo;
-	else if (regno == CSKY_HI_NUM)
-		addr = &task->thread.hi;
-	else if (regno == CSKY_LO_NUM)
-		addr = &task->thread.lo;
-#endif
 	else if ((regno < sizeof(regoff)/sizeof(regoff[0])) && (regoff[regno] != -1))
 		addr = (unsigned long *)(task->thread.esp0 + regoff[regno]);
 	else
@@ -80,18 +74,12 @@ static long get_reg(struct task_struct *task, int regno)
  * Write contents of register REGNO in task TASK.
  */
 static int put_reg(struct task_struct *task, int regno,
-			  unsigned long data)
+		unsigned long data)
 {
 	unsigned long *addr;
 
 	if (regno == REGNO_USP)
 		addr = &task->thread.usp;
-#if !defined(__CSKYABIV2__)  // ABIV2 task->thread have no hi & lo;
-        else if (regno == CSKY_HI_NUM)
-                addr = &task->thread.hi;
-        else if (regno == CSKY_LO_NUM)
-                addr = &task->thread.lo;
-#endif
 	else if ((regno < sizeof(regoff) / sizeof(regoff[0])) && (regoff[regno] != -1))
 		addr = (unsigned long *) (task->thread.esp0 + regoff[regno]);
 	else
@@ -114,8 +102,8 @@ static void singlestep_disable(struct task_struct *child)
 static void singlestep_enable(struct task_struct *child)
 {
 	unsigned long tmp;
-    tmp = (get_reg(child, REGNO_SR) & TRACE_MODE_MASK) | TRACE_MODE_SI;
-    put_reg(child, REGNO_SR, tmp);
+	tmp = (get_reg(child, REGNO_SR) & TRACE_MODE_MASK) | TRACE_MODE_SI;
+	put_reg(child, REGNO_SR, tmp);
 	/* FIXME maybe wrong here: if set flag of TIF_DELAYED_TRACE? */
 
 }
@@ -154,7 +142,7 @@ int ptrace_setfpregs(struct task_struct *child, void __user *data)
 		return -EIO;
 
 	if(copy_from_user(&child->thread.fcr, data,
-                        sizeof(struct user_cskyfp_struct)))
+				sizeof(struct user_cskyfp_struct)))
 		return -EFAULT;
 	return 0;
 }
@@ -183,13 +171,13 @@ void ptrace_disable(struct task_struct *child)
  * others  - fail
  */
 long arch_ptrace(struct task_struct *child, long request, unsigned long addr,
-	unsigned long data)
+		unsigned long data)
 {
 	unsigned long tmp = 0, ret = 0;
 	int i;
 
 	switch (request) {
-	/* read the word at location addr in the USER area. */
+		/* read the word at location addr in the USER area. */
 	case PTRACE_PEEKUSR:
 		if (addr & 3)
 			goto out_eio;
@@ -248,10 +236,10 @@ long arch_ptrace(struct task_struct *child, long request, unsigned long addr,
 		ret = ptrace_setfpregs(child, (void __user *) data);
 		break;
 
-        case PTRACE_GET_THREAD_AREA:
-                ret = put_user(task_thread_info(child)->tp_value,
-                               (long unsigned int *) data);
-                break;
+	case PTRACE_GET_THREAD_AREA:
+		ret = put_user(task_thread_info(child)->tp_value,
+				(long unsigned int *) data);
+		break;
 	default:
 		ret = ptrace_request(child, request, addr, data);
 		break;
@@ -282,10 +270,10 @@ asmlinkage void syscall_trace(int why, struct pt_regs * regs)
 	saved_why = regs->regs[SAVEDNUM];
 	regs->regs[SAVEDNUM] = why;
 
-        /* the 0x80 provides a way for the tracing parent to distinguish
-           between a syscall stop and SIGTRAP delivery */
+	/* the 0x80 provides a way for the tracing parent to distinguish
+	   between a syscall stop and SIGTRAP delivery */
 	ptrace_notify(SIGTRAP | ((current->ptrace & PT_TRACESYSGOOD)
-                                 ? 0x80 : 0));
+				? 0x80 : 0));
 	/*
 	 * this isn't the same as continuing with a signal, but it will do
 	 * for normal use.  strace only continues with a signal if the

@@ -99,12 +99,6 @@ struct thread_struct {
  				      In CPU_CSKYV2(VFP): 16 regs of 64 bits
 				        fp[0] store vr0 low 32 bits,
 				        fp[1] store vr0 high 32 bits... */
-	/* DSP regs */
-	unsigned long  hi;        /* Nothing in CPU_CSKYV2 */
-	unsigned long  lo;        /* Nothing in CPU_CSKYV2 */
-#ifdef CONFIG_CPU_CSKYV1
-	unsigned long  dspcsr;    /* DSP control and stats reg(cr14) */
-#endif
 
 	/* Other stuff associated with the thread. */
 	unsigned long address;      /* Last user fault */
