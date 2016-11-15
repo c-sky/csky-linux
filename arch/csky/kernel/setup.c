@@ -43,6 +43,8 @@ static void __init csky_memblock_init(void)
 	zone_sizes_init();
 }
 
+extern void cpu_probe(void);
+
 void __init setup_arch(char **cmdline_p)
 {
 	*cmdline_p = boot_command_line;
@@ -63,6 +65,8 @@ void __init setup_arch(char **cmdline_p)
 	sparse_init();
 
 	pgd_init((unsigned long)swapper_pg_dir);
+
+	cpu_probe();
 
 #if defined(CONFIG_VT) && defined(CONFIG_DUMMY_CONSOLE)
 	conswitchp = &dummy_con;

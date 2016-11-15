@@ -17,9 +17,7 @@
 /*
  * CSKY does have an arch_pick_mmap_layout()
  */
-#ifdef CONFIG_MMU
 #define HAVE_ARCH_PICK_MMAP_LAYOUT 1
-#endif
 
 struct cpuinfo_csky {
 	unsigned long udelay_val;
@@ -30,12 +28,6 @@ struct cpuinfo_csky {
 	unsigned long options;
 	unsigned int processor_id[4];
 	unsigned int fpu_id;
-	unsigned int cputype;
-	unsigned int bustype;
-	unsigned int cache_size;
-	unsigned int sram_size;
-	unsigned int usif_ahbl;
-	int tlbsize;
 } __attribute__((aligned(SMP_CACHE_BYTES)));
 
 extern struct cpuinfo_csky cpu_data[];

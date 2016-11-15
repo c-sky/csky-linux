@@ -1,6 +1,4 @@
-#include <linux/mm.h>
-#include <linux/sched.h>
-#include <asm/cache.h>
+#include <asm/page.h>
 
 #ifdef CONFIG_CSKY_INSTRUCTION_CACHE
 #define dis_icache(tmp) \
@@ -63,8 +61,7 @@ cache_op_range(
 	unsigned long i,flags;
 	unsigned int tmp = 0;
 
-	if (unlikely((start & 0xf0000000) !=
-		(CONFIG_RAM_BASE + PAGE_OFFSET - PHYS_OFFSET))) {
+	if (unlikely(start < PAGE_OFFSET)) {
 		cache_op_all(value);
 		return;
 	}

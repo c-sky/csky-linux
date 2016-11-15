@@ -15,28 +15,35 @@ static void *csky_dma_alloc(
 	)
 {
 	unsigned int ret;
+	struct vm_struct * area;
+
+	if (DMA_ATTR_NON_CONSISTENT & attrs)
+		panic("csky %s panic DMA_ATTR_NON_CONSISTENT.\n", __func__);
 
 	/* fixme, why gfp? */
 	gfp &= ~(__GFP_DMA | __GFP_HIGHMEM);
 	gfp |= __GFP_ZERO;
 
 	ret = (unsigned int) __get_free_pages(gfp, get_order(size));
-	if (!ret)
+	if (!ret) {
+		pr_err("csky %s no more free pages.\n", __func__);
 		return NULL;
+	}
 
 	memset((void *)ret, 0, size);
 	*dma_handle = virt_to_phys((void*)ret);
 
-	if (!(DMA_ATTR_NON_CONSISTENT & attrs)) {
-		cache_op_range(
-			ret, ret+size,
-			DATA_CACHE|
-			CACHE_CLR|
-			CACHE_INV);
-		ret = UNCACHE_ADDR(ret);
-	}
+	cache_op_range(ret, ret+size,
+		DATA_CACHE|CACHE_CLR|CACHE_INV);
 
-	return (void *)ret;
+	area = get_vm_area(size, VM_IOREMAP);
+	if (!area)
+		panic("csky %s panic get_vm_area().\n", __func__);
+
+	if (remap_area_pages((unsigned long)area->addr, *dma_handle, size, _CACHE_UNCACHED))
+		panic("csky %s panic remap_area_pages().\n", __func__);
+
+	return area->addr;
 }
 
 static void csky_dma_free(
@@ -47,11 +54,10 @@ static void csky_dma_free(
 	unsigned long attrs
 	)
 {
-	unsigned long addr = (unsigned long) vaddr;
+	unsigned long addr = (unsigned long)phys_to_virt(dma_handle);
 	int order = get_order(size);
 
-	if (!(DMA_ATTR_NON_CONSISTENT & attrs))
-		addr = CACHE_ADDR(addr);
+	vfree((void *) (PAGE_MASK & (unsigned long) vaddr));
 
 	free_pages(addr, order);
 }
@@ -70,13 +76,6 @@ static inline void __dma_sync(
 		break;
 
 	case DMA_FROM_DEVICE:
-		cache_op_range(
-			addr, addr+size,
-			DATA_CACHE|
-			CACHE_CLR|
-			CACHE_INV);
-		break;
-
 	case DMA_BIDIRECTIONAL:
 		cache_op_range(
 			addr, addr+size,
@@ -238,6 +237,16 @@ static void csky_dma_sync_sg_for_device(
 	}
 }
 
+int csky_dma_mapping_error(struct device *dev, dma_addr_t dma_addr)
+{
+	return 0;
+}
+
+int csky_dma_supported(struct device *dev, u64 mask)
+{
+	return 1;
+}
+
 struct dma_map_ops csky_dma_map_ops = {
 	.alloc			= csky_dma_alloc,
 	.free			= csky_dma_free,
@@ -253,8 +262,8 @@ struct dma_map_ops csky_dma_map_ops = {
 	.sync_sg_for_cpu	= csky_dma_sync_sg_for_cpu,
 	.sync_sg_for_device	= csky_dma_sync_sg_for_device,
 
-	.mapping_error		= NULL,
-	.dma_supported		= NULL,
+	.mapping_error		= csky_dma_mapping_error,
+	.dma_supported		= csky_dma_supported,
 	.set_dma_mask		= NULL,
 };
 EXPORT_SYMBOL(csky_dma_map_ops);

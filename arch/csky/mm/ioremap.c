@@ -20,7 +20,7 @@
 #include <asm/pgalloc.h>
 
 static inline void remap_area_pte(pte_t * pte, unsigned long address,
-	phys_addr_t size, phys_addr_t phys_addr, unsigned long flags)
+	size_t size, phys_addr_t phys_addr, unsigned long flags)
 {
 	phys_addr_t end;
 	unsigned long pfn;
@@ -48,7 +48,7 @@ static inline void remap_area_pte(pte_t * pte, unsigned long address,
 }
 
 static inline int remap_area_pmd(pmd_t * pmd, unsigned long address,
-	phys_addr_t size, phys_addr_t phys_addr, unsigned long flags)
+	size_t size, phys_addr_t phys_addr, unsigned long flags)
 {
 	phys_addr_t end;
 
@@ -71,7 +71,7 @@ static inline int remap_area_pmd(pmd_t * pmd, unsigned long address,
 }
 
 int remap_area_pages(unsigned long address, phys_addr_t phys_addr,
-	phys_addr_t size, unsigned long flags)
+	size_t size, unsigned long flags)
 {
 	int error;
 	pgd_t * dir;
@@ -133,7 +133,7 @@ phys_addr_t (*fixup_bigphys_addr)(phys_addr_t phys_addr, phys_addr_t size) =
 
 #define IS_LOW512(addr) (!((phys_addr_t)(addr) & (phys_addr_t) ~0x1fffffffULL))
 
-void __iomem * __ioremap(phys_addr_t phys_addr, phys_addr_t size, unsigned long flags)
+void __iomem * __ioremap(phys_addr_t phys_addr, size_t size, unsigned long flags)
 {
 	struct vm_struct * area;
 	unsigned long offset;
@@ -191,7 +191,7 @@ void __iomem * __ioremap(phys_addr_t phys_addr, phys_addr_t size, unsigned long 
 	return (void __iomem *) (offset + (char *)addr);
 }
 
-void __iomem * __ioremap_mode(phys_addr_t offset, unsigned long size, unsigned long flags)
+void __iomem * __ioremap_mode(phys_addr_t offset, size_t size, unsigned long flags)
 {
         if (__builtin_constant_p(offset) &&
             __builtin_constant_p(size) && __builtin_constant_p(flags)) {

@@ -67,7 +67,7 @@ void local_flush_tlb_range(struct vm_area_struct *vma, unsigned long start,
                 local_irq_save(flags);
                 size = (end - start + (PAGE_SIZE - 1)) >> PAGE_SHIFT;
                 size = (size + 1) >> 1;
-                if (size <= current_cpu_data.tlbsize/2) {
+                if (size <= CSKY_TLB_SIZE/2) {
                         int oldpid = read_mmu_entryhi();
                         int newpid = cpu_asid(cpu, mm);
 
@@ -109,7 +109,7 @@ void local_flush_tlb_kernel_range(unsigned long start, unsigned long end)
 #endif
         local_irq_save(flags);
         size = (end - start + (PAGE_SIZE - 1)) >> PAGE_SHIFT;
-        if (size <= current_cpu_data.tlbsize) {
+        if (size <= CSKY_TLB_SIZE) {
                 int pid = read_mmu_entryhi();
 
                 start &= PAGE_MASK;
@@ -259,7 +259,7 @@ void show_jtlb_table(void)
 	printk("\n\n\n");
 
 	oldpid = read_mmu_entryhi();
-	while (entry < current_cpu_data.tlbsize) 
+	while (entry < CSKY_TLB_SIZE)
 	{
 		write_mmu_index(entry);
 		tlb_read();
@@ -273,12 +273,11 @@ void show_jtlb_table(void)
 			 entry, entryhi, entrylo0, entrylo1);
 		entry++;
 	}
-	write_mmu_entryhi(oldpid);	
+	write_mmu_entryhi(oldpid);
 	local_irq_restore(flags);
 }
 
 void __init csky_tlb_init(void)
 {
-	current_cpu_data.tlbsize= CSKY_TLB_SIZE;
 	local_flush_tlb_all();
 }
