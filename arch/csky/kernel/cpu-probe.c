@@ -1,14 +1,10 @@
 #include <linux/init.h>
-#include <linux/kernel.h>
-#include <linux/ptrace.h>
-#include <linux/smp.h>
-#include <linux/stddef.h>
 #include <linux/delay.h>
-#include <asm/cpu.h>
 #include <linux/proc_fs.h>
 #include <linux/seq_file.h>
+#include <asm/cpu.h>
 
-char __cpu_name[NR_CPUS][64];
+static char __cpu_name[NR_CPUS][64];
 
 static inline int  read_cpuid_reg(void)
 {
@@ -24,7 +20,7 @@ static inline void cpu_probe_ver2(struct cpuinfo_csky *c, unsigned int cpu)
 
 	switch (c->processor_id[0] & 0xf0000000) {
 	case CPUID_V2_FAMILY_CK600:
-		sprintf(p, "CK610%s%s%s, Cache I/D:16K/16K",
+		sprintf(p, "CK610%s%s%s",
 				((c->processor_id[0] & CPUID_V2_MODEL_MMU) ? "-MMU" : ""),
 				((c->processor_id[0] & CPUID_V2_MODEL_FPU) ? "-FPU" : ""),
 				((c->processor_id[0] & CPUID_V2_MODEL_AXI) ? "-AXI" : ""));
@@ -82,27 +78,27 @@ __init void cpu_probe(void)
 
 static int show_cpuinfo(struct seq_file *m, void *v)
 {
-    unsigned long n = (unsigned long) v - 1;
-    char *fpu;
-    u_long clockfreq;
-    struct cpuinfo_csky * c=&cpu_data[n];
-    fpu = "none";
+	unsigned long n = (unsigned long) v - 1;
+	char *fpu;
+	u_long clockfreq;
+	struct cpuinfo_csky * c=&cpu_data[n];
+	fpu = "none";
 
-    seq_printf(m, "Processor\t: %ld\n", n);
-    seq_printf(m, "CPU\t\t: %s(0x%8x)\n", __cpu_name[n], c->processor_id[0]);
+	seq_printf(m, "Processor\t: %ld\n", n);
+	seq_printf(m, "CPU\t\t: %s(0x%8x)\n", __cpu_name[n], c->processor_id[0]);
 
-    /*
-     * The fiducial operation declt + bf need 2 cycle. So calculate CPU clock
-     *  need to multiply 2.
-     */
-    clockfreq = (loops_per_jiffy*HZ)*2;
-    seq_printf(m,
-		 "Clocking\t: %lu.%1luMHz\n"
-		 "BogoMips\t: %lu.%02lu\n",
-		 clockfreq / 1000000, (clockfreq / 10000) % 100,
-		 (loops_per_jiffy * HZ) / 500000, ((loops_per_jiffy * HZ) / 5000) % 100);
+	/*
+	 * The fiducial operation declt + bf need 2 cycle. So calculate CPU clock
+	 *  need to multiply 2.
+	 */
+	clockfreq = (loops_per_jiffy*HZ)*2;
+	seq_printf(m,
+			"Clocking\t: %lu.%1luMHz\n"
+			"BogoMips\t: %lu.%02lu\n",
+			clockfreq / 1000000, (clockfreq / 10000) % 100,
+			(loops_per_jiffy * HZ) / 500000, ((loops_per_jiffy * HZ) / 5000) % 100);
 
-    return 0;
+	return 0;
 }
 
 static void *c_start(struct seq_file *m, loff_t *pos)
@@ -123,7 +119,7 @@ static void c_stop(struct seq_file *m, void *v)
 }
 
 struct seq_operations cpuinfo_op = {
-	start:	c_start,
+start:	c_start,
 	next:	c_next,
 	stop:	c_stop,
 	show:	show_cpuinfo,

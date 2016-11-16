@@ -12,35 +12,20 @@ SYSCALL_DEFINE3(cacheflush,
 		unsigned long, bytes,
 		int, cache)
 {
-	unsigned int start;
-	unsigned int end;
-
-	if (bytes == 0)
-		return 0;
-
-	if (!access_ok(VERIFY_WRITE, addr, bytes))
-		return -EFAULT;
-
-	start = (unsigned int)addr;
-	end = start + bytes;
-
 	switch(cache) {
 	case ICACHE:
-		cache_op_range(
-			start, end,
+		cache_op_all(
 			INS_CACHE|
 			CACHE_INV);
 		break;
 	case DCACHE:
-		cache_op_range(
-			start, end,
+		cache_op_all(
 			DATA_CACHE|
 			CACHE_CLR|
 			CACHE_INV);
 		break;
 	case BCACHE:
-		cache_op_range(
-			start, end,
+		cache_op_all(
 			INS_CACHE|
 			DATA_CACHE|
 			CACHE_CLR|
@@ -63,8 +48,10 @@ void __update_cache(struct vm_area_struct *vma, unsigned long address,
 	pfn = pte_pfn(pte);
 	if (unlikely(!pfn_valid(pfn)))
 		return;
+
 	page = pfn_to_page(pfn);
-		addr = (unsigned long) page_address(page);
+	addr = (unsigned long) page_address(page);
+
 /* gary? */
 #if defined (CONFIG_HIGHMEM) && defined (CONFIG_CPU_CSKYV1)
 	if (PageHighMem(page)){

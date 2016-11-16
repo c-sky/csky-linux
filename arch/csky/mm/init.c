@@ -1,4 +1,3 @@
-#include <asm/system.h>
 #include <linux/bug.h>
 #include <linux/module.h>
 #include <linux/init.h>

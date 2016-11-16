@@ -1,16 +1,3 @@
-/*
- * linux/arch/csky/mm/init.c
- *
- * This file is subject to the terms and conditions of the GNU General Public
- * License.  See the file "COPYING" in the main directory of this archive
- * for more details.
- *
- * Copyright (C) 2006 C-SKY Microsystems co.,ltd.  All rights reserved.
- * Copyright (C) 2006  Li Chunqiang (chunqiang_li@c-sky.com)
- * Copyright (C) 2009  Ye Yun (yun_ye@c-sky.com)
- */
-
-#include <asm/system.h>
 #include <linux/fs.h>
 #include <linux/mm.h>
 #include <linux/mman.h>
@@ -25,10 +12,10 @@ unsigned long shm_align_mask = (CONFIG_CSKY_CACHE_SIZE >> 1) - 1;   /* Sane cach
 
 #define COLOUR_ALIGN(addr,pgoff)                            \
 	((((addr) + shm_align_mask) & ~shm_align_mask) +        \
-	(((pgoff) << PAGE_SHIFT) & shm_align_mask))
+	 (((pgoff) << PAGE_SHIFT) & shm_align_mask))
 
 unsigned long arch_get_unmapped_area(struct file *filp, unsigned long addr,
-	unsigned long len, unsigned long pgoff, unsigned long flags)
+		unsigned long len, unsigned long pgoff, unsigned long flags)
 {
 	struct vm_area_struct * vmm;
 	int do_color_align;
@@ -39,11 +26,11 @@ unsigned long arch_get_unmapped_area(struct file *filp, unsigned long addr,
 		 * cache aliasing constraints.
 		 */
 		if ((flags & MAP_SHARED) && 
-		    ((addr - (pgoff << PAGE_SHIFT)) & shm_align_mask))
+				((addr - (pgoff << PAGE_SHIFT)) & shm_align_mask))
 			return -EINVAL;
 		return addr;
 	}
-	
+
 	if (len > TASK_SIZE)
 		return -ENOMEM;
 	do_color_align = 0;
@@ -56,7 +43,7 @@ unsigned long arch_get_unmapped_area(struct file *filp, unsigned long addr,
 			addr = PAGE_ALIGN(addr);
 		vmm = find_vma(current->mm, addr);
 		if (TASK_SIZE - len >= addr &&
-		     (!vmm || addr + len <= vmm->vm_start))
+				(!vmm || addr + len <= vmm->vm_start))
 			return addr;
 	}
 	addr = TASK_UNMAPPED_BASE;
@@ -64,29 +51,29 @@ unsigned long arch_get_unmapped_area(struct file *filp, unsigned long addr,
 		addr = COLOUR_ALIGN(addr, pgoff);
 	else
 		addr = PAGE_ALIGN(addr);
-	
+
 	for (vmm = find_vma(current->mm, addr); ; vmm = vmm->vm_next) {
-	        /* At this point:  (!vmm || addr < vmm->vm_end). */
+		/* At this point:  (!vmm || addr < vmm->vm_end). */
 		if (TASK_SIZE - len < addr)
 			return -ENOMEM;
 		if (!vmm || addr + len <= vmm->vm_start)
 			return addr;
 		addr = vmm->vm_end;
 		if (do_color_align)
-	        	addr = COLOUR_ALIGN(addr, pgoff);
+			addr = COLOUR_ALIGN(addr, pgoff);
 	}
 }
 
 void arch_pick_mmap_layout(struct mm_struct *mm)
 {
 	unsigned long random_factor = 0UL;
-	
+
 	if (current->flags & PF_RANDOMIZE) {
 		random_factor = get_random_int();
 		random_factor = random_factor << PAGE_SHIFT;
 		random_factor &= 0xfffffful;
 	}
-	
+
 	mm->mmap_base = TASK_UNMAPPED_BASE + random_factor;
 	mm->get_unmapped_area = arch_get_unmapped_area;
 }
@@ -120,7 +107,7 @@ unsigned long arch_randomize_brk(struct mm_struct *mm)
 #if defined(CONFIG_FB) || defined(CONFIG_FB_MODULE)
 #include <linux/fb.h>
 unsigned long get_fb_unmapped_area(struct file *filp, unsigned long orig_addr,
-	unsigned long len, unsigned long pgoff, unsigned long flags)
+		unsigned long len, unsigned long pgoff, unsigned long flags)
 {
 	struct fb_info *info = filp->private_data;
 	return (unsigned long)info->screen_base;
