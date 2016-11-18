@@ -4,18 +4,11 @@
 #include <hal/pgtable-bits.h>
 #include <linux/types.h>
 
-
-extern void * __ioremap_mode(phys_addr_t offset,
-		size_t size, unsigned long flags);
-
-extern inline void *ioremap(phys_addr_t physaddr, unsigned long size)
-{
-	return __ioremap_mode(physaddr, size, _CACHE_UNCACHED);
-}
+extern void * ioremap(phys_addr_t offset, size_t size);
 
 extern inline void *ioremap_nocache(phys_addr_t physaddr, unsigned long size)
 {
-	return __ioremap_mode(physaddr, size, _CACHE_UNCACHED);
+	return ioremap(physaddr, size);
 }
 
 extern void iounmap(void *addr);

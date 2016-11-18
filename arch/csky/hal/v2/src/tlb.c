@@ -1,21 +1,3 @@
-/*
- * linux/arch/csky/mm/tlb.c
- *
- * This file is subject to the terms and conditions of the GNU General Public
- * License.  See the file "COPYING" in the main directory of this archive
- * for more details.
- *
- *
- * Copyright (C) 2006 Hangzhou C-SKY Mircosystems co.,ltd
- * Copyright (C) 2006 Li Chunqiang (chunqiang_li@c-sky.com)
- * Copyright (C) 2009 Ye Yun(yun_ye@c-sky.com)
- *
- * To do:
- *
- *  - this code is a overbloated pig
- *  - many of the bug workarounds are not efficient at all, but at
- *    least they are functional ...
- */
 #include <linux/init.h>
 #include <linux/sched.h>
 #include <linux/mm.h>
@@ -25,8 +7,7 @@
 #include <linux/module.h>
 #include <asm/pgtable.h>
 #include <asm/system.h>
-
-#include <asm/ckmmuv2.h>
+#include <hal/ckmmu.h>
 
 #undef DEBUG_TLB
 #undef DEBUG_TLBUPDATE

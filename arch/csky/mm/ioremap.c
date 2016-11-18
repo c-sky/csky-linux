@@ -1,21 +1,8 @@
-/*
- * linux/arch/csky/mm/ioremap.c
- *
- * This file is subject to the terms and conditions of the GNU General Public
- * License.  See the file "COPYING" in the main directory of this archive
- * for more details.
- *
- * Copyright (C) 2006 C-SKY Microsystems co.,ltd.  All rights reserved.
- * Copyright (C) 2006  Li Chunqiang (chunqiang_li@c-sky.com)
- * Copyright (C) 2009  Ye Yun (yun_ye@c-sky.com)
- */
-#include <linux/module.h>
-#include <asm/addrspace.h>
-#include <asm/byteorder.h>
-#include <linux/sched.h>
+#include <linux/mm.h>
 #include <linux/vmalloc.h>
+#include <linux/io.h>
+
 #include <asm/cacheflush.h>
-#include <asm/io.h>
 #include <asm/tlbflush.h>
 #include <asm/pgalloc.h>
 
@@ -191,10 +178,10 @@ void __iomem * __ioremap(phys_addr_t phys_addr, size_t size, unsigned long flags
 	return (void __iomem *) (offset + (char *)addr);
 }
 
-void __iomem * __ioremap_mode(phys_addr_t offset, size_t size, unsigned long flags)
+void __iomem * ioremap(phys_addr_t offset, size_t size)
 {
         if (__builtin_constant_p(offset) &&
-            __builtin_constant_p(size) && __builtin_constant_p(flags)) {
+            __builtin_constant_p(size)) {
                 phys_addr_t phys_addr, last_addr;
 
                 phys_addr = fixup_bigphys_addr(offset, size);
@@ -208,15 +195,14 @@ void __iomem * __ioremap_mode(phys_addr_t offset, size_t size, unsigned long fla
                  * Map uncached objects in the low 512MB of address
                  * space using KSEG1.
                  */
-                if (IS_LOW512(phys_addr) && IS_LOW512(last_addr) &&
-                    flags == _CACHE_UNCACHED)
+                if (IS_LOW512(phys_addr) && IS_LOW512(last_addr))
                         return (void __iomem *)
                                 (unsigned long)KSEG1ADDR(phys_addr);
         }
 
-        return __ioremap(offset, size, flags);
+        return __ioremap(offset, size, _CACHE_UNCACHED);
 }
-EXPORT_SYMBOL(__ioremap_mode);
+EXPORT_SYMBOL(ioremap);
 
 #define IS_KSEG1(addr) (((unsigned long)(addr) & ~0x1fffffffUL) == KSEG1)
 

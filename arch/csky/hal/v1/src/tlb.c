@@ -7,7 +7,7 @@
 #include <linux/module.h>
 #include <asm/pgtable.h>
 
-#include <asm/ckmmuv1.h>
+#include <hal/ckmmu.h>
 
 #undef DEBUG_TLB
 #undef DEBUG_TLBUPDATE

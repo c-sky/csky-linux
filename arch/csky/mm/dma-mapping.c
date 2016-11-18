@@ -14,7 +14,8 @@ static void *csky_dma_alloc(
 	unsigned long attrs
 	)
 {
-	unsigned int ret;
+	int ret;
+	unsigned long vaddr;
 	struct vm_struct * area;
 
 	if (DMA_ATTR_NON_CONSISTENT & attrs)
@@ -26,7 +27,7 @@ static void *csky_dma_alloc(
 
 	ret = (unsigned int) __get_free_pages(gfp, get_order(size));
 	if (!ret) {
-		pr_err("csky %s no more free pages.\n", __func__);
+		pr_err("csky %s no more free pages, %d.\n", __func__, ret);
 		return NULL;
 	}
 
@@ -40,8 +41,10 @@ static void *csky_dma_alloc(
 	if (!area)
 		panic("csky %s panic get_vm_area().\n", __func__);
 
+	vaddr = (unsigned long)area->addr;
+
 	if (remap_area_pages((unsigned long)area->addr, *dma_handle, size, _CACHE_UNCACHED))
-		panic("csky %s panic remap_area_pages().\n", __func__);
+		panic("csky %s panic remap_area_pages(), %d.\n", __func__, ret);
 
 	return area->addr;
 }

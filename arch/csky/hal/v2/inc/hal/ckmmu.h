@@ -127,5 +127,30 @@ static inline void tlb_invalid_indexed(void)
 					: :"r" (value));
 }
 
-#endif /* __ASM_CSKY_CKMMUV1_H */
+/* misc */
+static inline void tlbmiss_handler_setup_pgd(unsigned long pgd)
+{
+	__asm__ __volatile__(
+		"bseti %0, 0		\n\t"
+		"bclri %0, 31		\n\t"
+		"addu  %0, %1		\n\t"
+		"mtcr  %0, cr<29, 15>	\n\t"
+		::"r"(pgd), "r"(PHYS_OFFSET)
+		:);
+}
+
+static inline unsigned long tlb_get_pgd(void)
+{
+	unsigned long pgd;
+	__asm__ __volatile__(
+		"mfcr %0, cr<29, 15>	\n\r"
+		"bclri	%0, 0		\n\r"
+		"subu	%0, %1		\n\r"
+                "bseti	%0, 31		\n\r"
+                :"=r"(pgd)
+		:"r"(PHYS_OFFSET)
+                :);
+	return pgd;
+}
+#endif /* __ASM_CSKY_CKMMUV2_H */
 

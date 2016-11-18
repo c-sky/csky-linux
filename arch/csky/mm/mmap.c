@@ -6,8 +6,6 @@
 #include <linux/random.h>
 #include <linux/io.h>
 
-#ifdef CONFIG_MMU
-
 unsigned long shm_align_mask = (CONFIG_CSKY_CACHE_SIZE >> 1) - 1;   /* Sane caches */
 
 #define COLOUR_ALIGN(addr,pgoff)                            \
@@ -25,7 +23,7 @@ unsigned long arch_get_unmapped_area(struct file *filp, unsigned long addr,
 		 * We do not accept a shared mapping if it would violate
 		 * cache aliasing constraints.
 		 */
-		if ((flags & MAP_SHARED) && 
+		if ((flags & MAP_SHARED) &&
 				((addr - (pgoff << PAGE_SHIFT)) & shm_align_mask))
 			return -EINVAL;
 		return addr;
@@ -102,17 +100,3 @@ unsigned long arch_randomize_brk(struct mm_struct *mm)
 	return ret;
 }
 
-#else /* !CONFIG_MMU */
-
-#if defined(CONFIG_FB) || defined(CONFIG_FB_MODULE)
-#include <linux/fb.h>
-unsigned long get_fb_unmapped_area(struct file *filp, unsigned long orig_addr,
-		unsigned long len, unsigned long pgoff, unsigned long flags)
-{
-	struct fb_info *info = filp->private_data;
-	return (unsigned long)info->screen_base;
-}
-EXPORT_SYMBOL(get_fb_unmapped_area);
-#endif
-
-#endif /* CONFIG_MMU */

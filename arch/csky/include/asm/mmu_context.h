@@ -9,47 +9,18 @@
 
 #include <linux/errno.h>
 #include <linux/sched.h>
-
-#ifdef CONFIG_CPU_CSKYV1
-#include <asm/ckmmuv1.h>
-#else
-#include <asm/ckmmuv2.h>
-#endif
+#include <hal/ckmmu.h>
 
 /*
  * For the fast tlb miss handlers, we currently keep a per cpu array
  * of pointers to the current pgd for each processor. Also, the proc.
  * id is stuffed into the context register. This should be changed to
  * use the processor id via current->processor, where current is stored
- * in watchhi/lo. The context register should be used to contiguously
+ * in watch hi/lo. The context register should be used to contiguously
  * map the page tables.
  */
 #ifdef CONFIG_MMU_HARD_REFILL
-#ifdef CONFIG_CPU_CSKYV1
-#define TLBMISS_HANDLER_SETUP_PGD(pgd)                \
-do{                                                   \
-	__asm__ __volatile__(                         \
-	            "       mov   r6, %0 \n"          \
-	            "       bseti r6, 0 \n"           \
-	            "       bclri r6, 31 \n"          \
-	            "       addu  r6, %1 \n"          \
-	            "       cpseti    cp15 \n"        \
-	            "       cpwcr r6, cpcr29 \n"      \
-	            ::"r"(pgd), "r"(PHYS_OFFSET)      \
-	            :"r6");                           \
-}while(0)
-#else
-#define TLBMISS_HANDLER_SETUP_PGD(pgd)                \
-do{                                                   \
-	__asm__ __volatile__(                         \
-	            "       bseti %0, 0 \n"           \
-	            "       bclri %0, 31 \n"          \
-	            "       addu  %0, %1 \n"          \
-	            "       mtcr  %0, cr<29, 15> \n"  \
-	            ::"r"(pgd), "r"(PHYS_OFFSET)      \
-	            :);                               \
-}while(0)
-#endif /* CONFIG_CPU_CSKYV1 */
+#define TLBMISS_HANDLER_SETUP_PGD(pgd) tlbmiss_handler_setup_pgd(pgd)
 #else
 #define TLBMISS_HANDLER_SETUP_PGD(pgd) \
 	pgd_current[smp_processor_id()] = (unsigned long)(pgd)

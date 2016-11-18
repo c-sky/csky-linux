@@ -182,5 +182,32 @@ static inline void tlb_invalid_indexed(void)
 			::"b"(value));
 }
 
+/* misc */
+static inline void tlb_setup_pgd(unsigned long pgd)
+{
+	__asm__ __volatile__(
+		"bseti %0, 0		\n\t"
+		"bclri %0, 31		\n\t"
+		"addu  %0, %1		\n\t"
+		"cpseti cp15		\n\t"
+		"cpwcr %0, cpcr29	\n\t"
+		::"r"(pgd), "r"(PHYS_OFFSET)
+		:);
+}
+
+static inline unsigned long tlb_get_pgd(void)
+{
+	unsigned long pgd;
+	__asm__ __volatile__(
+		"cpseti	cp15		\n\r"
+		"cprcr	%0, cpcr29	\n\r"
+		"bclri	%0, 0		\n\r"
+		"subu	%0, %1		\n\r"
+                "bseti	%0, 31		\n\r"
+                :"=r"(pgd)
+		:"r"(PHYS_OFFSET)
+                :);
+	return pgd;
+}
 #endif /* __ASM_CSKY_CKMMUV1_H */
 
