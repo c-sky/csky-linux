@@ -15,8 +15,6 @@ static void *csky_dma_alloc(
 	)
 {
 	int ret;
-	unsigned long vaddr;
-	struct vm_struct * area;
 
 	if (DMA_ATTR_NON_CONSISTENT & attrs)
 		panic("csky %s panic DMA_ATTR_NON_CONSISTENT.\n", __func__);
@@ -37,16 +35,7 @@ static void *csky_dma_alloc(
 	cache_op_range(ret, ret+size,
 		DATA_CACHE|CACHE_CLR|CACHE_INV);
 
-	area = get_vm_area(size, VM_IOREMAP);
-	if (!area)
-		panic("csky %s panic get_vm_area().\n", __func__);
-
-	vaddr = (unsigned long)area->addr;
-
-	if (remap_area_pages((unsigned long)area->addr, *dma_handle, size, _CACHE_UNCACHED))
-		panic("csky %s panic remap_area_pages(), %d.\n", __func__, ret);
-
-	return area->addr;
+	return (void *)UNCACHE_ADDR(ret);
 }
 
 static void csky_dma_free(
@@ -58,11 +47,8 @@ static void csky_dma_free(
 	)
 {
 	unsigned long addr = (unsigned long)phys_to_virt(dma_handle);
-	int order = get_order(size);
 
-	vfree((void *) (PAGE_MASK & (unsigned long) vaddr));
-
-	free_pages(addr, order);
+	free_pages(addr, get_order(size));
 }
 
 static inline void __dma_sync(

@@ -51,6 +51,6 @@
 	};
 
 	chosen {
-		bootargs = "console=ttyS0,115200 init=/init root=/dev/nfs rw nfsroot=192.168.101.230:/opt/nfs/test,v3,tcp,nolock ip=192.168.101.23";
+		bootargs = "console=ttyS0,115200 init=/init root=/dev/nfs rw nfsroot=192.168.101.230:/opt/nfs/test,v3,tcp,nolock ip=192.168.101.25";
 	};
 };

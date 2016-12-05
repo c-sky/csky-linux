@@ -13,7 +13,7 @@
 #include <linux/kernel.h>
 #include <linux/sched.h>
 
-extern unsigned long os_config_fcr;
+unsigned long os_config_fcr;
 
 inline unsigned int
 read_pt_regs(unsigned int rx, struct pt_regs *regs)

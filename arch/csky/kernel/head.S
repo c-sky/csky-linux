@@ -5,12 +5,12 @@
 __INIT
 ENTRY(_start)
 	/* set super user mode */
-	lrw	a5, 0x80000000
-	mtcr    a5, psr
+	lrw	a3, 0x80000000
+	mtcr    a3, psr
 
 	/* set stack point */
-	lrw     a5, init_thread_union + THREAD_SIZE
-	mov	sp, a5
+	lrw     a3, init_thread_union + THREAD_SIZE
+	mov	sp, a3
 
 	jmpi	csky_start
 END(_start)

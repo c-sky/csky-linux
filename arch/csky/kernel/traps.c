@@ -67,7 +67,7 @@ void __init trap_init (void)
 
 	__asm__ __volatile__(
 		"mtcr %0, vbr\n"
-		::"b"(_ramvec));
+		::"r"(_ramvec));
 
 	per_cpu_trap_init();
 

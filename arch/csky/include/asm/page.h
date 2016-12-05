@@ -1,7 +1,6 @@
 #ifndef __ASM_CSKY_PAGE_H
 #define __ASM_CSKY_PAGE_H
 
-
 #include <asm/setup.h>
 #include <asm/cache.h>
 #include <asm/cacheflush.h>
@@ -55,19 +54,6 @@ static inline unsigned long pages_do_alias(unsigned long addr1,
 struct page;
 
 #include <hal/page.h>
-#ifdef CONFIG_CPU_CSKYV1
-
-#else
-#define clear_user_page(addr, vaddr, page)      \
-        do {                                    \
-          clear_page(addr);                     \
-        } while (0)
-
-#define copy_user_page(to, from, vaddr, page)   \
-        do {                                    \
-          copy_page(to, from);                  \
-        } while (0)
-#endif
 
 struct vm_area_struct;
 

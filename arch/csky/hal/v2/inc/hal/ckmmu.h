@@ -3,6 +3,9 @@
 
 #define CSKY_TLB_SIZE 128
 
+static inline void select_mmu_cp(void)
+{}
+
 static inline int  read_mmu_index(void)
 {
 	int __res;

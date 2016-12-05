@@ -6,7 +6,6 @@
 #include <asm/mmu_context.h>
 #include <linux/module.h>
 #include <asm/pgtable.h>
-#include <asm/system.h>
 #include <hal/ckmmu.h>
 
 #undef DEBUG_TLB
@@ -194,6 +193,7 @@ void __update_tlb(struct vm_area_struct * vma, unsigned long address, pte_t pte)
 {
 	unsigned long flags;
 	pgd_t *pgdp;
+	pud_t *pudp;
 	pmd_t *pmdp;
 	pte_t *ptep;
 	int idx, pid;
@@ -211,7 +211,8 @@ void __update_tlb(struct vm_area_struct * vma, unsigned long address, pte_t pte)
 	write_mmu_entryhi(address | pid);
 	pgdp = pgd_offset(vma->vm_mm, address);
 	tlb_probe();
-	pmdp = pmd_offset(pgdp, address);
+	pudp = pud_offset(pgdp, address);
+	pmdp = pmd_offset(pudp, address);
 	idx = read_mmu_index();
 	ptep = pte_offset(pmdp, address);
 
