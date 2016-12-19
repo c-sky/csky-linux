@@ -38,6 +38,13 @@
 			interrupts = <59>;
 		};
 
+		eth0: nationalchip-eth {
+			compatible = "nationalchip-eth";
+			reg = <0x00700000 0x2000>;
+			interrupt-parent = <&intc>;
+			interrupts = <56>;
+		};
+
 		uart0: serial@403000 {
 			compatible = "ns16550a";
 			reg = <0x00403000 0x400>;
