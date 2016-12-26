@@ -1,0 +1,39 @@
+/dts-v1/;
+/ {
+	model = "silan sc8925";
+	compatible = "csky,silan-sc8925";
+	#address-cells = <1>;
+	#size-cells = <1>;
+
+	memory {
+		device_type = "memory";
+		reg = <0x00000000 0x04000000>;
+	};
+
+	soc {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		compatible = "simple-bus";
+		ranges;
+
+		intc: interrupt-controller {
+			compatible = "csky,intc";
+			reg = <0x1fcb0000 0x400>;
+			interrupt-controller;
+			#interrupt-cells = <1>;
+		};
+
+		timer0 {
+			compatible = "csky,timer";
+			reg = <0x1fcb1000 0x400>;
+			clock-frequency = <198000000>;
+			interrupts = <63>;
+			interrupt-parent = <&intc>;
+		};
+
+	};
+
+	chosen {
+		bootargs = "console=ttyAMA0,115200 rdinit=/sbin/init root=/dev/ram0";
+	};
+};
