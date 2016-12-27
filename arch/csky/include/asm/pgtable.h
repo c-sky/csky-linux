@@ -119,10 +119,13 @@ static inline pte_t pte_mkspecial(pte_t pte) { return pte; }
 #ifdef CONFIG_MMU_HARD_REFILL
 #include <asm/cacheflush.h>
 
-#define set_pte(pteptr, pteval)                                 \
-        do{                                                     \
-                *(pteptr) = (pteval);                           \
-                clear_dcache_range((unsigned long)pteptr, 4);   \
+#define __dcache_flush_line(x) \
+	cache_op_line(x, DATA_CACHE|CACHE_CLR|CACHE_INV);
+
+#define set_pte(pteptr, pteval)			\
+        do{					\
+                *(pteptr) = (pteval);		\
+                __dcache_flush_line(pteptr)	\
         } while(0)
 #define set_pte_at(mm,addr,ptep,pteval) set_pte(ptep,pteval)
 
@@ -140,7 +143,7 @@ static inline pte_t *pmd_page_vaddr(pmd_t pmd)
 static inline void set_pmd(pmd_t *pmdptr, pmd_t pmdval)
 {
 	pmdptr->pud.pgd.pgd = pmdval.pud.pgd.pgd;
-	clear_dcache_range((unsigned long)pmdptr, 4);
+	__dcache_flush_line(pmdptr);
 }
 
 
@@ -159,9 +162,9 @@ static inline int pmd_present(pmd_t pmd)
 static inline void pmd_clear(pmd_t *pmdp)
 {
         pmd_val(*pmdp) = (__pa(invalid_pte_table));
-	clear_dcache_range((unsigned long)pmdp, 4);
+	__dcache_flush_line(pmdp);
 }
-#else
+#else /* CONFIG_MMU_HARD_REFILL */
 
 #define set_pte(pteptr, pteval)                                 \
         do{                                                     \

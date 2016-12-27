@@ -48,3 +48,4 @@ asmlinkage void resume(void);
 		(last) = _last;					\
 	} while(0)
 #endif
+

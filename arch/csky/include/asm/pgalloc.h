@@ -93,7 +93,7 @@ static inline pgd_t *pgd_alloc(struct mm_struct *mm)
         }
 
 #ifdef CONFIG_MMU_HARD_REFILL
-	clear_dcache_range((unsigned long)ret, PAGE_SIZE);
+	cache_op_all(DATA_CACHE|CACHE_CLR);
 #endif
 
         return ret;

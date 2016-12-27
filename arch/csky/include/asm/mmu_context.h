@@ -20,7 +20,7 @@
  * map the page tables.
  */
 #ifdef CONFIG_MMU_HARD_REFILL
-#define TLBMISS_HANDLER_SETUP_PGD(pgd) tlbmiss_handler_setup_pgd(pgd)
+#define TLBMISS_HANDLER_SETUP_PGD(pgd) tlbmiss_handler_setup_pgd((unsigned long)pgd)
 #else
 #define TLBMISS_HANDLER_SETUP_PGD(pgd) \
 	pgd_current[smp_processor_id()] = (unsigned long)(pgd)

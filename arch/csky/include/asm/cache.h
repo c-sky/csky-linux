@@ -28,6 +28,14 @@
 #define ARCH_DMA_MINALIGN	L1_CACHE_BYTES
 
 #ifndef __ASSEMBLY__
+
+#define cache_op_line(i, value) \
+	__asm__ __volatile__( \
+		"idly4 \n\t" \
+		"mtcr	%0, cr22\n\t" \
+		"mtcr	%1, cr17\n\t" \
+		::"r"(i), "r"(value))
+
 void cache_op_all(
 	unsigned int value
 	);

@@ -159,7 +159,7 @@ void pgd_init(unsigned long page)
 	}
 
 #ifdef CONFIG_MMU_HARD_REFILL
-	clear_dcache_range((unsigned long)p, USER_PTRS_PER_PGD);
+	cache_op_all(DATA_CACHE|CACHE_CLR);
 #endif
 }
 

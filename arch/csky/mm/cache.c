@@ -3,9 +3,49 @@
 #include <linux/fs.h>
 #include <linux/syscalls.h>
 #include <asm/uaccess.h>
+#include <asm/page.h>
 #include <asm/cache.h>
 #include <asm/cacheflush.h>
 #include <asm/cachectl.h>
+
+inline void
+cache_op_all(unsigned int value)
+{
+	__asm__ __volatile__(
+		"mtcr	%0, cr17\n\t"
+		"sync\n\t"
+		::"r"(value));
+}
+
+inline void
+cache_op_range(
+	unsigned int start,
+	unsigned int end,
+	unsigned int value
+	)
+{
+	unsigned long i;
+
+	if (unlikely(start < PAGE_OFFSET)) {
+		cache_op_all(value | CACHE_CLR);
+		return;
+	}
+
+	if (unlikely((end - start) > PAGE_SIZE)) {
+		cache_op_all(value | CACHE_CLR);
+		return;
+	}
+
+	for(i = start; i < end; i += L1_CACHE_BYTES){
+		cache_op_line(i, CACHE_OMS | CACHE_CLR | value);
+	}
+
+	if (unlikely(end & (L1_CACHE_BYTES-1))) {
+		cache_op_line(end, CACHE_OMS | CACHE_CLR | value);
+	}
+
+	__asm__ __volatile__("sync\n\t"::);
+}
 
 SYSCALL_DEFINE3(cacheflush,
 		void __user *, addr,
