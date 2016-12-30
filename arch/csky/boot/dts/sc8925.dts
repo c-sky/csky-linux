@@ -16,6 +16,13 @@
 		compatible = "simple-bus";
 		ranges;
 
+		dummy_clk0: apb-clock0 {
+			compatible = "fixed-clock";
+			clock-frequency = <198000000>;
+			clock-output-names = "dummy_clk0";
+			#clock-cells = <0>;
+		};
+
 		intc: interrupt-controller {
 			compatible = "csky,intc";
 			reg = <0x1fcb0000 0x400>;
@@ -23,14 +30,13 @@
 			#interrupt-cells = <1>;
 		};
 
-		timer0 {
-			compatible = "csky,timer";
-			reg = <0x1fcb1000 0x400>;
-			clock-frequency = <198000000>;
+		timer0: timer@1fcb1000 {
+			compatible = "arm,sp804";
+			reg = <0x1fcb1000 0x1000>;
+			clocks = <&dummy_clk0>;
 			interrupts = <63>;
 			interrupt-parent = <&intc>;
 		};
-
 	};
 
 	chosen {

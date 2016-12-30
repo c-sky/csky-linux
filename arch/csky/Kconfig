@@ -40,6 +40,7 @@ config CSKY
 	select GENERIC_CLOCKEVENTS
 	select ARCH_WANT_IPC_PARSE_VERSION
 	select DW_APB_TIMER_OF
+	select GENERIC_SCHED_CLOCK
 
 config NR_CPUS
 	int
