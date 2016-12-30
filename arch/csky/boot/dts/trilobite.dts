@@ -49,7 +49,7 @@
 		/* clocksource */
 		timer1 {
 			compatible = "snps,dw-apb-timer";
-			reg = <0x10011010 0x800>;
+			reg = <0x10011014 0x800>;
 			clocks = <&dummy_apb>;
 			clock-names = "timer";
 			interrupts = <13>;
