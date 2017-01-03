@@ -3,7 +3,7 @@
 #include <linux/irq.h>
 #include <linux/irqchip.h>
 
-unsigned int (*mach_get_auto_irqno) (void) = NULL;
+unsigned int (*csky_get_auto_irqno) (void) = NULL;
 
 int arch_show_interrupts(struct seq_file *p, int prec)
 {
@@ -23,7 +23,7 @@ asmlinkage void csky_do_IRQ(int irq, struct pt_regs *regs)
 
 asmlinkage void csky_do_auto_IRQ(struct pt_regs *regs)
 {
-	csky_do_IRQ(mach_get_auto_irqno(), regs);
+	csky_do_IRQ(csky_get_auto_irqno(), regs);
 }
 
 void __init init_IRQ(void)

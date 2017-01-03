@@ -23,7 +23,6 @@ generic-y += hardirq.h
 generic-y += hw_irq.h
 generic-y += ioctl.h
 generic-y += ioctls.h
-generic-y += irq.h
 generic-y += irq_regs.h
 generic-y += ipcbuf.h
 generic-y += irq_work.h

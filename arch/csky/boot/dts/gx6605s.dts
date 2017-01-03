@@ -17,7 +17,7 @@
 		ranges;
 
 		intc: interrupt-controller {
-			compatible = "nationalchip,intc-v1";
+			compatible = "nationalchip,intc-v1,ave";
 			reg = <0x00500000 0x400>;
 			interrupt-controller;
 			#interrupt-cells = <1>;

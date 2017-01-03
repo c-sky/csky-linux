@@ -24,7 +24,7 @@
 		};
 
 		intc: interrupt-controller {
-			compatible = "csky,intc";
+			compatible = "csky,intc-v1";
 			reg = <0x1fcb0000 0x400>;
 			interrupt-controller;
 			#interrupt-cells = <1>;

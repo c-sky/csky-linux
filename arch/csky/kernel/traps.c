@@ -16,7 +16,6 @@
 #include <asm/uaccess.h>
 #include <asm/traps.h>
 #include <asm/pgalloc.h>
-#include <asm/machdep.h>
 #include <asm/siginfo.h>
 #include <asm/misc_csky.h>
 
