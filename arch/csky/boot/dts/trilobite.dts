@@ -29,11 +29,10 @@
 		};
 
 		intc: interrupt-controller {
-			compatible = "csky,intc";
+			compatible = "csky,intc-v1";
 			reg = <0x10010000 0x1000>;
 			interrupt-controller;
 			#interrupt-cells = <1>;
-			csky,nr-irqs = <32>;
 		};
 
 		/* clockevent */
