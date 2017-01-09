@@ -4,7 +4,7 @@
 #include <hal/pgtable-bits.h>
 #include <linux/types.h>
 
-extern void * ioremap(phys_addr_t offset, size_t size);
+extern void __iomem *ioremap(phys_addr_t offset, size_t size);
 
 extern inline void *ioremap_nocache(phys_addr_t physaddr, unsigned long size)
 {
