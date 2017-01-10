@@ -244,12 +244,7 @@ CONFIG_NATIONALCHIP_TIMER=y
 # irqchip drivers (in addons)
 #
 CONFIG_NATIONALCHIP_IRQ=y
-# CONFIG_CSKY_IRQ is not set
-
-#
-# Nationalchip drivers
-#
-CONFIG_NATIONALCHIP_ETH=y
+CONFIG_CSKY_IRQ=y
 # CONFIG_SILAN is not set
 
 #
