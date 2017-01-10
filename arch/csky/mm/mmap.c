@@ -76,27 +76,14 @@ void arch_pick_mmap_layout(struct mm_struct *mm)
 	mm->get_unmapped_area = arch_get_unmapped_area;
 }
 
-static inline unsigned long brk_rnd(void)
+unsigned long arch_mmap_rnd(void)
 {
-	unsigned long rnd = get_random_int();
-
-	rnd = rnd << PAGE_SHIFT;
-	/* 8MB for 32bit */
-	rnd = rnd & 0x7ffffful;
-
-	return rnd;
+	return 0;
 }
 
 unsigned long arch_randomize_brk(struct mm_struct *mm)
 {
-	unsigned long base = mm->brk;
-	unsigned long ret;
-
-	ret = PAGE_ALIGN(base + brk_rnd());
-
-	if (ret < mm->brk)
-		return mm->brk;
-
-	return ret;
+	/* why? 8MB for 32bit just copy from mips */
+	return randomize_page(mm->brk, 0x800000);
 }
 
