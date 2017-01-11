@@ -35,9 +35,7 @@
 
 ## Download csky-linux-gcc
 
-	[Download csky linux gcc](https://pan.baidu.com/s/1hrVkBMO)
-
-	[GerritHub](https://review.gerrithub.io/#/admin/projects/riscv/riscv-go)
+	https://pan.baidu.com/s/1hrVkBMO
 
 	ck610: csky-linux-tools-x86_64-glibc-linux-4.9.2-20170111.tar.gz
 	ck8xx: csky-abiv2-linux-tools-x86_64-glibc-linux-4.9.2-20170111.tar.gz
