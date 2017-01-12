@@ -22,7 +22,7 @@ void show_regs(struct pt_regs * regs)
 	printk("PC: %08lx  Status: %04lx  orig_a0: %08lx  %s\n",
                 regs->pc, regs->sr, regs->orig_a0, print_tainted());
 
-#if defined(CONFIG_CPU_CSKYV1)
+#if defined(__CSKYABIV1__)
 	printk("r2: %08lx   r3: %08lx   r4: %08lx   r5: %08lx \n",
 		regs->a0, regs->a1, regs->a2, regs->a3);
 	printk("r6: %08lx   r7: %08lx   r8: %08lx   r9: %08lx \n",
@@ -33,7 +33,7 @@ void show_regs(struct pt_regs * regs)
 		regs->regs[8], regs->regs[9], regs->r15);
 #endif
 
-#if defined(CONFIG_CPU_CSKYV2)
+#if defined(__CSKYABIV2__)
         printk("r16:0x%08lx    r17: 0x%08lx    r18: 0x%08lx    r19: 0x%08lx\n",
                 regs->exregs[0], regs->exregs[1], regs->exregs[2], regs->exregs[3]);
         printk("r20 0x%08lx    r21: 0x%08lx    r22: 0x%08lx    r23: 0x%08lx\n",
@@ -101,7 +101,7 @@ int copy_thread(unsigned long clone_flags,
 
 	if (clone_flags & CLONE_SETTLS) {
 		task_thread_info(p)->tp_value = (current_pt_regs())->regs[0];
-#ifdef CONFIG_CPU_CSKYV2
+#ifdef __CSKYABIV2__
 		childregs->exregs[15] = task_thread_info(p)->tp_value;
 #endif
 	}

@@ -2,7 +2,7 @@
 #define __ASM_CSKY_CACHE_H
 
 /* bytes per L1 cache line */
-#ifdef	CONFIG_CPU_CSKYV1
+#ifdef	__CSKYABIV1__
 #define L1_CACHE_SHIFT	4
 #else
 #define L1_CACHE_SHIFT	5

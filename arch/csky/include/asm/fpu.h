@@ -98,7 +98,7 @@ static inline void save_fp_to_thread(unsigned long  * fpregs,
 
 	local_save_flags(flg);
 
-#if defined(CONFIG_CPU_CSKYV1)
+#if defined(__CSKYABIV1__)
 	__asm__ __volatile__("cpseti 1 \n\t"
 	                     "cprcr  r7, cpcr1 \n\t"
 	                     "mov    %0, r7    \n\t"
@@ -133,7 +133,7 @@ static inline void save_fp_to_thread(unsigned long  * fpregs,
 	                     STW_FPU_REGS(48, 52, 56, 60)
 	                     :"=a"(tmp1), "=a"(tmp2), "=a"(tmp3), "=a"(tmp4),
 	                       "+a"(fpregs));
-#elif defined(CONFIG_CPU_CSKYV2)
+#elif defined(__CSKYABIV2__)
 	__asm__ __volatile__("mfcr    %0, cr<1, 2> \n\r"
 	                     "mfcr    %1, cr<2, 2> \n\r"
 	                     :"+r"(tmp1), "+r"(tmp2) : );
@@ -169,7 +169,7 @@ static inline void save_fp_to_thread(unsigned long  * fpregs,
 #include <asm/asm-offsets.h>
 
 .macro  FPU_SAVE_REGS
-#if defined(CONFIG_CPU_CSKYV1)
+#if defined(__CSKYABIV1__)
 	cpseti   1             /* select fpu */
 	/* Save FPU control regs task struct */
 	cprcr    r6, cpcr1
@@ -247,7 +247,7 @@ static inline void save_fp_to_thread(unsigned long  * fpregs,
 	stw      r7, (r10, 52)
 	stw      r8, (r10, 56)
 	stw      r9, (r10, 60)
-#elif defined(CONFIG_CPU_CSKYV2)
+#elif defined(__CSKYABIV2__)
 	/* Save FPU control regs task struct */
 	mfcr     r7, cr<1, 2>
 	mfcr     r6, cr<2, 2>
@@ -322,7 +322,7 @@ static inline void save_fp_to_thread(unsigned long  * fpregs,
 .endm
 
 .macro  FPU_RESTORE_REGS
-#if defined(CONFIG_CPU_CSKYV1)
+#if defined(__CSKYABIV1__)
 	/* Save FPU control regs task struct */
 	ldw      r6, (r5, THREAD_FCR)
 	cpwcr    r6, cpcr1
@@ -399,7 +399,7 @@ static inline void save_fp_to_thread(unsigned long  * fpregs,
 	fmts     r7, fr29
 	fmts     r8, fr30
 	fmts     r9, fr31
-#elif defined(CONFIG_CPU_CSKYV2)
+#elif defined(__CSKYABIV2__)
 	/* Save FPU control regs task struct */
 	ldw      r6, (a3, THREAD_FCR)
 	ldw      r7, (a3, THREAD_FESR)

@@ -9,11 +9,18 @@ ifdef CONFIG_CPU_HAS_FPU
 FPUEXT =f
 endif
 
-ifdef CONFIG_CPU_CSKYV1
+ifdef CONFIG_CPU_CK610
 CPUTYPE	= -Wa,-mcpu=ck610$(DSPEXT)$(FPUEXT)
 CSKYHAL	= v1
-else
+endif
+
+ifdef CONFIG_CPU_CK810
 CPUTYPE= -mcpu=ck810$(DSPEXT)$(FPUEXT)
+CSKYHAL	= v2
+endif
+
+ifdef CONFIG_CPU_CK807
+CPUTYPE= -mcpu=ck807$(DSPEXT)$(FPUEXT)
 CSKYHAL	= v2
 endif
 
@@ -42,9 +49,8 @@ head-y				:= arch/csky/kernel/head.o
 core-y				+= arch/csky/kernel/
 core-y				+= arch/csky/mm/
 libs-y				+= arch/csky/lib/
+core-y				+= arch/csky/hal/$(CSKYHAL)/
 
-core-$(CONFIG_CPU_CSKYV1)	+= arch/csky/hal/v1/
-core-$(CONFIG_CPU_CSKYV2)	+= arch/csky/hal/v2/
 drivers-$(CONFIG_OPROFILE)	+= arch/csky/oprofile/
 drivers-$(CONFIG_CSKY_ADDONS)	+= addons/
 

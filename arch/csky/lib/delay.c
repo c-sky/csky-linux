@@ -5,9 +5,9 @@
 void __delay(unsigned long loops)
 {
        __asm__ __volatile__ (
-#ifdef CONFIG_CPU_CSKYV1
+#ifdef __CSKYABIV1__
 				".balignw 4, 0x1200\n\t"
-#else /* CONFIG_CPU_CSKYV1 */
+#else /* __CSKYABIV1__ */
                                 ".balignw 4, 0x6c8b\n\t"
 				"mov r0, r0\n\t"
 #endif

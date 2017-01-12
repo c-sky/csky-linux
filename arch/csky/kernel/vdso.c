@@ -29,7 +29,7 @@ static int __init init_vdso(void)
 
 	clear_page(vdso);
 
-#if defined(CONFIG_CPU_CSKYV1)
+#if defined(__CSKYABIV1__)
 /*
  * FIXME:
  * __NR_rt_sigreturn must be 173

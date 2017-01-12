@@ -51,7 +51,7 @@ int main(void)
 	DEFINE(PT_REGS8,          offsetof(struct pt_regs, regs[8]));
 	DEFINE(PT_REGS9,          offsetof(struct pt_regs, regs[9]));
 	DEFINE(PT_R15,            offsetof(struct pt_regs, r15));
-#if defined(CONFIG_CPU_CSKYV2)
+#if defined(__CSKYABIV2__)
 	DEFINE(PT_R16,            offsetof(struct pt_regs, exregs[0]));
 	DEFINE(PT_R17,            offsetof(struct pt_regs, exregs[1]));
 	DEFINE(PT_R18,            offsetof(struct pt_regs, exregs[2]));

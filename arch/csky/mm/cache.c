@@ -93,7 +93,7 @@ void __update_cache(struct vm_area_struct *vma, unsigned long address,
 	addr = (unsigned long) page_address(page);
 
 /* gary? */
-#if defined (CONFIG_HIGHMEM) && defined (CONFIG_CPU_CSKYV1)
+#if defined (CONFIG_HIGHMEM) && defined (__CSKYABIV1__)
 	if (PageHighMem(page)){
 		cache_op_all(
 			DATA_CACHE|

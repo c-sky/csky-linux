@@ -123,7 +123,7 @@ tlbinvalidl:
 
 	/* PTE present, now make it valid */
 	ldw     a3, (r6)
-#ifdef CONFIG_CPU_CSKYV1
+#ifdef __CSKYABIV1__
 	bgeni   a2, 7         /* a2 = (_PAGE_VALID | _PAGE_ACCESSED) */
  	bseti   a2, 3
 #else
@@ -138,7 +138,7 @@ tlbinvalidl:
 	 * Table, and Entrylo1 with the high one.
 	 */
 	bclri   r6, PTE_BIT
-#ifdef CONFIG_CPU_CSKYV1
+#ifdef __CSKYABIV1__
 	ldw     a2, (r6, 4)
 	lsri    a2, 6
 	WR_MEL1 a2
@@ -234,7 +234,7 @@ tlbinvalids:
 	/* PTE resent, set it to be valid. */
 	ldw     a3, (r6)
 
-#ifdef CONFIG_CPU_CSKYV1
+#ifdef __CSKYABIV1__
 	/* a2 = (_PAGE_ACCESSED | _PAGE_MODIFIED | _PAGE_VALID | _PAGE_DIRTY) */
 	movi    a2, 0x18
 	bseti   a2, 7
@@ -251,7 +251,7 @@ tlbinvalids:
 	 * Table, and Entrylo1 with the high one.
 	 */
 	bclri   r6, PTE_BIT
-#ifdef CONFIG_CPU_CSKYV1
+#ifdef __CSKYABIV1__
 	ldw     a2, (r6,4)
 	lsri    a2, 6
 	WR_MEL1	a2
@@ -310,7 +310,7 @@ tlbmiss:
 
 	SET_CP_MMU
 	RD_MEH  a1
-#ifdef CONFIG_CPU_CSKYV1
+#ifdef __CSKYABIV1__
 	mov     a2, a1
 	lsri    a2, _PGDIR_SHIFT
 	ixw     a0, a2
@@ -417,7 +417,7 @@ ENTRY(handle_tlbmodified)
 	 * Present and writable bits set, set accessed and dirty bits.
 	 * a2 = (_PAGE_ACCESSED | _PAGE_MODIFIED | _PAGE_VALID | _PAGE_DIRTY)
 	 */
-#ifdef CONFIG_CPU_CSKYV1
+#ifdef __CSKYABIV1__
 	movi    a2, 0x18
 	bseti   a2, 7
 	bseti   a2, 8
@@ -429,7 +429,7 @@ ENTRY(handle_tlbmodified)
 
 	/* Now reload the entry into the tlb. */
 	bclri   r6, PTE_BIT
-#ifdef CONFIG_CPU_CSKYV1
+#ifdef __CSKYABIV1__
 	ldw     a2, (r6, 4)
 	lsri    a2, 6
 	WR_MEL1	a2
@@ -505,9 +505,9 @@ ENTRY(system_call)
 	 */
 	mfcr    r13, epc                /* Get the trap point */
 
-#if defined(CONFIG_CPU_CSKYV1)
+#if defined(__CSKYABIV1__)
 	addi    r13, 2                  /* Increase the epc */
-#elif defined(CONFIG_CPU_CSKYV2)
+#elif defined(__CSKYABIV2__)
 	addi    r13, 4                  /* Increase the epc, because the Instruct "trap x" in CK ISA V2 is 32 bit */
 #endif
 
@@ -571,7 +571,7 @@ ENTRY(system_call)
 	ldw     r7, (sp, LSAVE_REGS1)
 #endif
 	jsr     r11                     /* Do system call */
-#if defined(CONFIG_CPU_CSKYV2)
+#if defined(__CSKYABIV2__)
 	addi    sp, 8
 #endif
 	stw     a0, (sp, LSAVE_A0)     /* Save return value */
@@ -695,29 +695,29 @@ ENTRY(alignment)
 	jmpi     ret_from_exception
 
 ENTRY(trap1)
-#if defined(CONFIG_CPU_CSKYV1)
+#if defined(__CSKYABIV1__)
 	mtcr     sp, ss1
 	mfcr     sp, ss0
 	mtcr     a1, ss4
-#elif defined(CONFIG_CPU_CSKYV2)
+#elif defined(__CSKYABIV2__)
 	subi     sp, 8
 	stw      a1,(sp)
 #endif
 	mfcr     a1, epc                /* Get the trap point */
-#if defined(CONFIG_CPU_CSKYV1)
+#if defined(__CSKYABIV1__)
 	addi     a1, 2                  /* Increase the epc */
-#elif defined(CONFIG_CPU_CSKYV2)
+#elif defined(__CSKYABIV2__)
 	addi     a1, 4                  /* Increase the epc, because the Instruct "trap x" in CK ISA V2 is 32 bit */
 #endif
 	mtcr     a1, epc                /* Save return point */
 
 	movi     a1, 0x32
 	mtcr     a1, cr17
-#if defined(CONFIG_CPU_CSKYV1)
+#if defined(__CSKYABIV1__)
 	mfcr     a1, ss4
 	mtcr     sp, ss0
 	mfcr     sp, ss1
-#elif defined(CONFIG_CPU_CSKYV2)
+#elif defined(__CSKYABIV2__)
 	ldw      a1,(sp)
 	addi     sp, 8
 #endif
@@ -746,14 +746,14 @@ ENTRY(trap1)
  */
 
 ENTRY(trap2)
-#if defined(CONFIG_CPU_CSKYV1)
+#if defined(__CSKYABIV1__)
 	mtcr     sp, ss1
 	mfcr     sp, ss0
 #endif
 	mfcr     a3, epc		/* Get the trap point */
-#if defined(CONFIG_CPU_CSKYV1)
+#if defined(__CSKYABIV1__)
 	addi     a3, 2			/* Increase the epc */
-#elif defined(CONFIG_CPU_CSKYV2)
+#elif defined(__CSKYABIV2__)
 	addi     a3, 4			/* Increase the epc, because the Instruct "trap x" in CK ISA V2 is 32 bit */
 #endif
 	subi     sp, 8
@@ -777,7 +777,7 @@ ENTRY(trap2)
 	ldw      a3, (sp, 4)		/* restore epsr */
 	mtcr     a3, epsr
 	addi     sp, 8
-#if defined(CONFIG_CPU_CSKYV1)
+#if defined(__CSKYABIV1__)
 	mtcr     sp, ss0
 	mfcr     sp, ss1
 #endif
@@ -830,16 +830,16 @@ ENTRY(kuser_cmpxchg_fixup)
  *     __result; })
  */
 ENTRY(trap3)                        /*added for get tls*/
-#if defined(CONFIG_CPU_CSKYV1)
+#if defined(__CSKYABIV1__)
 	mtcr     sp, ss1
 	mfcr     sp, ss0
 #endif
 
 	subi     sp, 8                  /* because sp may align wich 0x2000 */
 	mfcr     a0, epc                /* Get the trap point */
-#if defined(CONFIG_CPU_CSKYV1)
+#if defined(__CSKYABIV1__)
 	addi     a0, 2                  /* Increase the epc */
-#elif defined(CONFIG_CPU_CSKYV2)
+#elif defined(__CSKYABIV2__)
 	addi     a0, 4                  /* Increase the epc, because the Instruct "trap x" in CK ISA V2 is 32 bit */
 #endif
 	mtcr     a0, epc                /* Save return point */
@@ -851,7 +851,7 @@ ENTRY(trap3)                        /*added for get tls*/
 	ldw      a0, (a0, TINFO_TP_VALUE) /* get tls */
 
 	addi     sp, 8
-#if defined(CONFIG_CPU_CSKYV1)
+#if defined(__CSKYABIV1__)
 	mtcr     sp, ss0
 	mfcr     sp, ss1
 #endif
@@ -864,7 +864,7 @@ ENTRY(handle_fpe)
 	SAVE_ALL
 	/* Clear FPU exception state */
 #if defined(CONFIG_CPU_HAS_FPU)
-#ifdef CONFIG_CPU_CSKYV1
+#ifdef __CSKYABIV1__
 	mfcr      a0,cr15
 	bseti     a0, 28
 	mtcr      a0, cr15     	       /* clear the exceptional state */
@@ -1021,7 +1021,7 @@ ENTRY(resume)
 	ldw      a2, (a3, THREAD_SR)    /* Set next PSR */
 	mtcr     a2, psr
 
-#if  defined(CONFIG_CPU_CSKYV2)
+#if  defined(__CSKYABIV2__)
 	/* set TLS register (r31) */
 	addi     r7, a1, TASK_THREAD_INFO
 	ldw      r31, (r7, TINFO_TP_VALUE)

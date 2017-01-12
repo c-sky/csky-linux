@@ -64,7 +64,7 @@ static inline int restore_fpu_state(struct sigcontext *sc)
 	fctl1 = fpregs.f_fsr;
 	fctl2 = fpregs.f_fesr;
 	fpgr = &(fpregs.f_fpregs[0]);
-#if defined(CONFIG_CPU_CSKYV1)
+#if defined(__CSKYABIV1__)
 	__asm__ __volatile__("cpseti 1\n\r"
 			"mov    r7, %0    \n\r"
 			"cpwcr  r7, cpcr1 \n\r"
@@ -96,7 +96,7 @@ static inline int restore_fpu_state(struct sigcontext *sc)
 			FMTS_FPU_REGS(fr28, fr29, fr30, fr31)
 			:"=r"(tmp1), "=r"(tmp2),"=r"(tmp3),"=r"(tmp4),
 			"+r"(fpgr));
-#elif defined(CONFIG_CPU_CSKYV2)
+#elif defined(__CSKYABIV2__)
 	__asm__ __volatile__("mtcr   %0, cr<1, 2> \n\r"
 			"mtcr   %1, cr<2, 2> \n\r"
 			: :"r"(fctl0), "r"(fctl2));
@@ -147,7 +147,7 @@ restore_sigframe(struct pt_regs *regs, struct sigcontext *usc, int *pr2)
 		err |= __get_user(regs->regs[i], &usc->sc_regs[i]);
 
 	err |= __get_user(regs->r15, &usc->sc_r15);
-#if defined(CONFIG_CPU_CSKYV2)
+#if defined(__CSKYABIV2__)
 	for(i = 0; i < 16; i++)
 	{
 		err |= __get_user(regs->exregs[i], &usc->sc_exregs[i]);
@@ -209,7 +209,7 @@ static inline int save_fpu_state(struct sigcontext *sc, struct pt_regs *regs)
 
 	local_irq_save(flg);
 	fpgr = &(fpregs.f_fpregs[0]);
-#if defined(CONFIG_CPU_CSKYV1)
+#if defined(__CSKYABIV1__)
 	__asm__ __volatile__("cpseti 1\n\r"
 			"cprcr  r7, cpcr1 \n\r"
 			"mov    %0, r7    \n\r"
@@ -250,7 +250,7 @@ static inline int save_fpu_state(struct sigcontext *sc, struct pt_regs *regs)
 			STW_FPU_REGS(48, 52, 56, 60)
 			:"=a"(tmp1), "=a"(tmp2),"=a"(tmp3),"=a"(tmp4),
 			"+a"(fpgr));
-#elif defined(CONFIG_CPU_CSKYV2)
+#elif defined(__CSKYABIV2__)
 	__asm__ __volatile__("mfcr    %0, cr<1, 2> \n\r"
 			"mfcr    %1, cr<2, 2> \n\r"
 			: "=r"(fpregs.f_fcr), "=r"(fpregs.f_fesr));
@@ -300,7 +300,7 @@ static inline int setup_sigframe(struct sigcontext *sc, struct pt_regs *regs,
 		err |= __put_user(regs->regs[i], &sc->sc_regs[i]);
 	}
 	err |= __put_user(regs->r15, &sc->sc_r15);
-#if defined(CONFIG_CPU_CSKYV2)
+#if defined(__CSKYABIV2__)
 	for(i = 0; i < 16; i++)
 	{
 		err |= __put_user(regs->exregs[i], &sc->sc_exregs[i]);
@@ -439,7 +439,7 @@ static void do_signal(struct pt_regs *regs, int syscall)
 	 */
 	if (syscall) {
 		continue_addr = regs->pc;
-#if defined(CONFIG_CPU_CSKYV1)
+#if defined(__CSKYABIV1__)
 		restart_addr = continue_addr - 2;
 #else
 		restart_addr = continue_addr - 4;
@@ -514,7 +514,7 @@ no_signal:
 		 */
 		if (retval == -ERESTART_RESTARTBLOCK
 				&& regs->pc == continue_addr) {
-#if defined(CONFIG_CPU_CSKYV1)
+#if defined(__CSKYABIV1__)
 			regs->regs[9] = __NR_restart_syscall;
 			regs->pc -= 2;
 #else

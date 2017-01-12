@@ -139,7 +139,7 @@
 
 /*
  * Below, are macros for MMU operating, use them to switch cop, read or write
- * registers of MMU in assemble files. Macro CONFIG_CPU_CSKYV1 means MMU in
+ * registers of MMU in assemble files. Macro __CSKYABIV1__ means MMU in
  * coprocessor.
  */
 /* Coprocessor switch to MMU */

@@ -132,23 +132,18 @@ menu "Processor type and features"
 
 comment "Processor type"
 
-config CPU_MMU_V1
-	def_bool n
-
-config CPU_MMU_V1
-	def_bool n
-
 choice
-        prompt "CPU's arch version"
-        default CPU_CSKYV1
+        prompt "CPU MODEL"
+        default CPU_CK610
 
-config CPU_CSKYV1
-        bool "CSKY CPU V1.0(ck6xx)"
-	select CPU_MMU_V1
+config CPU_CK610
+        bool "CSKY CPU ck610"
 
-config CPU_CSKYV2
-        bool "CSKY CPU V2.0(ck8xx)"
-	select CPU_MMU_V2
+config CPU_CK810
+        bool "CSKY CPU ck810"
+
+config CPU_CK807
+        bool "CSKY CPU ck807"
 endchoice
 
 config MMU_HARD_REFILL

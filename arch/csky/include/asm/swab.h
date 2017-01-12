@@ -4,7 +4,7 @@
 #include <linux/compiler.h>
 #include <linux/types.h>
 
-#ifdef CONFIG_CPU_CSKYV2
+#ifdef __CSKYABIV2__
 
 static inline __attribute_const__ __u16 __arch_swab16(__u16 x)
 {
@@ -20,6 +20,6 @@ static inline __attribute_const__ __u32 __arch_swab32(__u32 x)
 }
 #define __arch_swab32 __arch_swab32
 
-#endif /* CONFIG_CPU_CSKYV2 */
+#endif /* __CSKYABIV2__ */
 
 #endif /* __ASM_CSKY_SWAB_H */

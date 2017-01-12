@@ -87,7 +87,7 @@ int apply_relocate_add(Elf32_Shdr *sechdrs, const char *strtab,
 	Elf32_Sym *sym;
 	uint32_t *location;
 	short * temp;
-#ifdef CONFIG_CPU_CSKYV2
+#ifdef __CSKYABIV2__
 	uint32_t *nop_location;
 #endif
 
@@ -116,7 +116,7 @@ int apply_relocate_add(Elf32_Shdr *sechdrs, const char *strtab,
 			break;
 		case R_CSKY_PCRELJSR_IMM26BY2:
 		/* Relocate jsri */
-#ifdef CONFIG_CPU_CSKYV2
+#ifdef __CSKYABIV2__
 			*location = (((*location) & 0xffffff9f) | 0x00000019);
 			if (*(location + 1) == 0x4820c400)
 			{

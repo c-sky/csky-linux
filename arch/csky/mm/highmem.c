@@ -39,7 +39,7 @@ void kunmap(struct page *page)
 	if (!PageHighMem(page))
 		return;
 	kunmap_high(page);
-#ifdef CONFIG_CPU_CSKYV1
+#ifdef __CSKYABIV1__
 	flush_dcache_page(page);
 #endif
 }
@@ -72,7 +72,7 @@ void *__kmap_atomic(struct page *page)
 #endif
 	set_pte(kmap_pte-idx, mk_pte(page, PAGE_KERNEL));
 	local_flush_tlb_one((unsigned long)vaddr);
-#ifdef CONFIG_CPU_CSKYV1
+#ifdef __CSKYABIV1__
 	flush_dcache_page(page);
 #endif
 
@@ -125,7 +125,7 @@ void *kmap_atomic_pfn(unsigned long pfn)
 	vaddr = __fix_to_virt(FIX_KMAP_BEGIN + idx);
 	set_pte(kmap_pte-idx, pfn_pte(pfn, PAGE_KERNEL));
 	flush_tlb_one(vaddr);
-#ifdef CONFIG_CPU_CSKYV1
+#ifdef __CSKYABIV1__
 	flush_cache_range(NULL, vaddr, ((unsigned long)vaddr + PAGE_SIZE));
 #endif
 

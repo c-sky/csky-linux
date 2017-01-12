@@ -1,7 +1,7 @@
 #ifndef __ASM_CSKY_SWITCH_TO_H
 #define __ASM_CSKY_SWITCH_TO_H
 
-#if defined(CONFIG_CPU_HAS_FPU) && defined(CONFIG_CPU_CSKYV1)
+#if defined(CONFIG_CPU_HAS_FPU) && defined(__CSKYABIV1__)
 //FIXME: maybe death cycle auch as FPU error!
 #define _is_fpu_busying()			\
 	do {					\

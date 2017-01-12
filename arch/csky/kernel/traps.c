@@ -213,7 +213,7 @@ int hand_fpcr_rdwr(struct pt_regs * regs)
 	mm_segment_t fs;
 	unsigned long instrptr, regx = 0;
 	unsigned int fault;
-#if   defined(CONFIG_CPU_CSKYV1)
+#if   defined(__CSKYABIV1__)
 	unsigned long index_regx = 0, index_fpregx = 0;
 	u16 tinstr = 0;
 
@@ -261,7 +261,7 @@ int hand_fpcr_rdwr(struct pt_regs * regs)
 		regs->pc +=2;
 		return 1;
 	}
-#elif defined(CONFIG_CPU_CSKYV2)
+#elif defined(__CSKYABIV2__)
 	u16 instr_hi, instr_low;
 	unsigned long index_regx = 0, index_fpregx_prev = 0, index_fpregx_next = 0;
 	unsigned long tinstr = 0;
@@ -339,7 +339,7 @@ int hand_fpcr_rdwr(struct pt_regs * regs)
 
 #else
 #error must choose CSKYV1 or CSKYV2
-#endif /* define CONFIG_CPU_CSKYV2 */
+#endif /* define __CSKYABIV2__ */
 bad_or_fault:
 	return 0;
 }
@@ -506,7 +506,7 @@ void show_registers(struct pt_regs *fp)
 	printk("r14 0x%08lx   r1: 0x%08lx   r15: 0x%08lx\n",
 		fp->regs[8], fp->regs[9], fp->r15);
 #endif
-#if defined(CONFIG_CPU_CSKYV2)
+#if defined(__CSKYABIV2__)
 	printk("r16:0x%08lx   r17: 0x%08lx   r18: 0x%08lx    r19: 0x%08lx\n",
                 fp->exregs[0], fp->exregs[1], fp->exregs[2], fp->exregs[3]);
 	printk("r20 0x%08lx   r21: 0x%08lx   r22: 0x%08lx    r23: 0x%08lx\n",

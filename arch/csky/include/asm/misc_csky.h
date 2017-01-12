@@ -7,7 +7,7 @@ inline unsigned int read_fpcr(void);
 inline void write_fpcr(unsigned int val);
 inline unsigned int read_fpesr(void);
 inline void write_fpesr(unsigned int val);
-#ifdef CONFIG_CPU_CSKYV1
+#ifdef __CSKYABIV1__
 inline unsigned int read_fpsr(void);
 inline void write_fpsr(unsigned int val);
 #endif
