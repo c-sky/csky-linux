@@ -21,7 +21,7 @@ void __iomem *ioremap(phys_addr_t addr, size_t size)
 	addr &= PAGE_MASK;
 	size = PAGE_ALIGN(size + offset);
 
-	area = get_vm_area_caller(size, VM_IOREMAP, __builtin_return_address(0));
+	area = get_vm_area_caller(size, VM_ALLOC, __builtin_return_address(0));
 	if (!area) {
 		return NULL;
 	}

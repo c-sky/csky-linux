@@ -26,22 +26,13 @@ cache_op_range(
 {
 	unsigned long i;
 
-	if (unlikely(start < PAGE_OFFSET)) {
-		cache_op_all(value | CACHE_CLR);
-		return;
-	}
-
-	if (unlikely((end - start) > PAGE_SIZE)) {
+	if (unlikely((end - start) > PAGE_SIZE*2)) {
 		cache_op_all(value | CACHE_CLR);
 		return;
 	}
 
 	for(i = start; i < end; i += L1_CACHE_BYTES){
 		cache_op_line(i, CACHE_OMS | CACHE_CLR | value);
-	}
-
-	if (unlikely(end & (L1_CACHE_BYTES-1))) {
-		cache_op_line(end, CACHE_OMS | CACHE_CLR | value);
 	}
 
 	__asm__ __volatile__("sync\n\t"::);

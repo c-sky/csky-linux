@@ -14,28 +14,42 @@ static void *csky_dma_alloc(
 	unsigned long attrs
 	)
 {
-	int ret;
+	unsigned long ret;
+	void * vaddr;
+	struct page *page;
+	pgprot_t prot;
 
 	if (DMA_ATTR_NON_CONSISTENT & attrs)
 		panic("csky %s panic DMA_ATTR_NON_CONSISTENT.\n", __func__);
 
-	/* fixme, why gfp? */
-	gfp &= ~(__GFP_DMA | __GFP_HIGHMEM);
-	gfp |= __GFP_ZERO;
-
-	ret = (unsigned int) __get_free_pages(gfp, get_order(size));
+	ret =  __get_free_pages(gfp, get_order(size));
 	if (!ret) {
-		pr_err("csky %s no more free pages, %d.\n", __func__, ret);
+		pr_err("csky %s no more free pages, %ld.\n", __func__, ret);
 		return NULL;
 	}
 
 	memset((void *)ret, 0, size);
 	*dma_handle = virt_to_phys((void*)ret);
 
-	cache_op_range(ret, ret+size,
+	prot = __pgprot(_PAGE_PRESENT | __READABLE | __WRITEABLE |
+			_PAGE_GLOBAL | _CACHE_UNCACHED);
+
+	page = virt_to_page(ret);
+
+	vaddr = dma_common_contiguous_remap(page, PAGE_ALIGN(size), VM_USERMAP,
+			prot, __builtin_return_address(0));
+	if (!vaddr) {
+		free_pages(ret, get_order(size));
+		*dma_handle = 0;
+		return NULL;
+	}
+
+	ret = (unsigned long)vaddr;
+
+	cache_op_range(ret, ret + size,
 		DATA_CACHE|CACHE_CLR|CACHE_INV);
 
-	return (void *)UNCACHE_ADDR(ret);
+	return vaddr;
 }
 
 static void csky_dma_free(
@@ -47,6 +61,8 @@ static void csky_dma_free(
 	)
 {
 	unsigned long addr = (unsigned long)phys_to_virt(dma_handle);
+
+	vunmap(vaddr);
 
 	free_pages(addr, get_order(size));
 }
