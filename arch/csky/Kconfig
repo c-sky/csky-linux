@@ -111,6 +111,9 @@ config PGTABLE_LEVELS
 	int
 	default 2
 
+config ARCH_POPULATES_NODE_MAP
+	def_bool y
+
 source "init/Kconfig"
 
 source "kernel/Kconfig.freezer"
@@ -154,87 +157,6 @@ config MMU_HARD_REFILL
 	help
 	   This control whether the hardware refill is enable or not when there
 	     is TLB miss exception
-
-config CSKY_INSTRUCTION_CACHE
-	bool "Instruction Cache On"
-	default y
-
-config CSKY_DATA_CACHE
-	bool "Data Cache On"
-	default y
-config CSKY_USER_SEGMENT_CACHE
-	bool "User segment Cache On"
-	default y
-
-config CSKY_CACHE_SIZE
-	hex "Cache Size(hex)"
-	default 0x4000
-	---help---
-	   CSKY_CACHE_SIZE is the total size of cache. 0x4000 means 16K data
-	   cache and 16K instruction cache.
-	   (size = way * linelen * set)
-
-config CSKY_DOUBLE_DCACHE_LINE
-	bool "Double Data Cache Line On"
-	depends on CPU_CSKYV1
-	default n
-	---help---
-	   this selects for cpu support double cache line.
-	   If unsure, say N.
-
-config CSKY_CACHE_LINE_FLUSH
-	bool "Have Flush Cache Line"
-	default n
-	---help---
-	   this selects for flush cache line one by one.
-	   If unsure, say N.
-
-config CSKY_CACHE_WAY
-	int "Cache Way"
-	depends on CSKY_CACHE_LINE_FLUSH
-	default 2
-	---help---
-	   CSKY_CACHE_WAY is the num of cache ways. 2 means there are 2 ways
-	   in cache.
-
-config CSKY_L2_CACHE
-        bool "L2 Cache On"
-	depends on CPU_CSKYV2
-        default n
-        ---help---
-           this selects for using L2 cache.
-           if unsure, say N.
-
-config CSKY_L2_CACHE_LINE_FLUSH
-        bool "Have Flush L2 Cache Line"
-        depends on CSKY_L2_CACHE
-        default n
-        ---help---
-           this selects for flush cache line one by one.
-           if unsure, say N.
-
-config CSKY_L2_CACHE_SIZE
-        hex "L2 Cache Size(hex)"
-        depends on CSKY_L2_CACHE_LINE_FLUSH
-        default 0x20000
-        ---help---
-           CSKY_L2_CACHE_SIZE is the total size of L1 cache. 0x20000 means 128K
-           data cache and 128K instruction cache. (size = way * linelen * set)
-
-config CSKY_L2_CACHE_WAY
-        int "L2 Cache Way Num"
-        depends on CSKY_L2_CACHE_LINE_FLUSH
-        default 8
-        ---help---
-           CSKY_L2_CACHE_WAY is the num of cache ways. 8 means there are 8 ways
-           in cache.
-
-config CPU_PRFL
-	bool "CPU has Profiling coprocessor"
-	default n
-	depends on CPU_CSKYV2
-	---help---
-       say Y to let cpu support hardware profiling preformance.
 
 menuconfig CPU_HAS_FPU
 	bool "CPU has FPU coprocessor"
@@ -281,15 +203,6 @@ config OPEN_FPU_IOE
 
 endif # if CPU_HAS_FPU
 
-config CSKY_FPE
-	bool "Support math emulation"
-	default n
-	---help---
-	  Say Y to include the floating point emulator in the kernel.
-	  This will help to handle float point hardware exceptions.
-
-	  If in doubt, say N.
-
 config CPU_HAS_DSP
 	bool "CPU support DSP enhanced instruction"
 	default n
@@ -303,24 +216,6 @@ config CPU_BIG_ENDIAN
 	  port must properly enable any big-endian related features
 	   of your chipset/board/processor.
 
-config CPU_USE_FIQ
-	bool "Fast Interrupt mode support"
-	default n
-	---help---
-	  The C-SKY CPU support Fast Interrupt mode. But the FIQ mode isn't linux
-	  common interface. So it need careful to use the Fast Interrupt. The FIQ
-	  can be use in estecial situation suah as DMA.
-
-	  The Fast Interrupt of C-SKY CPU use optional registers and couldn't be
-	  nesting. So the FIQ need not to wake up thread and handle schedule.
-
-config FIQ_STACK_SIZE
-	int "Fast Interrupt Stack size(Byte)"
-	depends on CPU_USE_FIQ
-	default 1024
-
-config ARCH_POPULATES_NODE_MAP
-	def_bool y
 
 config	SOFT_HANDMISSALIGN
 	bool "Software fixup alignment exception."
@@ -350,14 +245,6 @@ config HIGHMEM
 
 	  If unsure, say n.
 
-config CPU_CLOCK_FREQ
-	int "CPU Clock Frequency"
-	default 40000000
-
-config APB_FREQ
-	int "APB Frequency(Hz)"
-	default 40000000
-
 config RAM_BASE
 	hex "(S)DRAM base address(hex)"
 	default 0x08000000
@@ -380,43 +267,6 @@ config SSEG0_BASE
 	help
 	  SSEG0 is usually used as a ram section. set as C(cache), D(dirty) and
 	  V(valid).
-
-config SSEG1_BASE
-	hex "SSEG1's physical base(hex)"
-	depends on PHYSICAL_BASE_CHANGE
-	default 0x0
-	help
-	  SSEG1 is usually used as an IO section. set as D(dirty) and V(valid).
-
-config RAM_SIZE
-	hex "(S)DRAM size(Byte)(hex)"
-	default 0x2000000
-	depends on !MMU
-
-choice
-	prompt "Uncached DMA region"
-	default DMA_UNCACHED_1M
-	depends on !MMU
-
-config DMA_UNCACHED_16M
-	bool "Enable 16M DMA region"
-
-config DMA_UNCACHED_8M
-	bool "Enable 8M DMA region"
-
-config DMA_UNCACHED_4M
-	bool "Enable 4M DMA region"
-
-config DMA_UNCACHED_2M
-	bool "Enable 2M DMA region"
-
-config DMA_UNCACHED_1M
-	bool "Enable 1M DMA region"
-
-config DMA_UNCACHED_NONE
-	bool "Disable DMA region"
-
-endchoice
 
 endmenu
 
