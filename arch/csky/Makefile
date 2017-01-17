@@ -30,6 +30,10 @@ KBUILD_CFLAGS +=	-fno-builtin-memcpy \
 			-Wno-uninitialized \
 			$(CPUTYPE)
 
+ifeq ($(CONFIG_CSKY_DEBUG_INFO),y)
+KBUILD_CFLAGS += -g
+endif
+
 haldirs := $(patsubst %,arch/csky/hal/%/,$(CSKYHAL)) 
 
 KBUILD_CFLAGS += $(patsubst %,-I$(srctree)/%inc,$(haldirs))
