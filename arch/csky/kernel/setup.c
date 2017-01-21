@@ -65,6 +65,7 @@ void __init setup_arch(char **cmdline_p)
 	sparse_init();
 
 	pgd_init((unsigned long)swapper_pg_dir);
+	cache_op_all(DATA_CACHE|CACHE_CLR);
 
 	cpu_probe();
 

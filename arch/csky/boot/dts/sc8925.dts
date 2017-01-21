@@ -37,6 +37,10 @@
 			interrupts = <63>;
 			interrupt-parent = <&intc>;
 		};
+
+		pinctrl: pinctrl {
+			compatible = "silan,sc8925-pinctrl";
+		};
 	};
 
 	chosen {

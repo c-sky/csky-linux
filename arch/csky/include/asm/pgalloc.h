@@ -38,7 +38,6 @@ static inline void pmd_populate(struct mm_struct *mm, pmd_t *pmd,
  * Initialize new page directory with pointers to invalid ptes
  */
 extern void pgd_init(unsigned long page);
-
 static inline pte_t *pte_alloc_one_kernel(struct mm_struct *mm,
         unsigned long address)
 {
@@ -80,6 +79,7 @@ static inline void pgd_free(struct mm_struct *mm, pgd_t *pgd)
 {
         free_pages((unsigned long)pgd, PGD_ORDER);
 }
+
 static inline pgd_t *pgd_alloc(struct mm_struct *mm)
 {
         pgd_t *ret, *init;
@@ -90,11 +90,12 @@ static inline pgd_t *pgd_alloc(struct mm_struct *mm)
                 pgd_init((unsigned long)ret);
                 memcpy(ret + USER_PTRS_PER_PGD, init + USER_PTRS_PER_PGD,
                        (PTRS_PER_PGD - USER_PTRS_PER_PGD) * sizeof(pgd_t));
-        }
-
-#ifdef CONFIG_MMU_HARD_REFILL
-	cache_op_all(DATA_CACHE|CACHE_CLR);
+#if defined(CONFIG_MMU_HARD_REFILL) && !defined(__ck807__)
+		cache_op_range((unsigned int)ret, (unsigned int)(ret + PTRS_PER_PGD)
+			,DATA_CACHE|CACHE_CLR);
 #endif
+
+        }
 
         return ret;
 }

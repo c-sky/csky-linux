@@ -157,9 +157,5 @@ void pgd_init(unsigned long page)
 		p[i + 6] = val;
 		p[i + 7] = val;
 	}
-
-#ifdef CONFIG_MMU_HARD_REFILL
-	cache_op_all(DATA_CACHE|CACHE_CLR);
-#endif
 }
 
