@@ -18,25 +18,35 @@
 	$ cp -raf csky-linux/arch/csky	linux/arch
 	$ cp -raf addons-linux		linux/addons
 ```
+## Download Cross Compiler
+
+	https://pan.baidu.com/s/1hrVkBMO
+
+	ck610(abiv1): csky-linux-tools-x86_64-glibc-linux-4.9.2-20170111.tar.gz
+	ck8xx(abiv2): csky-abiv2-linux-tools-x86_64-glibc-linux-4.9.2-20170111.tar.gz
+
+	Setup your $PATH with csky-linux-* and csky-abiv2-linux-* binary :)
 
 ## Make
 
 ```sh
 	$ cd linux
-	$ make ARCH=csky CROSS_COMPILE=csky-linux- O=/tmp/kernel_build sc8925_defconfig uImage
+	$ make ARCH=csky CROSS_COMPILE=csky-abiv2-linux- O=/tmp/kernel_build sc8925_defconfig uImage
+```
+
+## Download Jtag-Server
+	https://pan.baidu.com/s/1o7VEPbO
+
+	install it and run it:
+```sh
+	$ DebugServerConsole -ddc -rstwait 1000 -port 1025
 ```
 
 ## Run
 
 ```sh
+	# See the .gdbinit and it connect the port 1025 :)
 	$ cp addons/gdbinit/gdbinit_sc8925 .gdbinit
 	$ csky-linux-gdb /tmp/kernel_build/vmlinux
 ```
-
-## Download csky-linux-gcc
-
-	https://pan.baidu.com/s/1hrVkBMO
-
-	ck610: csky-linux-tools-x86_64-glibc-linux-4.9.2-20170111.tar.gz
-	ck8xx: csky-abiv2-linux-tools-x86_64-glibc-linux-4.9.2-20170111.tar.gz
 
