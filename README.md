@@ -22,8 +22,8 @@
 
 	https://pan.baidu.com/s/1hrVkBMO
 
-	ck610(abiv1): csky-linux-tools-x86_64-glibc-linux-4.9.2-20170111.tar.gz
 	ck8xx(abiv2): csky-abiv2-linux-tools-x86_64-glibc-linux-4.9.2-20170111.tar.gz
+	ck610(abiv1): csky-linux-tools-x86_64-glibc-linux-4.9.2-20170111.tar.gz
 
 	Setup your $PATH with csky-linux-* and csky-abiv2-linux-* binary :)
 
@@ -31,7 +31,10 @@
 
 ```sh
 	$ cd linux
+	# (for ck810)
 	$ make ARCH=csky CROSS_COMPILE=csky-abiv2-linux- O=/tmp/kernel_build sc8925_defconfig uImage
+	# or (for ck610)
+	$ make ARCH=csky CROSS_COMPILE=csky-linux- O=/tmp/kernel_build gx66xx_defconfig uImage
 ```
 
 ## Download Jtag-Server
@@ -46,7 +49,13 @@
 
 ```sh
 	# See the .gdbinit and it connect the port 1025 :)
+
+	# (for ck810)
 	$ cp addons/gdbinit/gdbinit_sc8925 .gdbinit
-	$ csky-linux-gdb /tmp/kernel_build/vmlinux
+	$ csky-abiv2-linux-gdb /tmp/kernel_build/vmlinux
+
+	# or (for ck610)
+	$ cp addons/gdbinit/gdbinit_gx6605s .gdbinit
+	$ csky-abiv2-linux-gdb /tmp/kernel_build/vmlinux
 ```
 
