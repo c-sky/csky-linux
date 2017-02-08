@@ -1,4 +1,5 @@
 /dts-v1/;
+
 / {
 	model = "silan sc8925";
 	compatible = "csky,silan-sc8925";
@@ -16,11 +17,9 @@
 		compatible = "simple-bus";
 		ranges;
 
-		dummy_clk0: apb-clock0 {
-			compatible = "fixed-clock";
-			clock-frequency = <198000000>;
-			clock-output-names = "dummy_clk0";
-			#clock-cells = <0>;
+		silan_clk0: silan-clock0 {
+			compatible = "silan,sc8925-clk";
+			#clock-cells = <1>;
 		};
 
 		intc: interrupt-controller {
@@ -33,13 +32,22 @@
 		timer0: timer@1fcb1000 {
 			compatible = "arm,sp804";
 			reg = <0x1fcb1000 0x1000>;
-			clocks = <&dummy_clk0>;
+			clocks = <&silan_clk0 34>;
 			interrupts = <63>;
 			interrupt-parent = <&intc>;
 		};
 
 		pinctrl: pinctrl {
 			compatible = "silan,sc8925-pinctrl";
+		};
+
+		uart0: serial@1fbc0000 {
+			compatible = "arm,sbsa-uart";
+			reg = <0x1fbc0000 0x1000>;
+			current-speed = <115200>;
+			clocks = <&silan_clk0 9>;
+			interrupts = <11>;
+			interrupt-parent = <&intc>;
 		};
 	};
 
