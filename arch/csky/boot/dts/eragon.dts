@@ -27,6 +27,12 @@
 			clock-output-names = "dummy_apb";
 			#clock-cells = <0>;
 		};
+		dummy_rtc_clock: rtc-clock {
+			compatible = "fixed-clock";
+			clock-frequency = <1000000>;
+			clock-output-names = "dummy_rtc_clock";
+			#clock-cells = <0>;
+		};
 
 		intc: interrupt-controller {
 			compatible = "csky,intc-v1";
@@ -123,6 +129,15 @@
 			};
 			*/
 		};
+
+		rtc: rtc@1FBA1000 {
+			compatible = "apm,xgene-rtc";
+			reg = <0x1FBA1000 0x1000>;
+			interrupt-parent = <&intc>;
+			interrupts = <8>;
+			clocks = <&dummy_rtc_clock>;
+		};
+
 	};
 
 	chosen {
