@@ -138,6 +138,9 @@
 			clocks = <&dummy_rtc_clock>;
 		};
 
+		pinctrl: pinctrl {
+			compatible = "csky,eragon-pinctrl";
+		};
 	};
 
 	chosen {
