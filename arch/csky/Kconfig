@@ -277,6 +277,27 @@ config SSEG0_BASE
 	  SSEG0 is usually used as a ram section. set as C(cache), D(dirty) and
 	  V(valid).
 
+menu "irqchip drivers (in csky)"
+
+config NATIONALCHIP_IRQ
+	bool "nationalchip irq"
+	default y
+
+config CSKY_IRQ
+	bool "csky irq"
+	default y
+
+endmenu
+
+menu "Clock Source drivers (in csky)"
+
+config NATIONALCHIP_TIMER
+	bool "nationalchip timer"
+	select CLKSRC_MMIO
+	select CLKSRC_OF
+	default y
+endmenu
+
 endmenu
 
 menu "Power management options"
