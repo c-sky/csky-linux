@@ -183,7 +183,7 @@ static inline void tlb_invalid_indexed(void)
 }
 
 /* misc */
-static inline void tlb_setup_pgd(unsigned long pgd)
+static inline void tlbmiss_handler_setup_pgd(unsigned long pgd)
 {
 	__asm__ __volatile__(
 		"bseti %0, 0		\n\t"
