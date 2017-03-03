@@ -23,6 +23,9 @@ int main(void)
 	DEFINE(THREAD_FSR,        offsetof(struct thread_struct, fsr));
 	DEFINE(THREAD_FCR,        offsetof(struct thread_struct, fcr));
 	DEFINE(THREAD_FPREG,      offsetof(struct thread_struct, fp));
+	DEFINE(THREAD_DSPCSR,     offsetof(struct thread_struct, dspcsr));
+	DEFINE(THREAD_DSPHI,      offsetof(struct thread_struct, hi));
+	DEFINE(THREAD_DSPLO,      offsetof(struct thread_struct, lo));
 
 	/* offsets into the thread_info struct */
 	DEFINE(TINFO_FLAGS,       offsetof(struct thread_info, flags));

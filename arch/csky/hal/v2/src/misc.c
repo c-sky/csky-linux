@@ -54,6 +54,21 @@ write_pt_regs(unsigned int value, unsigned int rx, struct pt_regs *regs)
 }
 
 #ifdef CONFIG_CPU_HAS_FPU
+void __init init_fpu(void)
+{
+	unsigned long fcr;
+
+	/* save global fcr in arch/csky/hal/v-/src/misc.c */
+	os_config_fcr = (IDE_STAT | IXE_STAT | UFE_STAT |
+			 OFE_STAT | DZE_STAT | IOE_STAT);
+
+	fcr = os_config_fcr;
+	__asm__ __volatile__(
+			"mtcr	%0, cr<1, 2> \n\t"
+			::"r"(fcr)
+			);
+}
+
 inline unsigned int read_fpcr(void)
 {
 	unsigned int result = 0;
@@ -85,6 +100,8 @@ inline void write_fpesr(unsigned int val)
 }
 
 #else /* CONFIG_CPU_HAS_FPU */
+void __init init_fpu(void) {}
+
 inline unsigned int read_fpcr(void)
 {
 	return current->thread.fcr;

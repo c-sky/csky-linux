@@ -52,56 +52,8 @@ write_pt_regs(unsigned int value, unsigned int rx, struct pt_regs *regs)
 	}
 }
 
-#ifdef CONFIG_CPU_HAS_FPU
-inline unsigned int read_fpsr(void)
-{
-	unsigned int result = 0;
-	__asm__ __volatile__("cpseti 1\n\r"
-				"cprcr %0, cpcr2 \n\r"
-				:"=r"(result));
-	return result;
-}
+void __init init_fpu(void) {}
 
-inline void write_fpsr(unsigned int val)
-{
-	__asm__ __volatile__("cpseti 1\n\r"
-				"cpwcr %0, cpcr2 \n\r"
-				::"r"(val));
-}
-
-inline unsigned int read_fpcr(void)
-{
-	unsigned int result = 0;
-	__asm__ __volatile__("cpseti 1\n\r"
-				"cprcr %0, cpcr1 \n\r"
-				:"=r"(result));
-	return result;
-}
-
-inline void write_fpcr(unsigned int val)
-{
-	val |= os_config_fcr;
-	__asm__ __volatile__("cpseti 1\n\r"
-				"cpwcr %0, cpcr1 \n\r"
-				::"r"(val));
-}
-
-inline unsigned int read_fpesr(void)
-{
-	unsigned int result = 0;
-	__asm__ __volatile__("cpseti 1\n\r"
-				"cprcr %0, cpcr4 \n\r"
-				:"=r"(result));
-	return result;
-}
-
-inline void write_fpesr(unsigned int val)
-{
-	__asm__ __volatile__("cpseti 1\n\r"
-				"cpwcr %0, cpcr4 \n\r"
-				::"r"(val));
-}
-#else
 inline unsigned int read_fpcr(void)
 {
 	return current->thread.fcr;
@@ -132,4 +84,4 @@ inline void write_fpesr(unsigned int val)
 {
 	current->thread.fesr = val;
 }
-#endif
+

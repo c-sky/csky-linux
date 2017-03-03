@@ -64,42 +64,10 @@ static inline int restore_fpu_state(struct sigcontext *sc)
 	fctl1 = fpregs.f_fsr;
 	fctl2 = fpregs.f_fesr;
 	fpgr = &(fpregs.f_fpregs[0]);
-#if defined(__CSKYABIV1__)
-	__asm__ __volatile__("cpseti 1\n\r"
-			"mov    r7, %0    \n\r"
-			"cpwcr  r7, cpcr1 \n\r"
-			"mov    r7, %1    \n\r"
-			"cpwcr  r7, cpcr2 \n\r"
-			"mov    r7, %2    \n\r"
-			"cpwcr  r7, cpcr4 \n\r"
-			: :"r"(fctl0), "r"(fctl1), "r"(fctl2)
-			: "r7" );
-
-	__asm__ __volatile__("cpseti 1\n\r"
-			LDW_FPU_REGS(0, 4, 8, 12)
-			FMTS_FPU_REGS(fr0, fr1, fr2, fr3)
-			LDW_FPU_REGS(16, 20, 24, 28)
-			FMTS_FPU_REGS(fr4, fr5, fr6, fr7)
-			LDW_FPU_REGS(32, 36, 40, 44)
-			FMTS_FPU_REGS(fr8, fr9, fr10, fr11)
-			LDW_FPU_REGS(48, 52, 56, 60)
-			FMTS_FPU_REGS(fr12, fr13, fr14, fr15)
-			"addi   %4,32 \n\r"
-			"addi   %4,32 \n\r"
-			LDW_FPU_REGS(0, 4, 8, 12)
-			FMTS_FPU_REGS(fr16, fr17, fr18, fr19)
-			LDW_FPU_REGS(16, 20, 24, 28)
-			FMTS_FPU_REGS(fr20, fr21, fr22, fr23)
-			LDW_FPU_REGS(32, 36, 40, 44)
-			FMTS_FPU_REGS(fr24, fr25, fr26, fr27)
-			LDW_FPU_REGS(48, 52, 56, 60)
-			FMTS_FPU_REGS(fr28, fr29, fr30, fr31)
-			:"=r"(tmp1), "=r"(tmp2),"=r"(tmp3),"=r"(tmp4),
-			"+r"(fpgr));
-#elif defined(__CSKYABIV2__)
-	__asm__ __volatile__("mtcr   %0, cr<1, 2> \n\r"
+	__asm__ __volatile__(
+			"mtcr   %0, cr<1, 2> \n\r"
 			"mtcr   %1, cr<2, 2> \n\r"
-			: :"r"(fctl0), "r"(fctl2));
+			::"r"(fctl0), "r"(fctl2));
 
 	__asm__ __volatile__(LDW_FPU_REGS(0, 4, 8, 12)
 			FMTVR_FPU_REGS(vr0, vr1)
@@ -121,7 +89,6 @@ static inline int restore_fpu_state(struct sigcontext *sc)
 			FMTVR_FPU_REGS(vr14, vr15)
 			:"=a"(tmp1), "=a"(tmp2), "=a"(tmp3), "=a"(tmp4),
 			"+a"(fpgr));
-#endif
 	local_irq_restore(flg);
 out:
 #endif
@@ -209,48 +176,6 @@ static inline int save_fpu_state(struct sigcontext *sc, struct pt_regs *regs)
 
 	local_irq_save(flg);
 	fpgr = &(fpregs.f_fpregs[0]);
-#if defined(__CSKYABIV1__)
-	__asm__ __volatile__("cpseti 1\n\r"
-			"cprcr  r7, cpcr1 \n\r"
-			"mov    %0, r7    \n\r"
-			"cprcr  r7, cpcr2 \n\r"
-			"mov    %1, r7    \n\r"
-			"cprcr  r7, cpcr4 \n\r"
-			"mov    %2, r7    \n\r"
-			"btsti  r7, 30    \n\r"
-			"cprcr  r7, cpcr5 \n\r"
-			"mov    %3, r7    \n\r"
-			"bf     1f        \n\r"
-			"cprcr  r7, cpcr6 \n\r"
-			"mov    %4, r7    \n\r"
-			"1:               \n\r"
-			: "=a"(fpregs.f_fcr), "=a"(fpregs.f_fsr),
-			"=a"(fpregs.f_fesr), "=a"(fpregs.f_feinst1),
-			"=a"(fpregs.f_feinst2)
-			:: "r7");
-
-	__asm__ __volatile__("cpseti 1\n\r"
-			FMFS_FPU_REGS(fr0, fr1, fr2, fr3)
-			STW_FPU_REGS(0, 4, 8, 12)
-			FMFS_FPU_REGS(fr4, fr5, fr6, fr7)
-			STW_FPU_REGS(16, 20, 24, 28)
-			FMFS_FPU_REGS(fr8, fr9, fr10, fr11)
-			STW_FPU_REGS(32, 36, 40, 44)
-			FMFS_FPU_REGS(fr12, fr13, fr14, fr15)
-			STW_FPU_REGS(48, 52, 56, 60)
-			"addi   %4,32 \n\r"
-			"addi   %4,32 \n\r"
-			FMFS_FPU_REGS(fr16, fr17, fr18, fr19)
-			STW_FPU_REGS(0, 4, 8, 12)
-			FMFS_FPU_REGS(fr20, fr21, fr22, fr23)
-			STW_FPU_REGS(16, 20, 24, 28)
-			FMFS_FPU_REGS(fr24, fr25, fr26, fr27)
-			STW_FPU_REGS(32, 36, 40, 44)
-			FMFS_FPU_REGS(fr28, fr29, fr30, fr31)
-			STW_FPU_REGS(48, 52, 56, 60)
-			:"=a"(tmp1), "=a"(tmp2),"=a"(tmp3),"=a"(tmp4),
-			"+a"(fpgr));
-#elif defined(__CSKYABIV2__)
 	__asm__ __volatile__("mfcr    %0, cr<1, 2> \n\r"
 			"mfcr    %1, cr<2, 2> \n\r"
 			: "=r"(fpregs.f_fcr), "=r"(fpregs.f_fesr));
@@ -275,7 +200,6 @@ static inline int save_fpu_state(struct sigcontext *sc, struct pt_regs *regs)
 			STW_FPU_REGS(48, 52, 56, 60)
 			:"=a"(tmp1), "=a"(tmp2), "=a"(tmp3), "=a"(tmp4),
 			"+a"(fpgr));
-#endif
 	local_irq_restore(flg);
 
 	err |= copy_to_user(&sc->sc_fcr, &fpregs, sizeof(fpregs));

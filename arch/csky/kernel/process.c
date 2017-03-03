@@ -63,14 +63,25 @@ int copy_thread(unsigned long clone_flags,
 		struct task_struct *p)
 {
 	struct switch_stack * childstack;
-
 	unsigned long reg_psr = 0;
-
 	struct pt_regs *childregs = task_pt_regs(p);
 
-	__asm__ __volatile__("mfcr   %0, psr\n\t"
-			             :"+r"(reg_psr) :);
+	preempt_disable();
 
+	__asm__ __volatile__("mfcr   %0, psr\n\t"
+			     :"+r"(reg_psr):);
+
+#ifdef CONFIG_CPU_HAS_FPU
+	save_fp_to_thread(p->thread.fp, &p->thread.fcr, &p->thread.fsr,
+	     &p->thread.fesr);
+#endif
+#if defined(CONFIG_CPU_HAS_DSP) || defined(__CSKYABIV2__)
+	__asm__ __volatile__("mfhi    %0 \n\r"
+			     "mflo    %1 \n\r"
+			    :"=r"(p->thread.hi), "=r"(p->thread.lo)
+		            :);
+#endif
+	preempt_enable();
 
 	childstack = ((struct switch_stack *) childregs) - 1;
 	memset(childstack, 0, sizeof(struct switch_stack));

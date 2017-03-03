@@ -169,6 +169,7 @@ config MMU_HARD_REFILL
 
 menuconfig CPU_HAS_FPU
 	bool "CPU has FPU coprocessor"
+	depends on CPU_CK810 || CPU_CK807
 	default n
 	---help---
 	  You can say N here if you C-SKY CPU don't have Floating-Point Coprocessor 	  or the user program need not to support FPU.

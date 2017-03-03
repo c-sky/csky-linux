@@ -93,47 +93,12 @@
 static inline void save_fp_to_thread(unsigned long  * fpregs,
 	   unsigned long * fcr, unsigned long * fsr, unsigned long * fesr)
 {
+#if defined(__CSKYABIV2__)
 	unsigned long flg;
 	unsigned long tmp1, tmp2, tmp3, tmp4;
 
 	local_save_flags(flg);
 
-#if defined(__CSKYABIV1__)
-	__asm__ __volatile__("cpseti 1 \n\t"
-	                     "cprcr  r7, cpcr1 \n\t"
-	                     "mov    %0, r7    \n\t"
-	                     "cprcr  r7, cpcr2 \n\t"
-	                     "mov    %1, r7    \n\t"
-	                     "cprcr  r7, cpcr4 \n\t"
-	                     "mov    %2, r7    \n\t"
-	                     :"=a"(tmp1), "=a"(tmp2), "=a"(tmp3)
-	                     : :"r7");
-	*fcr = tmp1;
-	*fsr = tmp2;
-	*fesr = tmp3;
-
-	__asm__ __volatile__("cpseti 1 \n\t"
-	                     FMFS_FPU_REGS(fr0, fr1, fr2, fr3)
-	                     STW_FPU_REGS(0, 4, 8, 12)
-                         FMFS_FPU_REGS(fr4, fr5, fr6, fr7)
-                         STW_FPU_REGS(16, 20, 24, 28)
-                         FMFS_FPU_REGS(fr8, fr9, fr10, fr11)
-                         STW_FPU_REGS(32, 36, 40, 44)
-                         FMFS_FPU_REGS(fr12, fr13, fr14, fr15)
-                         STW_FPU_REGS(48, 52, 56, 60)
-	                     "addi   %4,32 \n\t"
-	                     "addi   %4,32 \n\t"
-	                     FMFS_FPU_REGS(fr16, fr17, fr18, fr19)
-	                     STW_FPU_REGS(0, 4, 8, 12)
-	                     FMFS_FPU_REGS(fr20, fr21, fr22, fr23)
-	                     STW_FPU_REGS(16, 20, 24, 28)
-	                     FMFS_FPU_REGS(fr24, fr25, fr26, fr27)
-	                     STW_FPU_REGS(32, 36, 40, 44)
-	                     FMFS_FPU_REGS(fr28, fr29, fr30, fr31)
-	                     STW_FPU_REGS(48, 52, 56, 60)
-	                     :"=a"(tmp1), "=a"(tmp2), "=a"(tmp3), "=a"(tmp4),
-	                       "+a"(fpregs));
-#elif defined(__CSKYABIV2__)
 	__asm__ __volatile__("mfcr    %0, cr<1, 2> \n\r"
 	                     "mfcr    %1, cr<2, 2> \n\r"
 	                     :"+r"(tmp1), "+r"(tmp2) : );
@@ -160,8 +125,8 @@ static inline void save_fp_to_thread(unsigned long  * fpregs,
 	                     STW_FPU_REGS(48, 52, 56, 60)
 	                     :"=a"(tmp1), "=a"(tmp2), "=a"(tmp3), "=a"(tmp4),
 	                       "+a"(fpregs));
-#endif
 	local_irq_restore(flg);
+#endif
 }
 
 #else  /* __ASSEMBLY__ */
@@ -169,85 +134,6 @@ static inline void save_fp_to_thread(unsigned long  * fpregs,
 #include <asm/asm-offsets.h>
 
 .macro  FPU_SAVE_REGS
-#if defined(__CSKYABIV1__)
-	cpseti   1             /* select fpu */
-	/* Save FPU control regs task struct */
-	cprcr    r6, cpcr1
-	stw      r6, (r5, THREAD_FCR)
-	cprcr    r6, cpcr2
-	cprcr    r7, cpcr4
-	stw      r6, (a3, THREAD_FSR)
-	stw      r7, (a3, THREAD_FESR)
-	/* Save FPU general regs task struct */
-	lrw      r10, THREAD_FPREG
-	add      r10, a3
-	fmfs     r6, fr0
-	fmfs     r7, fr1
-	fmfs     r8, fr2
-	fmfs     r9, fr3
-	stw      r6, (r10, 0)
-	stw      r7, (r10, 4)
-	stw      r8, (r10, 8)
-	stw      r9, (r10, 12)
-	fmfs     r6, fr4
-	fmfs     r7, fr5
-	fmfs     r8, fr6
-	fmfs     r9, fr7
-	stw      r6, (r10, 16)
-	stw      r7, (r10, 20)
-	stw      r8, (r10, 24)
-	stw      r9, (r10, 28)
-	fmfs     r6, fr8
-	fmfs     r7, fr9
-	fmfs     r8, fr10
-	fmfs     r9, fr11
-	stw      r6, (r10, 32)
-	stw      r7, (r10, 36)
-	stw      r8, (r10, 40)
-	stw      r9, (r10, 44)
-	fmfs     r6, fr12
-	fmfs     r7, fr13
-	fmfs     r8, fr14
-	fmfs     r9, fr15
-	stw      r6, (r10, 48)
-	stw      r7, (r10, 52)
-	stw      r8, (r10, 56)
-	stw      r9, (r10, 60)
-	movi     r11, 64
-	add      r10, r11
-	fmfs     r6, fr16
-	fmfs     r7, fr17
-	fmfs     r8, fr18
-	fmfs     r9, fr19
-	stw      r6, (r10, 0)
-	stw      r7, (r10, 4)
-	stw      r8, (r10, 8)
-	stw      r9, (r10, 12)
-	fmfs     r6, fr20
-	fmfs     r7, fr21
-	fmfs     r8, fr22
-	fmfs     r9, fr23
-	stw      r6, (r10, 16)
-	stw      r7, (r10, 20)
-	stw      r8, (r10, 24)
-	stw      r9, (r10, 28)
-	fmfs     r6, fr24
-	fmfs     r7, fr25
-	fmfs     r8, fr26
-	fmfs     r9, fr27
-	stw      r6, (r10, 32)
-	stw      r7, (r10, 36)
-	stw      r8, (r10, 40)
-	stw      r9, (r10, 44)
-	fmfs     r6, fr28
-	fmfs     r7, fr29
-	fmfs     r8, fr30
-	fmfs     r9, fr31
-	stw      r6, (r10, 48)
-	stw      r7, (r10, 52)
-	stw      r8, (r10, 56)
-	stw      r9, (r10, 60)
-#elif defined(__CSKYABIV2__)
 	/* Save FPU control regs task struct */
 	mfcr     r7, cr<1, 2>
 	mfcr     r6, cr<2, 2>
@@ -318,88 +204,9 @@ static inline void save_fp_to_thread(unsigned long  * fpregs,
 	stw      r7, (a3, THREAD_FPREG + 116)
 	stw      r8, (a3, THREAD_FPREG + 120)
 	stw      r9, (a3, THREAD_FPREG + 124)
-#endif
 .endm
 
 .macro  FPU_RESTORE_REGS
-#if defined(__CSKYABIV1__)
-	/* Save FPU control regs task struct */
-	ldw      r6, (r5, THREAD_FCR)
-	cpwcr    r6, cpcr1
-	ldw      r6, (a3, THREAD_FSR)
-	ldw      r7, (a3, THREAD_FESR)
-	cpwcr    r6, cpcr2
-	cpwcr    r7, cpcr4
-	/* restore FPU general regs task struct */
-	lrw      r10, THREAD_FPREG
-	add      r10, a3
-	ldw      r6, (r10, 0)
-	ldw      r7, (r10, 4)
-	ldw      r8, (r10, 8)
-	ldw      r9, (r10, 12)
-	fmts     r6, fr0
-	fmts     r7, fr1
-	fmts     r8, fr2
-	fmts     r9, fr3
-	ldw      r6, (r10, 16)
-	ldw      r7, (r10, 20)
-	ldw      r8, (r10, 24)
-	ldw      r9, (r10, 28)
-	fmts     r6, fr4
-	fmts     r7, fr5
-	fmts     r8, fr6
-	fmts     r9, fr7
-	ldw      r6, (r10, 32)
-	ldw      r7, (r10, 36)
-	ldw      r8, (r10, 40)
-	ldw      r9, (r10, 44)
-	fmts     r6, fr8
-	fmts     r7, fr9
-	fmts     r8, fr10
-	fmts     r9, fr11
-	ldw      r6, (r10, 48)
-	ldw      r7, (r10, 52)
-	ldw      r8, (r10, 56)
-	ldw      r9, (r10, 60)
-	fmts     r6, fr12
-	fmts     r7, fr13
-	fmts     r8, fr14
-	fmts     r9, fr15
-	movi     r11, 64
-	add      r10, r11
-	ldw      r6, (r10, 0)
-	ldw      r7, (r10, 4)
-	ldw      r8, (r10, 8)
-	ldw      r9, (r10, 12)
-	fmts     r6, fr16
-	fmts     r7, fr17
-	fmts     r8, fr18
-	fmts     r9, fr19
-	ldw      r6, (r10, 16)
-	ldw      r7, (r10, 20)
-	ldw      r8, (r10, 24)
-	ldw      r9, (r10, 28)
-	fmts     r6, fr20
-	fmts     r7, fr21
-	fmts     r8, fr22
-	fmts     r9, fr23
-	ldw      r6, (r10, 32)
-	ldw      r7, (r10, 36)
-	ldw      r8, (r10, 40)
-	ldw      r9, (r10, 44)
-	fmts     r6, fr24
-	fmts     r7, fr25
-	fmts     r8, fr26
-	fmts     r9, fr27
-	ldw      r6, (r10, 48)
-	ldw      r7, (r10, 52)
-	ldw      r8, (r10, 56)
-	ldw      r9, (r10, 60)
-	fmts     r6, fr28
-	fmts     r7, fr29
-	fmts     r8, fr30
-	fmts     r9, fr31
-#elif defined(__CSKYABIV2__)
 	/* Save FPU control regs task struct */
 	ldw      r6, (a3, THREAD_FCR)
 	ldw      r7, (a3, THREAD_FESR)
@@ -470,7 +277,6 @@ static inline void save_fp_to_thread(unsigned long  * fpregs,
 	fmtvrh   vr14, r7
 	fmtvrl   vr15, r8
 	fmtvrh   vr15, r9
-#endif
 .endm
 
 #endif /* __ASSEMBLY__ */
