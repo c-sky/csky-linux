@@ -51,6 +51,11 @@
 	};
 
 	chosen {
-		bootargs = "console=ttyS0,115200 init=/sbin/init root=/dev/sda1";
+		/*
+		 * fixme:
+		 * Seems kernel won't wait /dev/sda1 to mount, when there is no 'ip=' option.
+		 * /dev/sda1 is from USB drive.
+		 */
+		bootargs = "console=ttyS0,115200 init=/sbin/init root=/dev/sda1 rw ip=0.0.0.0";
 	};
 };
