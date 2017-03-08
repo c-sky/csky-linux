@@ -213,7 +213,7 @@ int hand_fpcr_rdwr(struct pt_regs * regs)
 	mm_segment_t fs;
 	unsigned long instrptr, regx = 0;
 	unsigned int fault;
-#if   defined(__CSKYABIV1__)
+#if defined(__CSKYABIV1__)
 	unsigned long index_regx = 0, index_fpregx = 0;
 	u16 tinstr = 0;
 
@@ -261,7 +261,7 @@ int hand_fpcr_rdwr(struct pt_regs * regs)
 		regs->pc +=2;
 		return 1;
 	}
-#elif defined(__CSKYABIV2__)
+#else
 	u16 instr_hi, instr_low;
 	unsigned long index_regx = 0, index_fpregx_prev = 0, index_fpregx_next = 0;
 	unsigned long tinstr = 0;
@@ -336,10 +336,7 @@ int hand_fpcr_rdwr(struct pt_regs * regs)
 		regs->pc +=4;
 		return 1;
 	}
-
-#else
-#error must choose CSKYV1 or CSKYV2
-#endif /* define __CSKYABIV2__ */
+#endif /* define __CSKYABIV1__ */
 bad_or_fault:
 	return 0;
 }

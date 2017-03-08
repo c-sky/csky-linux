@@ -153,9 +153,11 @@ config CPU_CK610
 
 config CPU_CK810
         bool "CSKY CPU ck810"
+	select MMU_HARD_REFILL
 
 config CPU_CK807
         bool "CSKY CPU ck807"
+	select MMU_HARD_REFILL
 endchoice
 
 config MMU_HARD_REFILL

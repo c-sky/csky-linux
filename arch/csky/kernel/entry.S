@@ -328,17 +328,7 @@ tlbmiss:
 	lsri    a1, 6
 	WR_MEL1 a1
 #else
-	lsri    a2, a1, _PGDIR_SHIFT
-	ixw     a0, a2
-	ldw     a0, (a0)
-
-	zext    a1, a1, 21, 12
-	ixw     a0, a1
-	bclri   a0, PTE_BIT
-	ldw     a1, (a0)
-	WR_MEL0 a1
-	ldw     a1, (a0, 4)
-	WR_MEL1 a1
+#error ck8xx only hardrefill for tlbmiss, because some no shadow regs
 #endif
 
 	bgeni   a1, 28           /* TLB write random command, r5 = 0x10000000 */
