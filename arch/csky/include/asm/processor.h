@@ -13,6 +13,7 @@
 #include <asm/ptrace.h>
 #include <asm/current.h>
 #include <asm/cache.h>
+#include <hal/regdef.h>
 
 /*
  * CSKY does have an arch_pick_mmap_layout()
@@ -105,7 +106,7 @@ struct thread_struct {
 
 #define INIT_THREAD  { \
 	.ksp = (unsigned long) init_thread_union.stack + THREAD_SIZE, \
-	.sr = 0x8f000000, \
+	.sr = DEFAULT_PSR_VALUE, \
 }
 
 /*

@@ -12,28 +12,15 @@
 
 extern void die_if_kernel(char *, struct pt_regs *, long);
 
-#undef HANDLER_SUCCESS
-#undef HANDLER_FAILURE
+#ifdef CONFIG_SOFT_HANDMISSALIGN
 #define HANDLER_SUCCESS 0
 #define HANDLER_FAILURE	1
-
-#undef SP_NUM
-#ifndef __CSKYABIV2__
 #define SP_NUM 0
-#else
-#define SP_NUM 14
-#endif
-
-#undef R4_NUM
 #define R4_NUM 4
-#undef R15_NUM
 #define R15_NUM 4
-#undef R16_NUM
 #define R16_NUM 16
-#undef R28_NUM
 #define R28_NUM 28
 
-#ifdef CONFIG_SOFT_HANDMISSALIGN
 
 /* C-SKY CPU V2 32 bit instruction like 11'B in the highest two bit  */
 #define IS_T32(hi16)  (((hi16) & 0xc000) == 0xc000 )
@@ -211,10 +198,10 @@ static const struct file_operations alignment_proc_fops = {
 	} while (0)
 
 inline static unsigned int
-get_regs_value(unsigned int rx, struct pt_regs *regs){
+get_regs_value(unsigned int rx, struct pt_regs *regs)
+{
 	unsigned int value;
 
-#ifndef __CSKYABIV2__
 	if(rx == 0){
 		if(user_mode(regs)){
 			__asm__ __volatile__("mfcr %0, ss1 \n\r"
@@ -229,26 +216,12 @@ get_regs_value(unsigned int rx, struct pt_regs *regs){
 	}else{
 		value = *((int *)regs + rx + 1);
 	}
-#else
-	if(rx < 14){
-		value  = *((int *)regs + rx + 3);
-	}else if(rx == 14){
-		if(user_mode(regs)){
-			__asm__ __volatile__("mfcr %0, cr<14, 1> \n\r"
-						:"=r"(value));
-		}else{
-			value = sizeof(struct pt_regs) + ((unsigned int)regs);
-		}
-	}else{
-		value = *((int *)regs + rx + 2);
-	}
-#endif
+
 	return value;
 }
 
 inline static int
 put_regs_value(unsigned int value, unsigned int rx, struct pt_regs *regs){
-#ifndef __CSKYABIV2__
 	if(rx == 0){
 		printk("alignment handler trying to write sp.\n");
 		goto fault;
@@ -259,27 +232,11 @@ put_regs_value(unsigned int value, unsigned int rx, struct pt_regs *regs){
 	}else{
 		*((int *)regs + rx + 1) = value;
 	}
-#else
-	if(rx < 14){
-		*((int *)regs + rx + 3) = value;
-	}else if(rx == 14){
-		if(user_mode(regs)){
-			__asm__ __volatile__("mtcr %0, cr<14, 1> \n\r"
-						:"=r"(value));
-		}else{
-			printk("alignment handler trying to write sp.\n");
-			goto fault;
-		}
-	}else{
-		*((int *)regs + rx + 2) = value;
-	}
-#endif
 	return 0;
 fault:
 	return 1;
 }
 
-#ifndef __CSKYABIV2__
 static int
 handle_ldh_ldw_v1(unsigned long instr, struct pt_regs *regs){
 	unsigned int regx = instr & 0xf;
@@ -439,442 +396,6 @@ handle_stm_v1(unsigned long instr, struct pt_regs *regs){
 fault:
 	return HANDLER_FAILURE;
 }
-#else /* abiv2 */
-static int
-handle_ldh_16(unsigned long instr, struct pt_regs *regs){
-	unsigned int regx = (instr >> 8) & 0x7;
-	unsigned int regz = (instr >> 5) & 0x7;
-	unsigned int imm5 = instr & 0x1f;
-	unsigned int destaddr;
-	unsigned int dataregx;
-	unsigned short tmpval16;
-
-	dataregx = get_regs_value(regx, regs);
-	destaddr = dataregx + (imm5 << 1);
-	get16_unaligned_check(tmpval16, destaddr);
-	if(put_regs_value((unsigned int)tmpval16, regz, regs) != 0){
-			goto fault;
-	}
-
-	ai_half += 1;
-
-	return HANDLER_SUCCESS;
-fault:
-	return HANDLER_FAILURE;
-}
-
-static int
-handle_ldw_16(unsigned long instr, struct pt_regs *regs){
-	unsigned int regx = (instr >> 8) & 0x7;
-	unsigned int regz = (instr >> 5) & 0x7;
-	unsigned int imm5 = instr & 0x1f;
-	unsigned int destaddr,tmpval32;
-	unsigned int dataregx;
-
-	dataregx = get_regs_value(regx, regs);
-	destaddr = dataregx + (imm5 << 2);
-	get32_unaligned_check(tmpval32, destaddr);
-	if(put_regs_value(tmpval32, regz, regs) != 0){
-		goto fault;
-	}
-
-	ai_word += 1;
-
-	return HANDLER_SUCCESS;
-fault:
-	return HANDLER_FAILURE;
-}
-
-static int
-handle_ldw_sp_16(unsigned long instr, struct pt_regs *regs){
-	unsigned int regz = (instr >> 5) & 0x7;
-	unsigned int imm5 = instr & 0x1f;
-	unsigned int imm3 = (instr >> 8) & 0x7;
-	unsigned int destaddr,tmpval32;
-	unsigned int datasp;
-
-	datasp = get_regs_value(SP_NUM, regs);
-	destaddr = datasp + (((imm3 << 5) | imm5) << 2);
-	get32_unaligned_check(tmpval32, destaddr);
-	if(put_regs_value(tmpval32, regz, regs) != 0){
-		goto fault;
-	}
-
-	ai_word += 1;
-
-	return HANDLER_SUCCESS;
-fault:
-	return HANDLER_FAILURE;
-}
-
-static int
-handle_sth_16(unsigned long instr, struct pt_regs *regs){
-	unsigned int regx = (instr >> 8) & 0x7;
-	unsigned int regz = (instr >> 5) & 0x7;
-	unsigned int imm5 = instr & 0x1f;
-	unsigned int destaddr;
-	unsigned int dataregx,dataregz;
-
-	dataregx = get_regs_value(regx, regs);
-	destaddr = dataregx + (imm5 << 1);
-	dataregz = get_regs_value(regz, regs);
-	put16_unaligned_check(dataregz, destaddr);
-
-	ai_half += 1;
-
-	return HANDLER_SUCCESS;
-fault:
-	return HANDLER_FAILURE;
-}
-
-static int
-handle_stw_16(unsigned long instr, struct pt_regs *regs){
-	unsigned int regx = (instr >> 8) & 0x7;
-	unsigned int regz = (instr >> 5) & 0x7;
-	unsigned int imm5 = instr & 0x1f;
-	unsigned int destaddr;
-	unsigned int dataregx,dataregz;
-
-	dataregx = get_regs_value(regx, regs);
-	destaddr = dataregx + (imm5 << 2);
-	dataregz = get_regs_value(regz, regs);
-	put32_unaligned_check(dataregz, destaddr);
-
-	ai_word += 1;
-
-	return HANDLER_SUCCESS;
-fault:
-	return HANDLER_FAILURE;
-}
-
-static int
-handle_stw_sp_16(unsigned long instr, struct pt_regs *regs){
-	unsigned int regz = (instr >> 5) & 0x7;
-	unsigned int imm5 = instr & 0x1f;
-	unsigned int imm3 = (instr >> 8) & 0x7;
-	unsigned int destaddr;
-	unsigned int datasp,dataregz;
-
-	datasp = get_regs_value(SP_NUM, regs);
-	destaddr = datasp + (((imm3 << 5) | imm5) << 2);
-	dataregz = get_regs_value(regz, regs);
-	put32_unaligned_check(dataregz, destaddr);
-
-	ai_word += 1;
-
-	return HANDLER_SUCCESS;
-fault:
-	return HANDLER_FAILURE;
-}
-
-static int
-handle_push_pop_16(unsigned long instr, struct pt_regs *regs){
-	unsigned int push_pop = instr & 0xffe0;
-	unsigned int list1 = instr & 0xf;
-	unsigned int has_r15 = (instr & 0x0010) >> 4;
-	unsigned int datasp, tmpval32, i;
-
-	datasp = get_regs_value(SP_NUM, regs);
-
-	if(push_pop == 0x1480){ // pop
-		for(i = 0; i < list1; i++){
-			get32_unaligned_check(tmpval32, datasp + i * 4);
-			if(put_regs_value(tmpval32, R4_NUM + i, regs) != 0){
-				goto fault;
-			}
-		}
-		if(has_r15){
-			get32_unaligned_check(tmpval32, datasp + list1 * 4);
-			if(put_regs_value(tmpval32, R15_NUM, regs) != 0){
-				goto fault;
-			}
-		}
-		datasp += (list1 + has_r15) * 4;
-		if(put_regs_value(datasp, SP_NUM, regs) != 0){
-			goto fault;
-		}
-	}else if(push_pop == 0x14c0){ // push
-		datasp -= (list1 + has_r15) * 4;
-		if(put_regs_value(datasp, SP_NUM, regs) != 0){
-			goto fault;
-		}
-		for(i = 0; i < list1; i++){
-			tmpval32 = get_regs_value(R4_NUM + i, regs);
-			put32_unaligned_check(tmpval32, datasp + i * 4);
-		}
-		if(has_r15){
-			tmpval32 = get_regs_value(R15_NUM, regs);
-			put32_unaligned_check(tmpval32, datasp + list1 * 4);
-		}
-	}else{
-		goto fault;
-	}
-
-	return HANDLER_SUCCESS;
-fault:
-	return HANDLER_FAILURE;
-}
-
-static int
-handle_push_pop(unsigned long instr, struct pt_regs *regs){
-	unsigned int push_pop = instr & 0xfffffe00;
-	unsigned int list1 = instr & 0xf;
-	unsigned int list2 = (instr >> 5) & 0x7;
-	unsigned int has_r15 = (instr >> 4) & 0x1;
-	unsigned int has_r28 = (instr >> 8) & 0x1;
-	unsigned int datasp, tmpval32, i;
-
-	datasp = get_regs_value(SP_NUM, regs);
-
-	if(push_pop == 0x1480){ // pop
-		for(i = 0; i < list1; i++){
-			get32_unaligned_check(tmpval32, datasp + i * 4);
-			if(put_regs_value(tmpval32, R4_NUM + i, regs) != 0){
-				goto fault;
-			}
-		}
-		if(has_r15 == 0x1){
-			get32_unaligned_check(tmpval32, datasp + list1 * 4);
-			if(put_regs_value(tmpval32, R15_NUM, regs) != 0){
-				goto fault;
-			}
-		}
-		for(i = 0; i < list2; i++){
-			get32_unaligned_check(tmpval32, datasp + (i + list1 + has_r15) * 4);
-			if(put_regs_value(tmpval32, R16_NUM + i, regs) != 0){
-				goto fault;
-			}
-		}
-		if(has_r28 == 0x1){
-			get32_unaligned_check(tmpval32, datasp + (list1 + list2 + has_r15) * 4);
-			if(put_regs_value(tmpval32, R28_NUM, regs) != 0){
-				goto fault;
-			}
-		}
-		datasp += (list1 + list2 + has_r15 + has_r28) * 4;
-		if(put_regs_value(datasp, SP_NUM, regs) != 0){
-			goto fault;
-		}
-	}else if(push_pop == 0x14c0){ // push
-		datasp -= (list1 + list2 + has_r15 + has_r28) * 4;
-		if(put_regs_value(datasp, SP_NUM, regs) != 0){
-			goto fault;
-		}
-		for(i = 0; i < list1; i++){
-			tmpval32 = get_regs_value(R4_NUM + i, regs);
-			put32_unaligned_check(tmpval32, datasp + i * 4);
-		}
-		if(has_r15 == 0x1){
-			tmpval32 = get_regs_value(R15_NUM, regs);
-			put32_unaligned_check(tmpval32, datasp + list1 * 4);
-		}
-		for(i = 0; i < list2; i++){
-			tmpval32 = get_regs_value(R16_NUM + i, regs);
-			put32_unaligned_check(tmpval32, datasp + (i + list1 + has_r15) * 4);
-		}
-		if(has_r28 == 0x1){
-			tmpval32 = get_regs_value(R28_NUM, regs);
-			put32_unaligned_check(tmpval32, datasp + (list1 + list2 + has_r15) * 4);
-		}
-	}else{
-		goto fault;
-	}
-
-	return HANDLER_SUCCESS;
-fault:
-	return HANDLER_FAILURE;
-}
-
-static int
-handle_ldh_ldhs_ldw_ldd(unsigned long instr, struct pt_regs *regs){
-	unsigned int regx = (instr >> 16) & 0x1f;
-	unsigned int regz = (instr >> 21) & 0x1f;
-	unsigned int offset = instr & 0xfff;
-	unsigned int destaddr, tmpval32;
-	unsigned int dataregx;
-	unsigned short tmpval16;
-
-	dataregx = get_regs_value(regx, regs);
-
-	switch((instr >> 12) & 0xf){
-	case 1: // ldh
-		destaddr = dataregx + (offset << 1);
-		get16_unaligned_check(tmpval16, destaddr);
-		if(put_regs_value((unsigned int)tmpval16, regz, regs) != 0){
-			goto fault;
-		}
-		ai_half += 1;
-		break;
-	case 3: // ldd
-		destaddr = dataregx + (offset << 2);
-		get32_unaligned_check(tmpval32, destaddr);
-		if(put_regs_value(tmpval32, regz, regs) != 0){
-			goto fault;
-		}
-		get32_unaligned_check(tmpval32, destaddr + 4);
-		if(put_regs_value(tmpval32, regz + 1, regs) != 0){
-			goto fault;
-		}
-		ai_word += 2;
-		break;
-	case 5: // ldhs
-		destaddr = dataregx + (offset << 1);
-		get16_unaligned_check(tmpval16, destaddr);
-		if(put_regs_value((unsigned int)((short)tmpval16), regz, regs) != 0){
-			goto fault;
-		}
-		ai_half += 1;
-		break;
-	case 2: // ldw
-		destaddr = dataregx + (offset << 2);
-		get32_unaligned_check(tmpval32, destaddr);
-		if(put_regs_value(tmpval32, regz, regs) != 0){
-			goto fault;
-		}
-		ai_word += 1;
-		break;
-	default:
-		goto fault;
-	}
-
-	return HANDLER_SUCCESS;
-fault:
-	return HANDLER_FAILURE;
-}
-
-static int
-handle_sth_stw_std(unsigned long instr, struct pt_regs *regs){
-	unsigned int regx = (instr >> 16) & 0x1f;
-	unsigned int regz = (instr >> 21) & 0x1f;
-	unsigned int offset = instr & 0xfff;
-	unsigned int destaddr;
-	unsigned int dataregx, dataregz;
-
-	dataregx = get_regs_value(regx, regs);
-
-	switch((instr >> 12) & 0xf){
-	case 1: // sth
-		destaddr = dataregx + (offset << 1);
-		dataregz = get_regs_value(regz, regs);
-		put16_unaligned_check(dataregz, destaddr);
-		ai_half += 1;
-		break;
-	case 3: // std
-		destaddr = dataregx + (offset << 2);
-		dataregz = get_regs_value(regz, regs);
-		put32_unaligned_check(dataregz, destaddr);
-		dataregz = get_regs_value(regz + 1, regs);
-		put32_unaligned_check(dataregz, destaddr + 4);
-		ai_word += 2;
-		break;
-	case 2: // stw
-		destaddr = dataregx + (offset << 2);
-		dataregz = get_regs_value(regz, regs);
-		put32_unaligned_check(dataregz, destaddr);
-		ai_word += 1;
-		break;
-	default:
-		goto fault;
-	}
-
-	return HANDLER_SUCCESS;
-fault:
-	return HANDLER_FAILURE;
-}
-
-static int
-handle_ldrh_ldrhs_ldrw_ldm(unsigned long instr, struct pt_regs *regs){
-	unsigned int regx = (instr >> 16) & 0x1f;
-	unsigned int regy = (instr >> 21) & 0x1f;
-	unsigned int regz = instr & 0x1f;
-	unsigned int dataregx, dataregy;
-	unsigned int destaddr, tmpval32, i;
-	unsigned short tmpval16;
-
-	dataregx = get_regs_value(regx, regs);
-	dataregy = get_regs_value(regy, regs);
-
-	destaddr = dataregx + dataregy * ((instr >> 5) & 0x1f);
-
-	switch((instr >> 10) & 0x3f){
-	case 1: // ldrh
-		get16_unaligned_check(tmpval16, destaddr);
-		if(put_regs_value((unsigned int)tmpval16, regz, regs) != 0){
-			goto fault;
-		}
-		ai_half += 1;
-		break;
-	case 5: // ldrhs
-		get16_unaligned_check(tmpval16, destaddr);
-		if(put_regs_value((unsigned int)((short)tmpval16), regz, regs) != 0){
-			goto fault;
-		}
-		ai_half += 1;
-		break;
-	case 2: // ldrw
-		get32_unaligned_check(tmpval32, destaddr);
-		if(put_regs_value(tmpval32, regz, regs) != 0){
-			goto fault;
-		}
-		ai_word += 1;
-		break;
-	case 7: // ldm
-		for(i = 0; i <= (instr & 0x1f); i++){
-			get32_unaligned_check(tmpval32, dataregx + i * 4);
-			if(put_regs_value(tmpval32, regy + i, regs) != 0){
-				goto fault;
-			}
-		}
-		ai_qword += 1;
-		return HANDLER_SUCCESS;
-	default:
-		goto fault;
-	}
-
-	return HANDLER_SUCCESS;
-fault:
-	return HANDLER_FAILURE;
-}
-
-static int
-handle_strh_strw_stm(unsigned long instr, struct pt_regs *regs){
-	unsigned int regx = (instr >> 16) & 0x1f;
-	unsigned int regy = (instr >> 21) & 0x1f;
-	unsigned int regz = instr & 0x1f;
-	unsigned int dataregx, dataregy, dataregz;
-	unsigned int destaddr, tmpval32, i;
-
-	dataregx = get_regs_value(regx, regs);
-	dataregy = get_regs_value(regy, regs);
-
-	destaddr = dataregx + dataregy * ((instr >> 5) & 0x1f);
-
-	switch((instr >> 10) & 0x3f){
-	case 1: // strh
-		dataregz = get_regs_value(regz, regs);
-		put16_unaligned_check(dataregz, destaddr);
-		ai_half += 1;
-		break;
-	case 2: // strw
-		dataregz = get_regs_value(regz, regs);
-		put32_unaligned_check(dataregz, destaddr);
-		ai_word += 1;
-		break;
-	case 7: //  stm
-		for(i = 0; i <= (instr & 0x1f); i++){
-			tmpval32 = get_regs_value(regy + i, regs);
-			put32_unaligned_check(tmpval32, dataregx + 4 * i);
-		}
-		ai_qword += 1;
-	default:
-		goto fault;
-	}
-
-	return HANDLER_SUCCESS;
-fault:
-	return HANDLER_FAILURE;
-}
-#endif /* __CSKYABIV2__ */
 
 asmlinkage void alignment_c(struct pt_regs *regs)
 {
@@ -892,16 +413,7 @@ asmlinkage void alignment_c(struct pt_regs *regs)
 	set_fs(KERNEL_DS);
 	fault = __get_user(tinstr, (u16 *)(instrptr & ~1));
 	instr = (unsigned long)tinstr;
-#ifdef __CSKYABIV2__
-	if (!fault) {
-		if (IS_T32(tinstr)) {
-			u16 tinst2 = 0;
-			fault = __get_user(tinst2, (u16 *)(instrptr+2));
-			instr = (tinstr << 16) | tinst2;
-			isize = 4;
-		}
-	}
-#endif
+
 	set_fs(fs);
 	if (fault) {
 		goto bad_or_fault;
@@ -915,7 +427,6 @@ asmlinkage void alignment_c(struct pt_regs *regs)
 fixup:
 	regs->pc += isize;
 
-#ifndef __CSKYABIV2__	/* abiv1 */
 	if((instr & 0x9000) == 0x9000){ // sth, stw
 		handler = handle_sth_stw_v1;
 	}else if((instr & 0x9000) == 0x8000){ // ldh, ldw
@@ -931,59 +442,6 @@ fixup:
 	}else{
 		goto bad_or_fault;
 	}
-#else	/* abiv2 */
-	if(2 == isize ) {
-		switch(instr & 0xf800){
-		case 0x8800: // ldh
-			handler = handle_ldh_16;
-			break;
-		case 0x9800: // ldw sp
-			handler = handle_ldw_sp_16;
-			break;
-		case 0x9000: // ldw
-			handler = handle_ldw_16;
-			break;
-		case 0xa800: // ld
-			handler = handle_sth_16;
-			break;
-		case 0xb000:
-			handler = handle_stw_16;
-			break;
-		case 0xb800:
-			handler = handle_stw_sp_16;
-			break;
-		case 0x0100:
-			handler = handle_push_pop_16;
-			printk("warnning: push/pop alignment.\n");
-			break;
-		default:
-			goto bad_or_fault;
-		}
-	}
-	else {
-		switch (CODING_BITS(instr)) {
-		case 0xD8000000: // ld.h/ld.hs/ld.w/ld.d
-			handler = handle_ldh_ldhs_ldw_ldd;
-			break;
-		case 0xDC000000: // st.h/st.w/st.d
-			handler = handle_sth_stw_std;
-			break;
-		case 0xD0000000: // ldr.w/ldr.h/ldr.hs/ldm
-			handler = handle_ldrh_ldrhs_ldrw_ldm;
-			break;
-		case 0xD4000000: // stm/str.h/str.w
-			handler = handle_strh_strw_stm;
-			break;
-		case 0xE8000000:  // push/pop instruction.
-			printk("warnning: push/pop alignment.\n");
-			handler = handle_push_pop;
-			break;
-		default:
-			// FIXME: stq/stq is pseudo instruction of stm/stm and now ignore.
-			goto bad_or_fault;
-		}
-	}
-#endif
 
 	if (!handler)
 		goto bad_or_fault;

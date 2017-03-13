@@ -23,4 +23,6 @@
  */
 #define r11_sig		r11
 
+#define DEFAULT_PSR_VALUE	0x8f000000
+
 #endif /* __ASM_CSKY_REGDEF_H */

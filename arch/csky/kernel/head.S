@@ -1,11 +1,12 @@
 #include <linux/linkage.h>
 #include <linux/init.h>
 #include <asm/page.h>
+#include <hal/regdef.h>
 
 __INIT
 ENTRY(_start)
 	/* set super user mode */
-	lrw	a3, 0x80000000
+	lrw	a3, DEFAULT_PSR_VALUE
 	mtcr    a3, psr
 	psrset  ee
 

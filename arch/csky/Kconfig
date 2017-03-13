@@ -232,6 +232,7 @@ config CPU_BIG_ENDIAN
 config	SOFT_HANDMISSALIGN
 	bool "Software fixup alignment exception."
 	default y
+	depends on CPU_CK610
 	help
           CSKY CPU cannot fetch/store information which is not
           naturally aligned on the bus, i.e., a 4 byte fetch must start at an
