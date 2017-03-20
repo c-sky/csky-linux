@@ -41,6 +41,8 @@ config CSKY
 	select DW_APB_TIMER_OF
 	select GENERIC_SCHED_CLOCK
 	select ARCH_HAS_ELF_RANDOMIZE
+	select GENERIC_IRQ_CHIP
+	select MAY_HAVE_SPARSE_IRQ
 
 config NR_CPUS
 	int
