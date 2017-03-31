@@ -46,7 +46,6 @@
 .export fasthandler
 
 .export fastautohandler
-.export resume
 .export sys_fork, sys_clone
 .export sw_usp
 .export sw_ksp
@@ -953,14 +952,11 @@ ENTRY(autohandler)
 	jmpi     ret_from_exception
 
 /*
- * Resume execution of a new process.
- * Register definitions comming in:
- *
- * a0   =  current task
- * a1   =  new task
+ * a0 =  prev task_struct *
+ * a1 =  next task_struct *
+ * a0 =  return next
  */
-
-ENTRY(resume)
+ENTRY(__switch_to)
 	lrw      a3, TASK_THREAD        /* struct_thread offset in task_struct */
 	addu     a3, a0                 /* a3 point to thread in prev task_struct */
 
@@ -1050,4 +1046,4 @@ ENTRY(resume)
 	RESTORE_SWITCH_STACK
 
 	rts
-
+ENDPROC(__switch_to)
