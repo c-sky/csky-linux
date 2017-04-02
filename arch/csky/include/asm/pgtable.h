@@ -152,7 +152,7 @@ static inline void set_pmd(pmd_t *pmdptr, pmd_t pmdval)
 {
 	pmdptr->pud.pgd.pgd = pmdval.pud.pgd.pgd;
 #if !defined(__ck807__)
-	__dcache_flush_line(pmdptr);
+	__dcache_flush_line(&pmdptr->pud.pgd.pgd);
 #endif
 }
 
