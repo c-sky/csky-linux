@@ -33,6 +33,7 @@
 	__asm__ __volatile__( \
 		"idly4 \n\t" \
 		"mtcr	%0, cr22\n\t" \
+		"bseti  %1, 6\n\t" \
 		"mtcr	%1, cr17\n\t" \
 		::"r"(i), "r"(value))
 
