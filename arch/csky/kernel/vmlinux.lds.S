@@ -20,7 +20,6 @@ SECTIONS
 	. = PAGE_OFFSET + (CONFIG_RAM_BASE - PHYS_OFFSET);
 	_text = .;
 	HEAD_TEXT_SECTION
-	VBR_BASE
 
 	_stext = .;
 	.text : AT(ADDR(.text) - LOAD_OFFSET) {
@@ -36,15 +35,6 @@ SECTIONS
 	} = 0
 	_etext = .;
 
-	_sdata = .;
-	RO_DATA_SECTION(PAGE_SIZE)
-	RW_DATA_SECTION(L1_CACHE_BYTES, PAGE_SIZE, THREAD_SIZE)
-	_edata = .;
-
-	NOTES
-	EXCEPTION_TABLE(L1_CACHE_BYTES)
-	BSS_SECTION(L1_CACHE_BYTES, PAGE_SIZE, L1_CACHE_BYTES)
-
 	/* __init_begin __init_end must be page aligned for free_initmem */
 	. = ALIGN(PAGE_SIZE);
 	__init_begin = .;
@@ -56,6 +46,15 @@ SECTIONS
 	. = ALIGN(PAGE_SIZE);
 	__init_end = .;
 
+	_sdata = .;
+	RO_DATA_SECTION(PAGE_SIZE)
+	RW_DATA_SECTION(L1_CACHE_BYTES, PAGE_SIZE, THREAD_SIZE)
+	_edata = .;
+
+	NOTES
+	EXCEPTION_TABLE(L1_CACHE_BYTES)
+	BSS_SECTION(L1_CACHE_BYTES, PAGE_SIZE, L1_CACHE_BYTES)
+	VBR_BASE
 	_end = . ;
 
 	STABS_DEBUG
