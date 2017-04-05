@@ -41,7 +41,7 @@ static inline void cpu_probe_ver3(struct cpuinfo_csky *c, unsigned int cpu)
 		break;
 	case CPUID_V3_FAMILY_CK800:
 		sprintf(p, "CK8%s%s%s%s%s%s, Cache I/D:%dK/%dK",
-				((c->processor_id[0] & CPUID_V3_CLASS_CK810) ? "10" : "07"),
+				(((c->processor_id[0] & CPUID_V3_CLASS_CK807) == CPUID_V3_CLASS_CK807) ? "07" : "10"),
 				((c->processor_id[0] & CPUID_V3_MODEL_DM) ? "-DSP" : ""),
 				((c->processor_id[0] & CPUID_V3_MODEL_MMU) ? "-MMU" : ""),
 				((c->processor_id[0] & CPUID_V3_MODEL_FPU) ? "-FPU" : ""),
