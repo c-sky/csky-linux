@@ -24,7 +24,7 @@ CPUTYPE= -mcpu=ck807$(DSPEXT)$(FPUEXT)
 CSKYHAL	= v2
 endif
 
-KBUILD_CFLAGS +=	-fno-builtin-memcpy \
+KBUILD_CFLAGS +=	-ffreestanding \
 			-fno-tree-dse \
 			-pipe \
 			-Wno-uninitialized \
