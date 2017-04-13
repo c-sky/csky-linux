@@ -80,7 +80,6 @@ static int show_cpuinfo(struct seq_file *m, void *v)
 {
 	unsigned long n = (unsigned long) v - 1;
 	char *fpu;
-	u_long clockfreq;
 	struct cpuinfo_csky * c=&cpu_data[n];
 	fpu = "none";
 
@@ -91,11 +90,8 @@ static int show_cpuinfo(struct seq_file *m, void *v)
 	 * The fiducial operation declt + bf need 2 cycle. So calculate CPU clock
 	 *  need to multiply 2.
 	 */
-	clockfreq = (loops_per_jiffy*HZ)*2;
 	seq_printf(m,
-			"Clocking\t: %lu.%1luMHz\n"
 			"BogoMips\t: %lu.%02lu\n",
-			clockfreq / 1000000, (clockfreq / 10000) % 100,
 			(loops_per_jiffy * HZ) / 500000, ((loops_per_jiffy * HZ) / 5000) % 100);
 
 	return 0;
