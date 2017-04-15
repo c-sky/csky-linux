@@ -1,61 +1,54 @@
 # Linux/arch/csky
 
-## Get codes
+## Introduction
+
+C-SKY linux consisted of standard linux kernel source with arch/csky repo:
+
+https://github.com/c-sky/csky-linux.git
+
+## Setup linux kernel source with copy
 
 ```sh
-	$ wget https://cdn.kernel.org/pub/linux/kernel/v4.x/linux-4.9.2.tar.xz
+    # Download the kernel source
+	$ wget https://cdn.kernel.org/pub/linux/kernel/v4.x/linux-4.9.22.tar.gz
+	$ tar zxvf linux-4.9.22.tar.gz
+
+    # Get code from arch/csky repo, and copy if to kernel source
 	$ git clone https://github.com/c-sky/csky-linux.git
-	$ cd csky-linux;git checkout 4.9.2-20170111;cd - # checkout the tag you want
-	$ git clone https://github.com/c-sky/addons-linux.git
-	$ cd addons-linux;git checkout 4.9.2-20170111;cd - # checkout the tag you want
-```
+	$ cp csky-linux/arch/csky linux-4.9.22/arch/ -raf
 
-## Prepare linux kernel source-tree
+    # Use an empty addons
+	$ cd linux-4.9.22
+	$ mkdir addons
+	$ touch addons/Kconfig
+	$ touch addons/Makefile
+
+```
+Now linux-4.9.22 is finished with arch of C-SKY implement.
+
+## Setup linux kernel source with git merge
 
 ```sh
-	$ tar xf linux-4.9.2.tar.xz
-	$ mv linux-4.9.2 linux  # just rename
-	$ cp -raf csky-linux/arch/csky	linux/arch
-	$ cp -raf addons-linux		linux/addons
+    # Download kernel source, and setup init repo
+	$ wget https://cdn.kernel.org/pub/linux/kernel/v4.x/linux-4.9.22.tar.gz
+	$ tar zxvf linux-4.9.22.tar.gz
+
+    # Use an empty addons
+	$ cd linux-4.9.22
+	$ mkdir addons
+	$ touch addons/Kconfig
+	$ touch addons/Makefile
+
+    # Setup local .git
+	$ git init .
+	$ git add .
+	$ git commit -m "init"
+ 
+    # Setup arch csky
+	$ git remote add csky https://github.com/c-sky/csky-linux.git
+	$ git pull csky master
+
+    # Push to your own repo
+	$ git remote add my_repo git://myrepo.git
+	$ git push my_repo master
 ```
-## Download Cross Compiler
-
-	https://pan.baidu.com/s/1hrVkBMO
-
-	ck8xx(abiv2): csky-abiv2-linux-tools-x86_64-glibc-linux-4.9.2-20170111.tar.gz
-	ck610(abiv1): csky-linux-tools-x86_64-glibc-linux-4.9.2-20170111.tar.gz
-
-	Setup your $PATH with csky-linux-* and csky-abiv2-linux-* binary :)
-
-## Make
-
-```sh
-	$ cd linux
-	# (for ck810)
-	$ make ARCH=csky CROSS_COMPILE=csky-abiv2-linux- O=/tmp/kernel_build sc8925_defconfig uImage
-	# or (for ck610)
-	$ make ARCH=csky CROSS_COMPILE=csky-linux- O=/tmp/kernel_build gx66xx_defconfig uImage
-```
-
-## Download Jtag-Server
-	https://pan.baidu.com/s/1o7VEPbO
-
-	install it and run it:
-```sh
-	$ DebugServerConsole -ddc -rstwait 1000 -port 1025
-```
-
-## Run
-
-```sh
-	# See the .gdbinit and it connect the port 1025 :)
-
-	# (for ck810)
-	$ cp addons/gdbinit/gdbinit_sc8925 .gdbinit
-	$ csky-abiv2-linux-gdb /tmp/kernel_build/vmlinux
-
-	# or (for ck610)
-	$ cp addons/gdbinit/gdbinit_gx6605s .gdbinit
-	$ csky-abiv2-linux-gdb /tmp/kernel_build/vmlinux
-```
-
