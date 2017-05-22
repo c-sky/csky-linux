@@ -9,26 +9,9 @@
 #include <asm/mmu_context.h>
 #include <asm/pgalloc.h>
 
-/* fixme: reserve mem and mem not work together. */
-static void __init zone_sizes_init(void)
-{
-	unsigned long zone_size[MAX_NR_ZONES];
-	unsigned long min, max;
-
-	min = PFN_UP(memblock_start_of_DRAM());
-	max = PFN_DOWN(memblock_end_of_DRAM());
-
-	memset(zone_size, 0, sizeof(zone_size));
-
-	zone_size[ZONE_NORMAL] = max - min;
-
-	free_area_init_node(0, zone_size, min, NULL);
-}
-
 static void __init csky_memblock_init(void)
 {
-	min_low_pfn = PFN_UP(memblock_start_of_DRAM());
-	max_low_pfn = PFN_DOWN(memblock_end_of_DRAM());
+	unsigned long zone_size[MAX_NR_ZONES];
 
 	memblock_reserve(__pa(_stext), _end - _stext);
 #ifdef CONFIG_BLK_DEV_INITRD
@@ -40,7 +23,15 @@ static void __init csky_memblock_init(void)
 
 	memblock_dump_all();
 
-	zone_sizes_init();
+	/* free_area_init */
+	memset(zone_size, 0, sizeof(zone_size));
+
+	min_low_pfn = PFN_UP(memblock_start_of_DRAM());
+	max_low_pfn = PFN_DOWN(memblock_end_of_DRAM());
+
+	zone_size[ZONE_NORMAL] = max_low_pfn - min_low_pfn;
+
+	free_area_init(zone_size);
 }
 
 extern void cpu_dt_probe(void);
