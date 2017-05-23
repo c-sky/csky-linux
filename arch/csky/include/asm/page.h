@@ -98,8 +98,9 @@ typedef struct page *pgtable_t;
 
 #define PAGE_OFFSET	(__PAGE_OFFSET)
 #define UNCACHE_BASE	0xa0000000UL
+#define UNCACHE_MASK	0x1fffffffUL
 
-#define __pa(x)		((unsigned long) (x) - PAGE_OFFSET + PHYS_OFFSET)
+#define __pa(x)		(((unsigned long) (x) - PAGE_OFFSET + PHYS_OFFSET) & UNCACHE_MASK)
 #define __va(x)		((void *)((unsigned long) (x) - PHYS_OFFSET + PAGE_OFFSET))
 #define __pa_symbol(x)  __pa(RELOC_HIDE((unsigned long)(x), 0))
 
