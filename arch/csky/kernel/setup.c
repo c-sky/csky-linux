@@ -31,7 +31,7 @@ static void __init csky_memblock_init(void)
 
 	zone_size[ZONE_NORMAL] = max_low_pfn - min_low_pfn;
 
-	free_area_init(zone_size);
+	free_area_init_node(0, zone_size, min_low_pfn, NULL);
 }
 
 extern void cpu_dt_probe(void);
