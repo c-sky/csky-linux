@@ -99,12 +99,15 @@ __intc_init(struct device_node *np, struct device_node *parent, bool ave)
 		__raw_writel( 0xc0000000, CK_VA_INTC_ICR);
 	else
 		__raw_writel( 0x0, CK_VA_INTC_ICR);
-
-	for (i=0; i<64; i=i+4)
+	/*
+	 * csky irq ctrl has 64 sources.
+	 */
+	#define INTC_IRQS 64
+	for (i=0; i<INTC_IRQS; i=i+4)
 		__raw_writel((i+3)|((i+2)<<8)|((i+1)<<16)|(i<<24),
 				CK_VA_INTC_SOURCE + i);
 
-	root_domain = irq_domain_add_legacy(np, NR_IRQS, 0, 0, &ck_irq_ops, NULL);
+	root_domain = irq_domain_add_legacy(np, INTC_IRQS, 0, 0, &ck_irq_ops, NULL);
 	if (!root_domain)
 		panic("root irq domain not available\n");
 

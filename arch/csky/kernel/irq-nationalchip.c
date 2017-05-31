@@ -172,11 +172,16 @@ intc_init(struct device_node *intc, struct device_node *parent)
 	__raw_writel(0xffffffff, NC_VA_INTC_NMASK31_00);
 	__raw_writel(0xffffffff, NC_VA_INTC_NMASK63_32);
 
-	for (i=0; i<64; i=i+4)
+	/*
+	 * nationalchip irq ctrl has 64 sources.
+	 */
+	#define INTC_IRQS 64
+	for (i=0; i<INTC_IRQS; i=i+4)
 		__raw_writel(i|((i+1)<<8)|((i+2)<<16)|((i+3)<<24),
 				NC_VA_INTC_SOURCE + i);
 
-	root_domain = irq_domain_add_legacy(intc, NR_IRQS, 0, 0, &nc_irq_ops, NULL);
+	root_domain = irq_domain_add_legacy(intc, INTC_IRQS, 0, 0,
+			&nc_irq_ops, NULL);
 	if (!root_domain)
 		panic("root irq domain not avail\n");
 

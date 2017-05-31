@@ -283,6 +283,12 @@ config SSEG0_BASE
 	  SSEG0 is usually used as a ram section. set as C(cache), D(dirty) and
 	  V(valid).
 
+config CSKY_NR_IRQS
+	int "Set NR_IRQS for the whole system"
+	default "128"
+	help
+	  Some platform need more irq nums for share-irq, eg: gpio irq.
+
 menu "irqchip drivers (in csky)"
 
 config NATIONALCHIP_IRQ
