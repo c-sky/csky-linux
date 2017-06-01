@@ -284,10 +284,12 @@ config SSEG0_BASE
 	  V(valid).
 
 config CSKY_NR_IRQS
-	int "Set NR_IRQS for the whole system"
+	int "NR_IRQS to max virtual interrupt numbers of the whole system"
+	range 64 8192
 	default "128"
 	help
-	  Some platform need more irq nums for share-irq, eg: gpio irq.
+	  Some platform need more virtual irq numbers the kernel could use, eg: gpio irq.
+	  You find them in /proc/interrupts.
 
 menu "irqchip drivers (in csky)"
 
