@@ -1,3 +1,5 @@
+extern void flush_dcache_page(struct page *);
+
 static inline void clear_user_page(void *addr, unsigned long vaddr,
         struct page *page)
 {
