@@ -3,7 +3,6 @@
 
 #include <asm/setup.h>
 #include <asm/cache.h>
-#include <asm/cacheflush.h>
 #include <linux/const.h>
 
 /*
