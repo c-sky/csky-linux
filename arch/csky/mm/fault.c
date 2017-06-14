@@ -148,14 +148,14 @@ bad_area_nosemaphore:
         if (user_mode(regs)) {
                 tsk->thread.address = address;
                 tsk->thread.error_code = write;
-
+#if 0
                 printk(KERN_ERR "do_page_fault() #2: sending SIGSEGV to %s for"
                        "invalid %s\n%08lx (epc == %08lx)\n",
                        tsk->comm,
                        write ? "write access to" : "read access from",
                        address,
                        regs->pc);
-
+#endif
                 info.si_signo = SIGSEGV;
                 info.si_errno = 0;
                 /* info.si_code has been set above */
