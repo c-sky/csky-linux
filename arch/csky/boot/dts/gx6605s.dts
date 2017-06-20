@@ -155,6 +155,6 @@
 	};
 
 	chosen {
-		bootargs = "console=ttyS0,115200 init=/sbin/init root=/dev/sda2 rw rootwait";
+		bootargs = "console=tty0 init=/sbin/init root=/dev/sda2 rw rootwait";
 	};
 };
