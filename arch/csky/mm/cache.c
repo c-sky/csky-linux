@@ -22,7 +22,6 @@ void
 cache_op_all(unsigned int value)
 {
 	__asm__ __volatile__(
-		"idly4\n\t"
 		"mtcr	%0, cr17\n\t"
 		"sync\n\t"
 		::"r"(value));
@@ -50,7 +49,6 @@ cache_op_range(
 
 	__asm__ __volatile__("sync\n\t"::);
 }
-
 
 void flush_dcache_page(struct page *page)
 {
