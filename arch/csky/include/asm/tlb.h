@@ -20,6 +20,8 @@
 		cache_op_range(vma->vm_start, vma->vm_end, \
 			INS_CACHE|DATA_CACHE|CACHE_CLR|CACHE_INV); \
 	}  while (0)
+#else
+#define tlb_end_vma(tlb, vma) do {} while(0)
 #endif
 
 #define tlb_flush(tlb)	flush_tlb_mm((tlb)->mm)
