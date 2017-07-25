@@ -267,9 +267,9 @@ do{                                                             \
 		"       ldw     %5, (%2, 8)     \n"             \
 		"       ldw     %6, (%2, 12)    \n"             \
 		"2:     stw     %3, (%1, 0)     \n"             \
-		"       stw     %4, (%1, 4)     \n"             \
-		"       stw     %5, (%1, 8)     \n"             \
-		"       stw     %6, (%1, 12)    \n"             \
+		"9:     stw     %4, (%1, 4)     \n"             \
+		"10:    stw     %5, (%1, 8)     \n"             \
+		"11:    stw     %6, (%1, 12)    \n"             \
 		"       addi    %2, 16          \n"             \
 		"       addi    %1, 16          \n"             \
 		"       subi    %0, 16          \n"             \
@@ -294,6 +294,9 @@ do{                                                             \
 		".section __ex_table, \"a\"     \n"             \
 		".align   2                     \n"             \
 		".long    2b, 7b                \n"             \
+		".long    9b, 7b                \n"             \
+		".long   10b, 7b                \n"             \
+		".long   11b, 7b                \n"             \
 		".long    4b, 7b                \n"             \
 		".long    6b, 7b                \n"             \
 		".previous                      \n"             \
@@ -319,11 +322,11 @@ do{                                                             \
 		"1:     cmplti  %0, 16          \n"   /* 4W */  \
 		"       bt      3f              \n"             \
 		"2:     ldw     %3, (%2, 0)     \n"             \
-		"       ldw     %4, (%2, 4)     \n"             \
+		"10:    ldw     %4, (%2, 4)     \n"             \
 		"       stw     %3, (%1, 0)     \n"             \
 		"       stw     %4, (%1, 4)     \n"             \
-		"       ldw     %3, (%2, 8)     \n"             \
-		"       ldw     %4, (%2, 12)    \n"             \
+		"11:    ldw     %3, (%2, 8)     \n"             \
+		"12:    ldw     %4, (%2, 12)    \n"             \
 		"       stw     %3, (%1, 8)     \n"             \
 		"       stw     %4, (%1, 12)    \n"             \
 		"       addi    %2, 16          \n"             \
@@ -357,6 +360,9 @@ do{                                                             \
 		".section __ex_table, \"a\"     \n"             \
 		".align   2                     \n"             \
 		".long    2b, 8b                \n"             \
+		".long   10b, 8b                \n"             \
+		".long   11b, 8b                \n"             \
+		".long   12b, 8b                \n"             \
 		".long    4b, 8b                \n"             \
 		".long    6b, 8b                \n"             \
 		".previous                      \n"             \
@@ -369,7 +375,6 @@ do{                                                             \
 unsigned long __generic_copy_from_user(void *to, const void *from, unsigned long n);
 unsigned long __generic_copy_to_user(void *to, const void *from, unsigned long n);
 
-#ifdef CONFIG_MMU
 #define copy_from_user(to, from, n) __generic_copy_from_user(to, from, n)
 #define copy_to_user(to, from, n) __generic_copy_to_user(to, from, n)
 
@@ -378,38 +383,8 @@ unsigned long __generic_copy_to_user(void *to, const void *from, unsigned long n
 unsigned long clear_user(void *to, unsigned long n);
 unsigned long __clear_user(void __user *to, unsigned long n);
 
-#else /*CONFIG_MMU*/
-#define __copy_from_user(to,from,n)	(memcpy(to, (void __force *)from, n),0)
-#define __copy_to_user(to,from,n)	(memcpy((void __force *)to, from, n), 0)
-unsigned long clear_user(void *to, unsigned long n);
-unsigned long __clear_user(void __user *to, unsigned long n);
-
-static inline unsigned long __must_check copy_from_user(void *to, const void __user *from, unsigned long n)
-{
-        if (access_ok(VERIFY_READ, from, n))
-                n = __copy_from_user(to, from, n);
-        else /* security hole - plug it */
-                memset(to, 0, n);
-        return n;
-}
-
-static inline unsigned long __must_check copy_to_user(void __user *to, const void *from, unsigned long n)
-{
-        if (access_ok(VERIFY_WRITE, to, n))
-                n = __copy_to_user(to, from, n);
-        return n;
-}
-
-#endif/*CONFIG_MMU*/
-
 #define __copy_to_user_inatomic         __copy_to_user
 #define __copy_from_user_inatomic       __copy_from_user
-
-#define copy_to_user_ret(to, from, n, retval) \
-	({ if (copy_to_user(to, from, n)) return retval; })
-
-#define copy_from_user_ret(to, from, n, retval) \
-	({ if (copy_from_user(to, from, n)) return retval; })
 
 long strncpy_from_user(char *dst, const char *src, long count);
 long __strncpy_from_user(char *dst, const char *src, long count);

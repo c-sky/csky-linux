@@ -172,28 +172,62 @@ long strnlen_user(const char *s, long n)
 	return 0;     
 }
 
-#define __do_clear_user(addr,size)                      \
-do {                                                    \
-        int __d0;                                       \
-        int zvalue;                                     \
-        __asm__ __volatile__(                           \
-        "       cmpnei  %1, 0           \n"             \
-        "       bf      3f              \n"             \
-        "0:     cmpnei  %0, 0           \n"             \
-        "       bf      3f              \n"             \
-        "1:     stb     %2,(%1,0)       \n"             \
-        "       subi    %0, 1           \n"             \
-        "       addi    %1, 1           \n"             \
-        "       cmpnei  %0, 0           \n"             \
-        "       bt      1b              \n"             \
-        "2:     br      3f              \n"             \
-        ".section __ex_table,\"a\"      \n"             \
-        ".align   2                     \n"             \
-        ".long    1b,2b	                \n"             \
-        ".previous                      \n"             \
-        "3:                             \n"             \
-       	  : "=r"(size), "=r" (__d0),"=r"(zvalue)        \
-          : "0"(size), "1"(addr), "2"(0));              \
+#define __do_clear_user(addr, size)                             \
+do {                                                            \
+	int __d0;                                               \
+	int zvalue;                                             \
+	int tmp;                                                \
+	__asm__ __volatile__(                                   \
+		"0:     cmpnei  %1, 0           \n"             \
+		"       bf      7f              \n"             \
+		"       mov     %3, %1          \n"             \
+		"       andi    %3, 3           \n"             \
+		"       cmpnei  %3, 0           \n"             \
+		"       bf      1f              \n"             \
+		"       br      5f              \n"             \
+		"1:     cmplti  %0, 32          \n"   /* 4W */  \
+		"       bt      3f              \n"             \
+		"8:     stw     %2, (%1, 0)     \n"             \
+		"10:    stw     %2, (%1, 4)     \n"             \
+		"11:    stw     %2, (%1, 8)     \n"             \
+		"12:    stw     %2, (%1, 12)    \n"             \
+		"13:    stw     %2, (%1, 16)    \n"             \
+		"14:    stw     %2, (%1, 20)    \n"             \
+		"15:    stw     %2, (%1, 24)    \n"             \
+		"16:    stw     %2, (%1, 28)    \n"             \
+		"       addi    %1, 32          \n"             \
+		"       subi    %0, 32          \n"             \
+		"       br      1b              \n"             \
+		"3:     cmplti  %0, 4           \n"  /* 1W */   \
+		"       bt      5f              \n"             \
+		"4:     stw     %2, (%1, 0)     \n"             \
+		"       addi    %1, 4           \n"             \
+		"       subi    %0, 4           \n"             \
+		"       br      3b              \n"             \
+		"5:     cmpnei  %0, 0           \n"  /* 1B */   \
+		"9:     bf      7f              \n"             \
+		"6:     stb     %2, (%1, 0)     \n"             \
+		"       addi    %1,  1          \n"             \
+		"       subi    %0,  1          \n"             \
+		"       br      5b              \n"             \
+		".section __ex_table,\"a\"      \n"             \
+		".align   2                     \n"             \
+		".long    8b, 9b                \n"             \
+		".long    10b, 9b                \n"            \
+		".long    11b, 9b                \n"            \
+		".long    12b, 9b                \n"            \
+		".long    13b, 9b                \n"            \
+		".long    14b, 9b                \n"            \
+		".long    15b, 9b                \n"            \
+		".long    16b, 9b                \n"            \
+		".long    4b, 9b                \n"             \
+		".long    6b, 9b                \n"             \
+		".previous                      \n"             \
+		"7:                             \n"             \
+		: "=r"(size), "=r" (__d0), "=r"(zvalue), "=r"(tmp)    \
+		: "0"(size), "1"(addr), "2"(0)                  \
+		: "memory"                                      \
+	);                                                      \
 } while (0)
 
 /*
