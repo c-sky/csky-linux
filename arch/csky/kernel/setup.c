@@ -40,7 +40,7 @@ void __init setup_arch(char **cmdline_p)
 {
 	*cmdline_p = boot_command_line;
 
-	printk("www.c-sky.com\n");
+	printk("C-SKY: https://c-sky.github.io\n");
 
 	init_mm.start_code = (unsigned long) _stext;
 	init_mm.end_code = (unsigned long) _etext;
