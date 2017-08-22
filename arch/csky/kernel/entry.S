@@ -755,7 +755,11 @@ ENTRY(trap2)
 1:					/* "1" is for kuser_cmpxchg_fixup */
 	ldw      a3, (a2)
 	cmpne    a0, a3
+#if defined(__CSKYABIV1__)
+	bt       3f
+#elif defined(__CSKYABIV2__)
 	bt16     3f
+#endif
 2:					/* "2" is for kuser_cmpxchg_fixup */
 	stw      a1, (a2)
 3:
