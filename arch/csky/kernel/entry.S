@@ -755,8 +755,7 @@ ENTRY(trap2)
 1:					/* "1" is for kuser_cmpxchg_fixup */
 	ldw      a3, (a2)
 	cmpne    a0, a3
-	bt       3f
-
+	bt16     3f
 2:					/* "2" is for kuser_cmpxchg_fixup */
 	stw      a1, (a2)
 3:
@@ -789,12 +788,7 @@ ENTRY(kuser_cmpxchg_fixup)
 	lrw	a1, 2b
 	cmpne	a1, a0
 	bt	1f
-// FIXME: abiv2 should use "subi    a1, (2b-1b)", but assembler does not support now!
-#ifdef __CSKYABIV2__
-	lrw	a1, 1b
-#else
-	subi	a1, (2b-1b)		/* get 1b */
-#endif
+	subi	a1, (2b - 1b)		/* get 1b */
 	stw	a1, (sp, 0)		/* set pt_reg's epc = 1b */
 1:
 	rts
