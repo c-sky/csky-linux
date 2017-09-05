@@ -22,6 +22,8 @@ https://github.com/c-sky/csky-linux.git
 	$ mkdir addons
 	$ touch addons/Kconfig
 	$ touch addons/Makefile
+	$ touch addons/none.c
+	$ echo "obj-y += none.o" > addons/Makefile
 
 ```
 Now linux-4.9.22 is finished with arch of C-SKY implement.
@@ -38,6 +40,8 @@ Now linux-4.9.22 is finished with arch of C-SKY implement.
 	$ mkdir addons
 	$ touch addons/Kconfig
 	$ touch addons/Makefile
+	$ touch addons/none.c
+	$ echo "obj-y += none.o" > addons/Makefile
 
     # Setup local .git
 	$ git init .
