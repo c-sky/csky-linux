@@ -38,7 +38,7 @@ cache_op_range(
 {
 	unsigned long i;
 
-	if (unlikely((end - start) > FLUSH_MAX)) {
+	if (unlikely((end - start) >= FLUSH_MAX)) {
 		cache_op_all(value | CACHE_CLR);
 		return;
 	}
