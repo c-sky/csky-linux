@@ -1,4 +1,5 @@
 targets := Image zImage uImage
+targets += $(dtb-y)
 
 $(obj)/Image: vmlinux FORCE
 	$(call if_changed,objcopy)

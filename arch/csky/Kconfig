@@ -291,6 +291,14 @@ config CSKY_NR_IRQS
 	  Some platform need more virtual irq numbers the kernel could use, eg: gpio irq.
 	  You find them in /proc/interrupts.
 
+config CSKY_BUILTIN_DTB
+	bool "Use kernel builtin dtb"
+	default n
+
+config CSKY_BUILTIN_DTB_NAME
+	string "kernel builtin dtb name"
+	depends on CSKY_BUILTIN_DTB
+
 menu "irqchip drivers (in csky)"
 
 config NATIONALCHIP_IRQ

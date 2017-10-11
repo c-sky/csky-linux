@@ -80,9 +80,13 @@ asmlinkage __visible void __init csky_start(
 	/* Clean up bss section */
 	memset(__bss_start, 0, __bss_stop - __bss_start);
 
+#ifdef CONFIG_CSKY_BUILTIN_DTB
+	printk("Use builtin dtb\n");
+	early_init_dt_scan(__dtb_start);
+#else
 	if (magic == 0x20150401)
 		early_init_dt_scan(param);
-
+#endif
 	start_kernel();
 
 	while(1);

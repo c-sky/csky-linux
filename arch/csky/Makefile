@@ -55,6 +55,10 @@ core-y				+= arch/csky/mm/
 libs-y				+= arch/csky/lib/
 core-y				+= arch/csky/hal/$(CSKYHAL)/
 
+ifdef CONFIG_CSKY_BUILTIN_DTB
+core-y				+= arch/csky/boot/dts/
+endif
+
 drivers-$(CONFIG_OPROFILE)	+= arch/csky/oprofile/
 drivers-$(CONFIG_CSKY_ADDONS)	+= addons/
 
@@ -65,7 +69,7 @@ boot	:= arch/csky/boot
 dtbs: scripts
 	$(Q)$(MAKE) $(build)=$(boot)/dts
 
-%.dtb: scripts
+%.dtb %.dtb.S %.dtb.o: scripts
 	$(Q)$(MAKE) $(build)=$(boot)/dts $(boot)/dts/$@
 
 zImage Image uImage: vmlinux dtbs
