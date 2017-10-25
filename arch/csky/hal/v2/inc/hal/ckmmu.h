@@ -150,7 +150,7 @@ static inline unsigned long tlb_get_pgd(void)
 		"bclri	%0, 0		\n\r"
 		"subu	%0, %1		\n\r"
                 "bseti	%0, 31		\n\r"
-                :"=r"(pgd)
+                :"=&r"(pgd)
 		:"r"(PHYS_OFFSET)
                 :);
 	return pgd;
