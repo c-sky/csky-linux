@@ -32,7 +32,8 @@
 
 #define virt_addr_valid(kaddr)  ((void *)(kaddr) >= (void *)PAGE_OFFSET && \
                                  (void *)(kaddr) < high_memory)
-#define pfn_valid(pfn)          virt_addr_valid(pfn_to_virt(pfn))
+extern unsigned long min_low_pfn, max_pfn;
+#define pfn_valid(pfn)		((pfn >= min_low_pfn) && (pfn < max_pfn))
 
 extern void *memset(void *dest, int c, size_t l);
 extern void *memcpy (void *to, const void *from, size_t l);
