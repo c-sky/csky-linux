@@ -42,9 +42,15 @@ static inline pte_t *pte_alloc_one_kernel(struct mm_struct *mm,
         unsigned long address)
 {
         pte_t *pte;
+	unsigned long *kaddr, i;
 
-        pte = (pte_t *) __get_free_pages(GFP_KERNEL | __GFP_REPEAT
-                              | __GFP_ZERO, PTE_ORDER);
+	pte = (pte_t *) __get_free_pages(GFP_KERNEL | __GFP_REPEAT, PTE_ORDER);
+	kaddr = (unsigned long *)pte;
+	if (address & 0x80000000)
+		for(i=0; i<(PAGE_SIZE/4); i++)
+			*(kaddr + i) = 0x1;
+	else
+		clear_page(kaddr);
 
         return pte;
 }
@@ -53,11 +59,18 @@ static inline struct page *pte_alloc_one(struct mm_struct *mm,
                                             unsigned long address)
 {
 	struct page *pte;
+	unsigned long *kaddr, i;
 
         pte = alloc_pages(GFP_KERNEL | __GFP_REPEAT, PTE_ORDER);
         if (pte) {
-                clear_highpage(pte);
-                pgtable_page_ctor(pte);
+		kaddr = kmap_atomic(pte);
+		if (address & 0x80000000) {
+			for(i=0; i<(PAGE_SIZE/4); i++)
+				*(kaddr + i) = 0x1;
+		} else
+			clear_page(kaddr);
+		kunmap_atomic(kaddr);
+		pgtable_page_ctor(pte);
         }
         return pte;
 }
