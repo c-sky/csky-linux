@@ -1,12 +1,7 @@
 #ifndef  __ASM_CSKY_REGDEF_H
 #define  __ASM_CSKY_REGDEF_H
 
-#define sp		r0
 #define syscallid	r1
-#define a0		r2
-#define a1		r3
-#define a2		r4
-#define a3		r5
 #define regs0		r6
 #define regs1		r7
 #define regs2		r8
