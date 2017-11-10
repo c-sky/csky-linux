@@ -7,7 +7,7 @@
 	do { \
 		if (!tlb->fullmm) \
 		cache_op_range(vma->vm_start, vma->vm_end, \
-			INS_CACHE|DATA_CACHE|CACHE_CLR|CACHE_INV); \
+			INS_CACHE|DATA_CACHE|CACHE_CLR|CACHE_INV, 0); \
 	}  while (0)
 
 #if defined(CONFIG_MMU_HARD_REFILL) && !defined(__ck807__)
@@ -18,7 +18,7 @@
 	do { \
 		if (!tlb->fullmm) \
 		cache_op_range(vma->vm_start, vma->vm_end, \
-			INS_CACHE|DATA_CACHE|CACHE_CLR|CACHE_INV); \
+			INS_CACHE|DATA_CACHE|CACHE_CLR|CACHE_INV, 0); \
 	}  while (0)
 #else
 #define tlb_end_vma(tlb, vma) do {} while(0)

@@ -5,6 +5,7 @@
 
 static struct {
 	u32 ccr;
+	u32 ccr2;
 	u32 hint;
 	u32 cpuid;
 } cpu_feature;
@@ -16,13 +17,20 @@ static __init void setup_ccr_hint(struct device_node *cpu)
 	if (of_property_read_u32(cpu, "ccr", &cpu_feature.ccr))
 		return;
 
+	if (of_property_read_u32(cpu, "ccr2", &cpu_feature.ccr2))
+		return;
+
 	if (of_property_read_u32(cpu, "hint", &cpu_feature.hint))
 		return;
 
-	cache_op_all(DATA_CACHE|CACHE_CLR);
+	if (cpu_feature.ccr2 & 0x8)
+		cache_op_l2enable();
+
+	cache_op_all(INS_CACHE|DATA_CACHE|CACHE_CLR|CACHE_INV, 1);
 	mtcr_hint(cpu_feature.hint);
 	mtcr_ccr(cpu_feature.ccr);
-	cache_op_all(DATA_CACHE|CACHE_CLR);
+	mtcr_ccr2(cpu_feature.ccr2);
+	cache_op_all(INS_CACHE|DATA_CACHE|CACHE_CLR|CACHE_INV, 1);
 }
 
 static __init void setup_cpu_name(struct device_node *cpu)
@@ -43,7 +51,7 @@ __init void cpu_dt_probe(void)
 	struct device_node *cpu;
 
 	cpu = (struct device_node *) of_find_node_by_type(NULL, "cpu");
-	if (!cpu) {
+	if (cpu == NULL) {
 		pr_info("C-SKY Err: None cpu described in DeviceTree!");
 		return;
 	}
@@ -57,6 +65,7 @@ static int c_show(struct seq_file *m, void *v)
 	seq_printf(m, "C-SKY CPU : %s\n", cpu_name);
 	seq_printf(m, "revision  : 0x%08x\n", cpu_feature.cpuid);
 	seq_printf(m, "ccr reg   : 0x%08x\n", cpu_feature.ccr);
+	seq_printf(m, "ccr2 reg  : 0x%08x\n", cpu_feature.ccr2);
 	seq_printf(m, "hint reg  : 0x%08x\n", cpu_feature.hint);
 	seq_printf(m, "\n");
 

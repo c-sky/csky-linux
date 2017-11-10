@@ -92,9 +92,8 @@ static inline pgd_t *pgd_alloc(struct mm_struct *mm)
                        (PTRS_PER_PGD - USER_PTRS_PER_PGD) * sizeof(pgd_t));
 #if defined(CONFIG_MMU_HARD_REFILL) && !defined(__ck807__)
 		cache_op_range((unsigned int)ret, (unsigned int)(ret + PTRS_PER_PGD)
-			,DATA_CACHE|CACHE_CLR);
+			,DATA_CACHE|CACHE_CLR, 0);
 #endif
-
         }
 
         return ret;

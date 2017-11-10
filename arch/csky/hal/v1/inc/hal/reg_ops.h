@@ -22,5 +22,7 @@ static inline void mtcr_ccr(unsigned int value)
 		::"r"(value));
 }
 
+static inline void mtcr_ccr2(unsigned int value){}
+
 #endif /* __ASM_REG_OPS_H */
 

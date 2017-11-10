@@ -22,5 +22,12 @@ static inline void mtcr_ccr(unsigned int value)
 		::"r"(value));
 }
 
+static inline void mtcr_ccr2(unsigned int value)
+{
+	asm volatile(
+		"mtcr %0, cr23"
+		::"r"(value));
+}
+
 #endif /* __ASM_REG_OPS_H */
 

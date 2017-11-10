@@ -99,7 +99,7 @@ void __init setup_arch(char **cmdline_p)
 	sparse_init();
 
 	pgd_init((unsigned long)swapper_pg_dir);
-	cache_op_all(DATA_CACHE|CACHE_CLR);
+	cache_op_all(DATA_CACHE|CACHE_CLR, 0);
 
 #if defined(CONFIG_VT) && defined(CONFIG_DUMMY_CONSOLE)
 	conswitchp = &dummy_con;

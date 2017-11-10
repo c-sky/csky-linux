@@ -9,7 +9,6 @@
 #endif
 #define L1_CACHE_BYTES		(1 << L1_CACHE_SHIFT)
 
-
 /* for cr17 */
 #define INS_CACHE		(1 << 0)
 #define DATA_CACHE		(1 << 1)
@@ -29,22 +28,23 @@
 
 #ifndef __ASSEMBLY__
 
-#define cache_op_line(i, value) \
-	__asm__ __volatile__( \
-		"idly4 \n\t" \
-		"mtcr	%0, cr22\n\t" \
-		"bseti  %1, 6\n\t" \
-		"mtcr	%1, cr17\n\t" \
-		::"r"(i), "r"(value))
+void cache_op_l2enable(void);
+
+void cache_op_line(
+	unsigned int i,
+	unsigned int value
+	);
 
 void cache_op_all(
-	unsigned int value
+	unsigned int value,
+	unsigned int l2
 	);
 
 void cache_op_range(
 	unsigned int start,
 	unsigned int end,
-	unsigned int value
+	unsigned int value,
+	unsigned int l2
 	);
 #endif
 

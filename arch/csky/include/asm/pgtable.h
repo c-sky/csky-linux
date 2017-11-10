@@ -120,7 +120,7 @@ static inline pte_t pte_mkspecial(pte_t pte) { return pte; }
 #include <asm/cacheflush.h>
 
 #define __dcache_flush_line(x) \
-	cache_op_line(x, DATA_CACHE|CACHE_CLR);
+	cache_op_line((u32)x, DATA_CACHE|CACHE_CLR);
 
 #if !defined(__ck807__)
 #define set_pte(pteptr, pteval)			\
