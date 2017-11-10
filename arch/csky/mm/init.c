@@ -26,6 +26,10 @@
 #include <asm/sections.h>
 #include <asm/tlb.h>
 
+#ifdef CONFIG_DISCONTIGMEM
+#error "CONFIG_HIGHMEM and CONFIG_DISCONTIGMEM dont work together yet"
+#endif
+
 #ifndef CONFIG_MMU_HARD_REFILL
 unsigned long pgd_current[NR_CPUS];
 #endif
@@ -34,7 +38,6 @@ pgd_t swapper_pg_dir[PTRS_PER_PGD] __page_aligned_bss;
 pte_t invalid_pte_table[PTRS_PER_PTE] __page_aligned_bss;
 unsigned long empty_zero_page[PAGE_SIZE / sizeof(unsigned long)] __page_aligned_bss;
 
-#ifndef CONFIG_NEED_MULTIPLE_NODES
 static inline int hupage_is_ram(unsigned long pagenr)
 {
 	if (pagenr >= min_low_pfn && pagenr < max_low_pfn)
@@ -49,9 +52,6 @@ void __init mem_init(void)
 	unsigned long tmp, ram;
 
 #ifdef CONFIG_HIGHMEM
-#ifdef CONFIG_DISCONTIGMEM
-#error "CONFIG_HIGHMEM and CONFIG_DISCONTIGMEM dont work together yet"
-#endif
 	max_mapnr = highend_pfn;
 #else
 	max_mapnr = max_low_pfn;
@@ -61,12 +61,12 @@ void __init mem_init(void)
 	free_all_bootmem();
 
 	reservedpages = ram = 0;
-	for (tmp = 0; tmp < max_low_pfn; tmp++)
-		if (hupage_is_ram(tmp)) {
-			ram++;
-			if (PageReserved(pfn_to_page(tmp)))
-			        reservedpages++;
-		}
+	for (tmp = min_low_pfn; tmp < max_low_pfn; tmp++)
+	{
+		ram++;
+		if (PageReserved(pfn_to_page(tmp)))
+		        reservedpages++;
+	}
 
 #ifdef CONFIG_HIGHMEM
 	for (tmp = highstart_pfn; tmp < highend_pfn; tmp++) {
@@ -98,7 +98,6 @@ void __init mem_init(void)
 	       initsize >> 10,
 	       (unsigned long) (totalhigh_pages << (PAGE_SHIFT-10)));
 }
-#endif  /* CONFIG_NEED_MULTIPLE_NODES */
 
 #ifdef CONFIG_BLK_DEV_INITRD
 void free_initrd_mem(unsigned long start, unsigned long end)
@@ -122,7 +121,6 @@ extern void __init prom_free_prom_memory(void);
 void free_initmem(void)
 {
 	unsigned long addr;
-
 
 	addr = (unsigned long) &__init_begin;
 	while (addr < (unsigned long) &__init_end) {

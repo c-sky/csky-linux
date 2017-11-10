@@ -84,10 +84,7 @@ typedef struct page *pgtable_t;
 
 #define	__PAGE_OFFSET	0x80000000
 
-/*
- * Memory above this physical address will be considered highmem.
- */
-#define HIGHMEM_START   (PHYS_OFFSET + 0x20000000UL)
+#define LOWMEM_LIMIT	0x20000000
 
 #ifdef CONFIG_PHYSICAL_BASE_CHANGE
 #define PHYS_OFFSET     CONFIG_SSEG0_BASE
@@ -96,8 +93,8 @@ typedef struct page *pgtable_t;
 #endif
 
 #define PAGE_OFFSET	(__PAGE_OFFSET)
-#define UNCACHE_BASE	0xa0000000UL
-#define UNCACHE_MASK	0x1fffffffUL
+#define UNCACHE_BASE	0xa0000000
+#define UNCACHE_MASK	0x1fffffff
 
 #define __pa(x)		(((unsigned long) (x) - PAGE_OFFSET + PHYS_OFFSET) & UNCACHE_MASK)
 #define __va(x)		((void *)((unsigned long) (x) - PHYS_OFFSET + PAGE_OFFSET))

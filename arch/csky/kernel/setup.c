@@ -9,9 +9,26 @@
 #include <asm/mmu_context.h>
 #include <asm/pgalloc.h>
 
+phys_addr_t __init_memblock memblock_end_of_REG0(void)
+{
+	return (memblock.memory.regions[0].base + memblock.memory.regions[0].size);
+}
+
+phys_addr_t __init_memblock memblock_start_of_REG1(void)
+{
+	return memblock.memory.regions[1].base;
+}
+
+size_t __init_memblock memblock_size_of_REG1(void)
+{
+	return memblock.memory.regions[1].size;
+}
+
 static void __init csky_memblock_init(void)
 {
 	unsigned long zone_size[MAX_NR_ZONES];
+	unsigned long zhole_size[MAX_NR_ZONES];
+	signed long size;
 
 	memblock_reserve(__pa(_stext), _end - _stext);
 #ifdef CONFIG_BLK_DEV_INITRD
@@ -23,15 +40,39 @@ static void __init csky_memblock_init(void)
 
 	memblock_dump_all();
 
-	/* free_area_init */
 	memset(zone_size, 0, sizeof(zone_size));
+	memset(zhole_size, 0, sizeof(zhole_size));
 
 	min_low_pfn = PFN_UP(memblock_start_of_DRAM());
-	max_low_pfn = PFN_DOWN(memblock_end_of_DRAM());
+	max_low_pfn = PFN_UP(memblock_end_of_REG0());
+	max_pfn = PFN_DOWN(memblock_end_of_DRAM());
 
-	zone_size[ZONE_NORMAL] = max_low_pfn - min_low_pfn;
+	size = max_low_pfn - min_low_pfn;
 
-	free_area_init_node(0, zone_size, min_low_pfn, NULL);
+	if (memblock.memory.cnt > 1) {
+		zone_size[ZONE_NORMAL] = PFN_DOWN(LOWMEM_LIMIT - PHYS_OFFSET);
+		zhole_size[ZONE_NORMAL] = PFN_DOWN(LOWMEM_LIMIT - PHYS_OFFSET) - size;
+	} else {
+		if (size <= PFN_DOWN(LOWMEM_LIMIT - PHYS_OFFSET))
+			zone_size[ZONE_NORMAL] = max_pfn - min_low_pfn;
+		else {
+			zone_size[ZONE_NORMAL] = PFN_DOWN(LOWMEM_LIMIT - PHYS_OFFSET);
+			max_low_pfn = min_low_pfn + zone_size[ZONE_NORMAL];
+		}
+	}
+
+#ifdef CONFIG_HIGHMEM
+	size = 0;
+	if(memblock.memory.cnt > 1)
+		size = memblock_size_of_REG1();
+	else
+		size = max_pfn - min_low_pfn - PFN_DOWN(LOWMEM_LIMIT - PHYS_OFFSET);
+
+	if (size > 0)
+		zone_size[ZONE_HIGHMEM] = size;
+#endif
+
+	free_area_init_node(0, zone_size, min_low_pfn, zhole_size);
 }
 
 extern void cpu_dt_probe(void);
@@ -67,7 +108,7 @@ void __init setup_arch(char **cmdline_p)
 }
 
 asmlinkage __visible void __init csky_start(
-	unsigned int	magic,
+	unsigned int	unused,
 	void *		param
 	)
 {
@@ -84,9 +125,9 @@ asmlinkage __visible void __init csky_start(
 	printk("Use builtin dtb\n");
 	early_init_dt_scan(__dtb_start);
 #else
-	if (magic == 0x20150401)
-		early_init_dt_scan(param);
+	early_init_dt_scan(param);
 #endif
+	printk("Phys. mem: %ldMB\n", (unsigned long) memblock_phys_mem_size()/1024/1024);
 	start_kernel();
 
 	while(1);
