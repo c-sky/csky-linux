@@ -4,25 +4,29 @@
 static inline unsigned int mfcr_cpuidrr(void)
 {
 	unsigned int ret;
-	asm volatile("mfcr %0, cr13" :"=r" (ret));
+	__asm__ __volatile__(
+		"mfcr %0, cr13\t\n"
+		:"=r"(ret));
 	return ret;
 }
 
 static inline void mtcr_hint(unsigned int value)
 {
-	asm volatile(
-		"mtcr %0, cr30"
+	__asm__ __volatile__(
+		"mtcr %0, cr30\t\n"
 		::"r"(value));
 }
 
 static inline void mtcr_ccr(unsigned int value)
 {
-	asm volatile(
-		"mtcr %0, cr18"
+	__asm__ __volatile__(
+		"mtcr %0, cr18\t\n"
 		::"r"(value));
 }
 
 static inline void mtcr_ccr2(unsigned int value){}
+
+#define L1_SYNC do{__asm__ __volatile__("sync\t\n");}while(0)
 
 #endif /* __ASM_REG_OPS_H */
 

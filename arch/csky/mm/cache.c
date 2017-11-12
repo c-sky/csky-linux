@@ -8,6 +8,7 @@
 #include <asm/cache.h>
 #include <asm/cacheflush.h>
 #include <asm/cachectl.h>
+#include <hal/reg_ops.h>
 
 static DEFINE_SPINLOCK(cache_lock);
 static unsigned int l2_enable = 0;
@@ -34,7 +35,7 @@ cache_op_line(unsigned int i, unsigned int value)
 	spin_unlock_irqrestore(&cache_lock, flags);
 
 	if (l2_enable)
-		__asm__ __volatile__("sync 1\n\t");
+		L1_SYNC;
 	else
 		__asm__ __volatile__("sync\n\t");
 }
@@ -47,7 +48,7 @@ cache_op_all(unsigned int value, unsigned int l2)
 		::"r"(value));
 
 	if (l2_enable) {
-		__asm__ __volatile__("sync 1\n\t");
+		L1_SYNC;
 		if (l2) goto flush_l2;
 	} else
 		__asm__ __volatile__("sync\n\t");
@@ -85,7 +86,7 @@ cache_op_range(
 	spin_unlock_irqrestore(&cache_lock, flags);
 
 	if (l2_enable) {
-		__asm__ __volatile__("sync 1\n\t");
+		L1_SYNC;
 		if (l2) goto flush_l2;
 	} else
 		__asm__ __volatile__("sync\n\t");
