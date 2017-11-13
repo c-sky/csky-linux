@@ -31,7 +31,7 @@ static void *csky_dma_alloc(
 	if (DMA_ATTR_NON_CONSISTENT & attrs)
 		panic("csky %s panic DMA_ATTR_NON_CONSISTENT.\n", __func__);
 
-	ret =  __get_free_pages(gfp, get_order(size));
+	ret =  __get_free_pages((gfp | __GFP_NORETRY) & (~__GFP_HIGHMEM), get_order(size));
 	if (!ret) {
 		pr_err("csky %s no more free pages, %ld.\n", __func__, ret);
 		return NULL;
