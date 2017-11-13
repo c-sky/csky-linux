@@ -191,7 +191,7 @@ static inline void tlbmiss_handler_setup_pgd(unsigned long pgd)
 		"addu  %0, %1		\n\t"
 		"cpseti cp15		\n\t"
 		"cpwcr %0, cpcr29	\n\t"
-		::"r"(pgd), "r"(PHYS_OFFSET)
+		::"b"(pgd), "r"(PHYS_OFFSET)
 		:);
 }
 
@@ -204,7 +204,7 @@ static inline unsigned long tlb_get_pgd(void)
 		"bclri	%0, 0		\n\r"
 		"subu	%0, %1		\n\r"
                 "bseti	%0, 31		\n\r"
-                :"=&r"(pgd)
+                :"=&b"(pgd)
 		:"r"(PHYS_OFFSET)
                 :);
 	return pgd;
