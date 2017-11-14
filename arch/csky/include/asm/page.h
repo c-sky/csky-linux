@@ -82,7 +82,8 @@ typedef struct page *pgtable_t;
  * We handle pages at KSEG0 for kernels with 32 bit address space.
  */
 
-#define	__PAGE_OFFSET	0x80000000
+#define	PAGE_OFFSET	0x80000000
+#define	V3GB_OFFSET	0xc0000000
 
 #define LOWMEM_LIMIT	0x20000000
 
@@ -92,7 +93,6 @@ typedef struct page *pgtable_t;
 #define PHYS_OFFSET     0x0
 #endif
 
-#define PAGE_OFFSET	(__PAGE_OFFSET)
 #define UNCACHE_BASE	0xa0000000
 #define UNCACHE_MASK	0x1fffffff
 

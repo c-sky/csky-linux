@@ -22,7 +22,6 @@ cache_op_l2enable(void)
 #define __cache_op_line(i, value) \
 	__asm__ __volatile__( \
 		"mtcr	%0, cr22\n\t" \
-		"bseti  %1, 6\n\t" \
 		"mtcr	%1, cr17\n\t" \
 		::"r"(i), "r"(value))
 
@@ -31,7 +30,7 @@ cache_op_line(unsigned int i, unsigned int value)
 {
 	unsigned long flags;
 	spin_lock_irqsave(&cache_lock, flags);
-	__cache_op_line(i, value);
+	__cache_op_line(i, value | CACHE_CLR | CACHE_OMS);
 	spin_unlock_irqrestore(&cache_lock, flags);
 
 	if (l2_enable)
@@ -45,7 +44,7 @@ cache_op_all(unsigned int value, unsigned int l2)
 {
 	__asm__ __volatile__(
 		"mtcr	%0, cr17\n\t"
-		::"r"(value));
+		::"r"(value | CACHE_CLR));
 
 	if (l2_enable) {
 		L1_SYNC;
@@ -71,32 +70,31 @@ cache_op_range(
 	unsigned int l2)
 {
 	unsigned long i, flags;
+	unsigned int val = value | CACHE_CLR | CACHE_OMS;
 
 	if (unlikely((end - start) >= FLUSH_MAX) ||
 	    unlikely(start < PAGE_OFFSET) ||
-	    unlikely(end >= PAGE_OFFSET + LOWMEM_LIMIT)) {
-		cache_op_all(value | CACHE_CLR, l2);
+	    unlikely(start >= V3GB_OFFSET)) {
+		cache_op_all(value, l2);
 		return;
 	}
 
-	spin_lock_irqsave(&cache_lock, flags);
-	for(i = start; i < end; i += L1_CACHE_BYTES){
-		__cache_op_line(i, CACHE_OMS | CACHE_CLR | value);
+
+	for(i = start; i < end; i += L1_CACHE_BYTES) {
+		spin_lock_irqsave(&cache_lock, flags);
+		__cache_op_line(i, val);
+		if (l2_enable) {
+			L1_SYNC;
+			if (l2) __asm__ __volatile__(
+				"mtcr	%0, cr24\n\t"
+				::"r"(val));
+		}
+		spin_unlock_irqrestore(&cache_lock, flags);
 	}
-	spin_unlock_irqrestore(&cache_lock, flags);
 
-	if (l2_enable) {
-		L1_SYNC;
-		if (l2) goto flush_l2;
-	} else
-		__asm__ __volatile__("sync\n\t");
+	if(l2_enable && !l2) return;
 
-	return;
-flush_l2:
-	__asm__ __volatile__(
-		"mtcr	%0, cr24\n\t"
-		"sync\n\t"
-		::"r"(value));
+	__asm__ __volatile__("sync\n\t");
 }
 
 void flush_dcache_page(struct page *page)
