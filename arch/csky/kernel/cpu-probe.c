@@ -15,21 +15,21 @@ char cpu_name[8] = "CKxxx";
 static __init void setup_ccr_hint(struct device_node *cpu)
 {
 	if (of_property_read_u32(cpu, "ccr", &cpu_feature.ccr))
-		return;
+		cpu_feature.ccr = 0;
 
 	if (of_property_read_u32(cpu, "ccr2", &cpu_feature.ccr2))
-		return;
+		cpu_feature.ccr2 = 0;
 
 	if (of_property_read_u32(cpu, "hint", &cpu_feature.hint))
-		return;
+		cpu_feature.hint = 0;
 
 	if (cpu_feature.ccr2 & 0x8)
 		cache_op_l2enable();
 
 	cache_op_all(INS_CACHE|DATA_CACHE|CACHE_CLR|CACHE_INV, 1);
-	mtcr_hint(cpu_feature.hint);
-	mtcr_ccr(cpu_feature.ccr);
-	mtcr_ccr2(cpu_feature.ccr2);
+	if (cpu_feature.ccr) mtcr_ccr(cpu_feature.ccr);
+	if (cpu_feature.ccr2) mtcr_ccr2(cpu_feature.ccr2);
+	if (cpu_feature.hint) mtcr_hint(cpu_feature.hint);
 	cache_op_all(INS_CACHE|DATA_CACHE|CACHE_CLR|CACHE_INV, 1);
 }
 
