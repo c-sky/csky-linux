@@ -134,10 +134,9 @@ void free_initmem(void)
 	        ((unsigned int)&__init_end - (unsigned int)&__init_begin) >> 10);
 }
 
-void pgd_init(unsigned long page)
+void pgd_init(unsigned long *p)
 {
 	int i;
-	unsigned long *p = (unsigned long *) page;
 
 #ifdef CONFIG_MMU_HARD_REFILL
 #define val	(unsigned long) __pa(invalid_pte_table);
