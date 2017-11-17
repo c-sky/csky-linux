@@ -70,6 +70,9 @@ static void __init csky_memblock_init(void)
 
 	if (size > 0)
 		zone_size[ZONE_HIGHMEM] = size;
+
+	highstart_pfn = min_low_pfn + PFN_DOWN(LOWMEM_LIMIT - PHYS_OFFSET);
+	highend_pfn = max_pfn;
 #endif
 
 	free_area_init_node(0, zone_size, min_low_pfn, zhole_size);
