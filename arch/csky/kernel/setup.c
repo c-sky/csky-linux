@@ -64,7 +64,7 @@ static void __init csky_memblock_init(void)
 #ifdef CONFIG_HIGHMEM
 	size = 0;
 	if(memblock.memory.cnt > 1)
-		size = memblock_size_of_REG1();
+		size = PFN_DOWN(memblock_size_of_REG1());
 	else
 		size = max_pfn - min_low_pfn - PFN_DOWN(LOWMEM_LIMIT - PHYS_OFFSET);
 
@@ -74,6 +74,7 @@ static void __init csky_memblock_init(void)
 	highstart_pfn = min_low_pfn + PFN_DOWN(LOWMEM_LIMIT - PHYS_OFFSET);
 	highend_pfn = max_pfn;
 #endif
+	memblock_set_current_limit(PFN_PHYS(max_low_pfn));
 
 	free_area_init_node(0, zone_size, min_low_pfn, zhole_size);
 }
@@ -102,6 +103,9 @@ void __init setup_arch(char **cmdline_p)
 	sparse_init();
 
 	pgd_init((unsigned long *)swapper_pg_dir);
+
+	kmap_init();
+
 	cache_op_all(INS_CACHE|DATA_CACHE|CACHE_CLR|CACHE_INV, 0);
 
 #if defined(CONFIG_VT) && defined(CONFIG_DUMMY_CONSOLE)
