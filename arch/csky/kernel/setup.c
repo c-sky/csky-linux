@@ -104,8 +104,9 @@ void __init setup_arch(char **cmdline_p)
 
 	pgd_init((unsigned long *)swapper_pg_dir);
 
+#ifdef CONFIG_HIGHMEM
 	kmap_init();
-
+#endif
 	cache_op_all(INS_CACHE|DATA_CACHE|CACHE_CLR|CACHE_INV, 0);
 
 #if defined(CONFIG_VT) && defined(CONFIG_DUMMY_CONSOLE)
