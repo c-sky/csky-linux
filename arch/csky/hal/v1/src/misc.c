@@ -1,14 +1,3 @@
-/*
- * linux/arch/csky/lib/misc_abiv1.c
- *
- * This file is subject to the terms and conditions of the GNU General Public
- * License.  See the file COPYING in the main directory of this archive
- * for more details.
- *
- * Copyright (C) 2014  zhangwm <wenmeng_zhang@c-sky.com>
- */
-
-
 #include <asm/ptrace.h>
 #include <linux/kernel.h>
 #include <linux/sched.h>

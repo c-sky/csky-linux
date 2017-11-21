@@ -1,13 +1,3 @@
-/*
- *
- * This file is subject to the terms and conditions of the GNU General Public
- * License.  See the file "COPYING" in the main directory of this archive
- * for more details.
- *
- * Copyright (C) 2011 C-SKY Microsystems co.,ltd.  All rights reserved.
- * Copyright (C) 2011 Hu Junshan(junshan_hu@c-sky.com)
- */
-
 #include <linux/module.h>
 #include <linux/highmem.h>
 #include <linux/smp.h>

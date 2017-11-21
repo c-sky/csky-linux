@@ -1,17 +1,3 @@
-/*
- *  linux/arch/csky/lib/memset.c
- *
- *  user address space access functions.
- *  the non inlined parts of asm-csky/uaccess.h are here.
- *
- *  This file is subject to the terms and conditions of the GNU General Public
- *  License.  See the file "COPYING" in the main directory of this archive
- *  for more details.
- *
- *  Copyright (C) 2009  Hangzhou C-SKY Microsystems.
- *
- */
-
 #include <asm/uaccess.h>
 #include <linux/types.h>
 

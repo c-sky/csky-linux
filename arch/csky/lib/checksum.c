@@ -1,37 +1,3 @@
-/*
- * 		linux/arch/csky/lib/checksum.c
- *
- * INET		An implementation of the TCP/IP protocol suite for the LINUX
- *		operating system.  INET is implemented using the  BSD Socket
- *		interface as the means of communication with the user level.
- *
- *		IP/TCP/UDP checksumming routines
- *
- * Authors:	Jorge Cwik, <jorge@laser.satlink.net>
- *		Arnt Gulbrandsen, <agulbra@nvg.unit.no>
- *		Tom May, <ftom@netcom.com>
- *		Andreas Schwab, <schwab@issan.informatik.uni-dortmund.de>
- *		Lots of code moved from tcp.c and ip.c; see those files
- *		for more names.
- *
- * 03/02/96	Jes Sorensen, Andreas Schwab, Roman Hodek:
- *		Fixed some nasty bugs, causing some horrible crashes.
- *		A: At some points, the sum (%0) was used as
- *		length-counter instead of the length counter
- *		(%1). Thanks to Roman Hodek for pointing this out.
- *		B: GCC seems to mess up if one uses too many
- *		data-registers to hold input values and one tries to
- *		specify d0 and d1 as scratch registers. Letting gcc choose these
- *      registers itself solves the problem.
- *
- *		This program is free software; you can redistribute it and/or
- *		modify it under the terms of the GNU General Public License
- *		as published by the Free Software Foundation; either version
- *		2 of the License, or (at your option) any later version.
- *
- *		Copyright (C) 2009  Hangzhou C-SKY Microsystems co.,ltd.
- */
- 
 #include <linux/module.h>
 #include <net/checksum.h>
 #include <asm/byteorder.h>

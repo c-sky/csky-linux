@@ -1,14 +1,3 @@
-/*
- *  linux/arch/csky/lib/memcpy_abiv1.S
- *
- *  This file is subject to the terms and conditions of the GNU General Public
- *  License.  See the file "COPYING" in the main directory of this archive
- *  for more details.
- *
- *  Copyright (C) 2015  Chen linfei<linfei_chen@c-sky.com>
- *
- */
-
 #include <linux/linkage.h>
 
 .macro	GET_FRONT_BITS rx y
