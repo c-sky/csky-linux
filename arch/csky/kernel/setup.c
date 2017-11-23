@@ -50,8 +50,8 @@ static void __init csky_memblock_init(void)
 	size = max_low_pfn - min_low_pfn;
 
 	if (memblock.memory.cnt > 1) {
-		zone_size[ZONE_NORMAL] = PFN_DOWN(LOWMEM_LIMIT - PHYS_OFFSET);
-		zhole_size[ZONE_NORMAL] = PFN_DOWN(LOWMEM_LIMIT - PHYS_OFFSET) - size;
+		zone_size[ZONE_NORMAL] = PFN_DOWN(memblock_start_of_REG1()) - min_low_pfn;
+		zhole_size[ZONE_NORMAL] = PFN_DOWN(memblock_start_of_REG1()) - max_low_pfn;
 	} else {
 		if (size <= PFN_DOWN(LOWMEM_LIMIT - PHYS_OFFSET))
 			zone_size[ZONE_NORMAL] = max_pfn - min_low_pfn;
@@ -63,15 +63,17 @@ static void __init csky_memblock_init(void)
 
 #ifdef CONFIG_HIGHMEM
 	size = 0;
-	if(memblock.memory.cnt > 1)
+	if(memblock.memory.cnt > 1) {
 		size = PFN_DOWN(memblock_size_of_REG1());
-	else
+		highstart_pfn = PFN_DOWN(memblock_start_of_REG1());
+	} else {
 		size = max_pfn - min_low_pfn - PFN_DOWN(LOWMEM_LIMIT - PHYS_OFFSET);
+		highstart_pfn = min_low_pfn + PFN_DOWN(LOWMEM_LIMIT - PHYS_OFFSET);
+	}
 
 	if (size > 0)
 		zone_size[ZONE_HIGHMEM] = size;
 
-	highstart_pfn = min_low_pfn + PFN_DOWN(LOWMEM_LIMIT - PHYS_OFFSET);
 	highend_pfn = max_pfn;
 #endif
 	memblock_set_current_limit(PFN_PHYS(max_low_pfn));
@@ -84,6 +86,8 @@ extern void init_fpu(void);
 void __init setup_arch(char **cmdline_p)
 {
 	*cmdline_p = boot_command_line;
+
+	console_verbose();
 
 	printk("C-SKY: https://c-sky.github.io\n");
 

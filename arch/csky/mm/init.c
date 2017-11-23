@@ -13,6 +13,7 @@
 #include <linux/mm.h>
 #include <linux/bootmem.h>
 #include <linux/highmem.h>
+#include <linux/memblock.h>
 #include <linux/swap.h>
 #include <linux/proc_fs.h>
 #include <linux/pfn.h>
@@ -38,18 +39,9 @@ pgd_t swapper_pg_dir[PTRS_PER_PGD] __page_aligned_bss;
 pte_t invalid_pte_table[PTRS_PER_PTE] __page_aligned_bss;
 unsigned long empty_zero_page[PAGE_SIZE / sizeof(unsigned long)] __page_aligned_bss;
 
-static inline int hupage_is_ram(unsigned long pagenr)
-{
-	if (pagenr >= min_low_pfn && pagenr < max_low_pfn)
-		return 1;
-	else
-		return 0;
-}
-
 void __init mem_init(void)
 {
-	unsigned long codesize, reservedpages, datasize, initsize;
-	unsigned long tmp, ram;
+	unsigned long tmp;
 
 #ifdef CONFIG_HIGHMEM
 	max_mapnr = highend_pfn;
@@ -60,43 +52,16 @@ void __init mem_init(void)
 
 	free_all_bootmem();
 
-	reservedpages = ram = 0;
-	for (tmp = min_low_pfn; tmp < max_low_pfn; tmp++)
-	{
-		ram++;
-		if (PageReserved(pfn_to_page(tmp)))
-		        reservedpages++;
-	}
-
 #ifdef CONFIG_HIGHMEM
 	for (tmp = highstart_pfn; tmp < highend_pfn; tmp++) {
 		struct page *page = pfn_to_page(tmp);
 
-		if (!hupage_is_ram(tmp)) {
-		        SetPageReserved(page);
-		        continue;
-		}
-		ClearPageReserved(page);
-		init_page_count(page);
-		__free_page(page);
-		totalhigh_pages++;
+		/* FIXME not sure about */
+		if (!memblock_is_reserved(tmp << PAGE_SHIFT))
+			free_highmem_page(page);
 	}
-	totalram_pages += totalhigh_pages;
 #endif
-
-	codesize =  (unsigned long) &_etext - (unsigned long) &_stext;
-	datasize =  (unsigned long) &_edata - (unsigned long) &_etext;
-	initsize =  (unsigned long) &__init_end - (unsigned long) &__init_begin;
-
-	printk(KERN_INFO "Memory: %luk/%luk available (%ldk kernel code, "
-	       "%ldk reserved, %ldk data, %ldk init, %ldk highmem)\n",
-	       (unsigned long) nr_free_pages() << (PAGE_SHIFT-10),
-	       ram << (PAGE_SHIFT-10),
-	       codesize >> 10,
-	       reservedpages << (PAGE_SHIFT-10),
-	       datasize >> 10,
-	       initsize >> 10,
-	       (unsigned long) (totalhigh_pages << (PAGE_SHIFT-10)));
+	mem_init_print_info(NULL);
 }
 
 #ifdef CONFIG_BLK_DEV_INITRD
