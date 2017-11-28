@@ -308,6 +308,10 @@ config CSKY_IRQ
 	bool "csky irq"
 	default y
 
+config DAHUA_IRQ
+	bool "dahua irq"
+	default y
+
 endmenu
 
 menu "Clock Source drivers (in csky)"
