@@ -42,6 +42,7 @@ unsigned long empty_zero_page[PAGE_SIZE / sizeof(unsigned long)] __page_aligned_
 void __init mem_init(void)
 {
 #ifdef CONFIG_HIGHMEM
+	unsigned long tmp;
 	max_mapnr = highend_pfn;
 #else
 	max_mapnr = max_low_pfn;
