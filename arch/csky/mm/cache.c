@@ -74,7 +74,7 @@ cache_op_range(
 
 	if (unlikely((end - start) >= FLUSH_MAX) ||
 	    unlikely(start < PAGE_OFFSET) ||
-	    unlikely(start >= V3GB_OFFSET)) {
+	    unlikely(start >= PAGE_OFFSET + LOWMEM_LIMIT)) {
 		cache_op_all(value, l2);
 		return;
 	}

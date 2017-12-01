@@ -24,9 +24,6 @@
 
 #include <linux/pfn.h>
 
-#define PHY_OFFSET		CONFIG_RAM_BASE
-#define ARCH_PFN_OFFSET		PFN_UP(PHY_OFFSET)
-
 #define virt_to_pfn(kaddr)      (__pa(kaddr) >> PAGE_SHIFT)
 #define pfn_to_virt(pfn)        __va((pfn) << PAGE_SHIFT)
 
@@ -84,36 +81,28 @@ typedef struct page *pgtable_t;
  */
 
 #define	PAGE_OFFSET	0x80000000
-#define	V3GB_OFFSET	0xc0000000
-
 #define LOWMEM_LIMIT	0x20000000
 
 #ifdef CONFIG_PHYSICAL_BASE_CHANGE
-#define PHYS_OFFSET     CONFIG_SSEG0_BASE
+#define PHYS_OFFSET	CONFIG_SSEG0_BASE
 #else
 #define PHYS_OFFSET     0x0
 #endif
+#define ARCH_PFN_OFFSET	PFN_DOWN(CONFIG_RAM_BASE + PHYS_OFFSET)
 
-#define UNCACHE_BASE	0xa0000000
-#define UNCACHE_MASK	0x1fffffff
+#define UNCACHE_MASK	0xdfffffff
 
-#define __pa(x)		(((unsigned long) (x) - PAGE_OFFSET + PHYS_OFFSET) & UNCACHE_MASK)
-#define __va(x)		((void *)((unsigned long) (x) - PHYS_OFFSET + PAGE_OFFSET))
+#define __pa(x)		(((unsigned long)(x)&UNCACHE_MASK) - PAGE_OFFSET + PHYS_OFFSET)
+#define __va(x)		((void *)((unsigned long)(x) + PAGE_OFFSET - PHYS_OFFSET))
 #define __pa_symbol(x)  __pa(RELOC_HIDE((unsigned long)(x), 0))
 
-#define MAP_NR(addr)       (((unsigned long)(addr)-PAGE_OFFSET-CONFIG_RAM_BASE) \
-                               >> PAGE_SHIFT)
+#define MAP_NR(x)	PFN_DOWN((unsigned long)(x) - PAGE_OFFSET - CONFIG_RAM_BASE)
+#define virt_to_page(x)		(mem_map + MAP_NR(x))
 
-#define virt_to_page(kaddr)	(mem_map + ((__pa(kaddr)-CONFIG_RAM_BASE) \
-                                    >> PAGE_SHIFT))
+#define VM_DATA_DEFAULT_FLAGS	(VM_READ | VM_WRITE | VM_EXEC | \
+				 VM_MAYREAD | VM_MAYWRITE | VM_MAYEXEC)
 
-#define VALID_PAGE(page)	((page - mem_map) < max_mapnr)
-
-#define VM_DATA_DEFAULT_FLAGS  (VM_READ | VM_WRITE | VM_EXEC | \
-				VM_MAYREAD | VM_MAYWRITE | VM_MAYEXEC)
-
-#define UNCACHE_ADDR(addr)	((addr) - PAGE_OFFSET + UNCACHE_BASE)
-#define CACHE_ADDR(addr)		((addr) - UNCACHE_BASE + PAGE_OFFSET)
+#define UNCACHE_ADDR(x)		(x | (~UNCACHE_MASK))
 
 /*
  * main RAM and kernel working space are coincident at 0x80000000, but to make
@@ -121,7 +110,7 @@ typedef struct page *pgtable_t;
  * - these mappings are fixed in the MMU
  */
 
-#define pfn_to_kaddr(pfn)       __va((pfn) << PAGE_SHIFT)
+#define pfn_to_kaddr(x)       __va(PFN_PHYS(x))
 
 #include <asm-generic/memory_model.h>
 #include <asm-generic/getorder.h>
