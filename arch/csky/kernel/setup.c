@@ -53,10 +53,10 @@ static void __init csky_memblock_init(void)
 		zone_size[ZONE_NORMAL]  = PFN_DOWN(memblock_start_of_REG1()) - min_low_pfn;
 		zhole_size[ZONE_NORMAL] = PFN_DOWN(memblock_start_of_REG1()) - max_low_pfn;
 	} else {
-		if (size <= (PFN_DOWN(LOWMEM_LIMIT) - ARCH_PFN_OFFSET))
+		if (size <= PFN_DOWN(LOWMEM_LIMIT - CONFIG_RAM_BASE))
 			zone_size[ZONE_NORMAL] = max_pfn - min_low_pfn;
 		else {
-			zone_size[ZONE_NORMAL] = PFN_DOWN(LOWMEM_LIMIT) - ARCH_PFN_OFFSET;
+			zone_size[ZONE_NORMAL] = PFN_DOWN(LOWMEM_LIMIT - CONFIG_RAM_BASE);
 			max_low_pfn = min_low_pfn + zone_size[ZONE_NORMAL];
 		}
 	}
@@ -67,8 +67,8 @@ static void __init csky_memblock_init(void)
 		size = PFN_DOWN(memblock_size_of_REG1());
 		highstart_pfn = PFN_DOWN(memblock_start_of_REG1());
 	} else {
-		size = max_pfn - min_low_pfn - (PFN_DOWN(LOWMEM_LIMIT) - ARCH_PFN_OFFSET);
-		highstart_pfn =  min_low_pfn + (PFN_DOWN(LOWMEM_LIMIT) - ARCH_PFN_OFFSET);
+		size = max_pfn - min_low_pfn - PFN_DOWN(LOWMEM_LIMIT - CONFIG_RAM_BASE);
+		highstart_pfn =  min_low_pfn + PFN_DOWN(LOWMEM_LIMIT - CONFIG_RAM_BASE);
 	}
 
 	if (size > 0)
