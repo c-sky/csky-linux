@@ -20,4 +20,6 @@
 #define pte_to_pgoff(_pte) (pte.pte_low >> 4)
 #define pgoff_to_pte(off) ((pte_t)((off << 4) + _PAGE_FILE))
 
+#define HAVE_ARCH_UNMAPPED_AREA
+
 #endif /* __ASM_CSKY_PGTABLE_BITS_H */

@@ -12,6 +12,7 @@ unsigned long shm_align_mask = (0x4000 >> 1) - 1;   /* Sane caches */
 	((((addr) + shm_align_mask) & ~shm_align_mask) +        \
 	 (((pgoff) << PAGE_SHIFT) & shm_align_mask))
 
+#ifdef HAVE_ARCH_UNMAPPED_AREA
 unsigned long arch_get_unmapped_area(struct file *filp, unsigned long addr,
 		unsigned long len, unsigned long pgoff, unsigned long flags)
 {
@@ -61,29 +62,4 @@ unsigned long arch_get_unmapped_area(struct file *filp, unsigned long addr,
 			addr = COLOUR_ALIGN(addr, pgoff);
 	}
 }
-
-void arch_pick_mmap_layout(struct mm_struct *mm)
-{
-	unsigned long random_factor = 0UL;
-
-	if (current->flags & PF_RANDOMIZE) {
-		random_factor = get_random_int();
-		random_factor = random_factor << PAGE_SHIFT;
-		random_factor &= 0xfffffful;
-	}
-
-	mm->mmap_base = TASK_UNMAPPED_BASE + random_factor;
-	mm->get_unmapped_area = arch_get_unmapped_area;
-}
-
-unsigned long arch_mmap_rnd(void)
-{
-	return 0;
-}
-
-unsigned long arch_randomize_brk(struct mm_struct *mm)
-{
-	/* why? 8MB for 32bit just copy from mips */
-	return randomize_page(mm->brk, 0x800000);
-}
-
+#endif

@@ -15,11 +15,6 @@
 #include <asm/cache.h>
 #include <hal/regdef.h>
 
-/*
- * CSKY does have an arch_pick_mmap_layout()
- */
-#define HAVE_ARCH_PICK_MMAP_LAYOUT 1
-
 struct cpuinfo_csky {
 	unsigned long udelay_val;
 	unsigned long asid_cache;

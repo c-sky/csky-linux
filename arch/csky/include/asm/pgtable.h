@@ -367,12 +367,6 @@ static inline void update_mmu_cache(struct vm_area_struct *vma,
 #define kern_addr_valid(addr)	(1)
 
 /*
- * We provide our own get_unmapped area to cope with the virtual aliasing
- * constraints placed on us by the cache architecture.
- */
-#define HAVE_ARCH_UNMAPPED_AREA
-
-/*
  * No page table caches to initialise
  */
 #define pgtable_cache_init()	do{}while(0)
