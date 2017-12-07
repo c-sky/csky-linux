@@ -10,7 +10,7 @@ static struct {
 	u32 cpuid;
 } cpu_feature;
 
-char cpu_name[8] = "CKxxx";
+char cpu_name[8] = CSKYCPU_DEF_NAME;
 
 static __init void setup_ccr_hint(struct device_node *cpu)
 {
@@ -35,8 +35,6 @@ static __init void setup_ccr_hint(struct device_node *cpu)
 
 static __init void setup_cpu_name(struct device_node *cpu)
 {
-	cpu_feature.cpuid = mfcr_cpuidrr();
-
 	if (of_device_is_compatible(cpu, "csky,ck610"))
 		sprintf(cpu_name, "CK610");
 	if (of_device_is_compatible(cpu, "csky,ck810"))
@@ -62,6 +60,11 @@ __init void cpu_dt_probe(void)
 
 static int c_show(struct seq_file *m, void *v)
 {
+	cpu_feature.cpuid = mfcr_cpuidrr();
+	cpu_feature.ccr   = mfcr_ccr();
+	cpu_feature.ccr2  = mfcr_ccr2();
+	cpu_feature.hint  = mfcr_hint();
+
 	seq_printf(m, "C-SKY CPU : %s\n", cpu_name);
 	seq_printf(m, "revision  : 0x%08x\n", cpu_feature.cpuid);
 	seq_printf(m, "ccr reg   : 0x%08x\n", cpu_feature.ccr);
