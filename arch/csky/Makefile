@@ -11,17 +11,17 @@ endif
 
 ifdef CONFIG_CPU_CK610
 CPUTYPE	= -Wa,-mcpu=ck610$(DSPEXT)$(FPUEXT)
-CSKYHAL	= v1
+CSKYHAL	= abiv1
 endif
 
 ifdef CONFIG_CPU_CK810
 CPUTYPE= -mcpu=ck810$(DSPEXT)$(FPUEXT)
-CSKYHAL	= v2
+CSKYHAL	= abiv2
 endif
 
 ifdef CONFIG_CPU_CK807
 CPUTYPE= -mcpu=ck807$(DSPEXT)$(FPUEXT)
-CSKYHAL	= v2
+CSKYHAL	= abiv2
 endif
 
 KBUILD_CFLAGS +=	-ffreestanding \
@@ -34,7 +34,7 @@ ifeq ($(CONFIG_CSKY_DEBUG_INFO),y)
 KBUILD_CFLAGS += -g
 endif
 
-haldirs := $(patsubst %,arch/csky/hal/%/,$(CSKYHAL)) 
+haldirs := $(patsubst %,arch/csky/%/,$(CSKYHAL))
 
 KBUILD_CFLAGS += $(patsubst %,-I$(srctree)/%inc,$(haldirs))
 
@@ -53,7 +53,7 @@ head-y				:= arch/csky/kernel/head.o
 core-y				+= arch/csky/kernel/
 core-y				+= arch/csky/mm/
 libs-y				+= arch/csky/lib/
-core-y				+= arch/csky/hal/$(CSKYHAL)/
+core-y				+= arch/csky/$(CSKYHAL)/
 
 ifdef CONFIG_CSKY_BUILTIN_DTB
 core-y				+= arch/csky/boot/dts/
