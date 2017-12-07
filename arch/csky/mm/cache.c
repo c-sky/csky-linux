@@ -155,15 +155,6 @@ void __update_cache(struct vm_area_struct *vma, unsigned long address,
 	page = pfn_to_page(pfn);
 	addr = (unsigned long) page_address(page);
 
-/* gary? */
-#if defined (CONFIG_HIGHMEM) && defined (__CSKYABIV1__)
-	if (PageHighMem(page)){
-		cache_op_all(
-			DATA_CACHE|
-			CACHE_CLR|
-			CACHE_INV, 0);
-	}
-#endif
 	if (vma->vm_flags & VM_EXEC ||
 	    pages_do_alias(addr, address & PAGE_MASK))
 		cache_op_all(
