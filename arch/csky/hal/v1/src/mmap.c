@@ -12,7 +12,6 @@ unsigned long shm_align_mask = (0x4000 >> 1) - 1;   /* Sane caches */
 	((((addr) + shm_align_mask) & ~shm_align_mask) +        \
 	 (((pgoff) << PAGE_SHIFT) & shm_align_mask))
 
-#ifdef HAVE_ARCH_UNMAPPED_AREA
 unsigned long arch_get_unmapped_area(struct file *filp, unsigned long addr,
 		unsigned long len, unsigned long pgoff, unsigned long flags)
 {
@@ -62,4 +61,3 @@ unsigned long arch_get_unmapped_area(struct file *filp, unsigned long addr,
 			addr = COLOUR_ALIGN(addr, pgoff);
 	}
 }
-#endif
