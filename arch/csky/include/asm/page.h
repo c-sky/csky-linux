@@ -40,14 +40,6 @@ extern void *memcpy (void *to, const void *from, size_t l);
 
 #define page_to_phys(page)	(page_to_pfn(page) << PAGE_SHIFT)
 
-extern unsigned long shm_align_mask;
-
-static inline unsigned long pages_do_alias(unsigned long addr1,
-	unsigned long addr2)
-{
-	return (addr1 ^ addr2) & shm_align_mask;
-}
-
 struct page;
 
 #include <hal/page.h>
