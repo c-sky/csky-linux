@@ -58,9 +58,47 @@ static inline void mtcr_ccr2(unsigned int value)
 		::"r"(value));
 }
 
+static inline unsigned int mfcr_msa0(void)
+{
+	unsigned int ret;
+	__asm__ __volatile__(
+		"mfcr %0, cr<30, 15>\t\n"
+		:"=r"(ret));
+	return ret;
+}
+
+static inline void mtcr_msa0(unsigned int value)
+{
+	__asm__ __volatile__(
+		"mtcr %0, cr<30, 15>\t\n"
+		::"r"(value));
+}
+
+static inline unsigned int mfcr_msa1(void)
+{
+	unsigned int ret;
+	__asm__ __volatile__(
+		"mfcr %0, cr<31, 15>\t\n"
+		:"=r"(ret));
+	return ret;
+}
+
+static inline void mtcr_msa1(unsigned int value)
+{
+	__asm__ __volatile__(
+		"mtcr %0, cr<31, 15>\t\n"
+		::"r"(value));
+}
+
 #define L1_SYNC do{__asm__ __volatile__("sync 1\t\n");}while(0)
 
-#define CSKYCPU_DEF_NAME "CK8xx"
+#ifdef CONFIG_CPU_CK807
+#define CSKYCPU_DEF_NAME "csky,ck807"
+#endif
+
+#ifdef CONFIG_CPU_CK810
+#define CSKYCPU_DEF_NAME "csky,ck810"
+#endif
 
 #endif /* __ASM_REG_OPS_H */
 
