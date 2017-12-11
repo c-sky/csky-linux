@@ -24,7 +24,6 @@ static __init void setup_ccr_hint(void)
 	if (ccr) mtcr_ccr(ccr);
 	if (ccr2) mtcr_ccr2(ccr2);
 	if (hint) mtcr_hint(hint);
-	if (ccr2 & 0x8) cache_op_l2enable();
 	cache_op_all(INS_CACHE|DATA_CACHE|CACHE_CLR|CACHE_INV, 1);
 }
 

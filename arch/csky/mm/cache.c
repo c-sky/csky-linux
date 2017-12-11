@@ -11,13 +11,6 @@
 #include <hal/reg_ops.h>
 
 static DEFINE_SPINLOCK(cache_lock);
-static unsigned int l2_enable = 0;
-
-void
-cache_op_l2enable(void)
-{
-	l2_enable = 1;
-}
 
 #define __cache_op_line(i, value) \
 	__asm__ __volatile__( \
@@ -25,6 +18,7 @@ cache_op_l2enable(void)
 		"mtcr	%1, cr17\n\t" \
 		::"r"(i), "r"(value))
 
+#define CCR2_L2E (1 << 3)
 void
 cache_op_line(unsigned int i, unsigned int value)
 {
@@ -33,7 +27,7 @@ cache_op_line(unsigned int i, unsigned int value)
 	__cache_op_line(i, value | CACHE_CLR | CACHE_OMS);
 	spin_unlock_irqrestore(&cache_lock, flags);
 
-	if (l2_enable)
+	if (mfcr_ccr2() & CCR2_L2E)
 		L1_SYNC;
 	else
 		__asm__ __volatile__("sync\n\t");
@@ -46,7 +40,7 @@ cache_op_all(unsigned int value, unsigned int l2)
 		"mtcr	%0, cr17\n\t"
 		::"r"(value | CACHE_CLR));
 
-	if (l2_enable) {
+	if (mfcr_ccr2() & CCR2_L2E) {
 		L1_SYNC;
 		if (l2) goto flush_l2;
 	} else
@@ -71,6 +65,7 @@ cache_op_range(
 {
 	unsigned long i, flags;
 	unsigned int val = value | CACHE_CLR | CACHE_OMS;
+	unsigned int l2_en = mfcr_ccr2() & CCR2_L2E;
 
 	if (unlikely((end - start) >= FLUSH_MAX) ||
 	    unlikely(start < PAGE_OFFSET) ||
@@ -83,7 +78,7 @@ cache_op_range(
 	for(i = start; i < end; i += L1_CACHE_BYTES) {
 		spin_lock_irqsave(&cache_lock, flags);
 		__cache_op_line(i, val);
-		if (l2_enable) {
+		if (l2_en) {
 			L1_SYNC;
 			if (l2) __asm__ __volatile__(
 				"mtcr	%0, cr24\n\t"
@@ -92,7 +87,7 @@ cache_op_range(
 		spin_unlock_irqrestore(&cache_lock, flags);
 	}
 
-	if(l2_enable && !l2) return;
+	if(l2_en && !l2) return;
 
 	__asm__ __volatile__("sync\n\t");
 }
