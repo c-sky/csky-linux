@@ -19,14 +19,6 @@ static inline unsigned int mfcr_hint(void)
 	return ret;
 }
 
-static inline void mtcr_hint(unsigned int value)
-{
-	__asm__ __volatile__(
-		"sync\t\n"
-		"mtcr %0, cr30\t\n"
-		::"r"(value));
-}
-
 static inline unsigned int mfcr_ccr(void)
 {
 	unsigned int ret;
@@ -34,14 +26,6 @@ static inline unsigned int mfcr_ccr(void)
 		"mfcr %0, cr18\t\n"
 		:"=r"(ret));
 	return ret;
-}
-
-static inline void mtcr_ccr(unsigned int value)
-{
-	__asm__ __volatile__(
-		"sync\t\n"
-		"mtcr %0, cr18\t\n"
-		::"r"(value));
 }
 
 static inline unsigned int mfcr_msa0(void)
@@ -77,7 +61,6 @@ static inline void mtcr_msa1(unsigned int value)
 }
 
 static inline unsigned int mfcr_ccr2(void){return 0;}
-static inline void mtcr_ccr2(unsigned int value){}
 
 #define L1_SYNC do{__asm__ __volatile__("sync\t\n");}while(0)
 

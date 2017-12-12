@@ -6,27 +6,6 @@
 
 char cpu_name[32] = CSKYCPU_DEF_NAME;
 
-static __init void setup_ccr_hint(void)
-{
-	unsigned int ccr = 0;
-	unsigned int ccr2 = 0;
-	unsigned int hint = 0;
-	struct device_node *cpu;
-
-	cpu = of_find_node_by_type(NULL, "cpu");
-	if (cpu) {
-		if (of_property_read_u32(cpu, "ccr", &ccr)) ccr = 0;
-		if (of_property_read_u32(cpu, "ccr2", &ccr2)) ccr2 = 0;
-		if (of_property_read_u32(cpu, "hint", &hint)) hint = 0;
-	}
-
-	cache_op_all(INS_CACHE|DATA_CACHE|CACHE_CLR|CACHE_INV, 1);
-	if (ccr) mtcr_ccr(ccr);
-	if (ccr2) mtcr_ccr2(ccr2);
-	if (hint) mtcr_hint(hint);
-	cache_op_all(INS_CACHE|DATA_CACHE|CACHE_CLR|CACHE_INV, 1);
-}
-
 #define MSA_MASK 0xe0000000
 
 static __init void setup_cpu_msa(void)
@@ -55,7 +34,6 @@ static __init void setup_cpu_msa(void)
 __init void cpu_dt_probe(void)
 {
 	setup_cpu_msa();
-	setup_ccr_hint();
 }
 
 static int c_show(struct seq_file *m, void *v)
