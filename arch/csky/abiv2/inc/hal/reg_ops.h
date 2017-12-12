@@ -22,6 +22,7 @@ static inline unsigned int mfcr_hint(void)
 static inline void mtcr_hint(unsigned int value)
 {
 	__asm__ __volatile__(
+		"sync\t\n"
 		"mtcr %0, cr31\t\n"
 		::"r"(value));
 }
@@ -38,6 +39,7 @@ static inline unsigned int mfcr_ccr(void)
 static inline void mtcr_ccr(unsigned int value)
 {
 	__asm__ __volatile__(
+		"sync\t\n"
 		"mtcr %0, cr18\t\n"
 		::"r"(value));
 }
@@ -54,6 +56,7 @@ static inline unsigned int mfcr_ccr2(void)
 static inline void mtcr_ccr2(unsigned int value)
 {
 	__asm__ __volatile__(
+		"sync\t\n"
 		"mtcr %0, cr23\t\n"
 		::"r"(value));
 }
