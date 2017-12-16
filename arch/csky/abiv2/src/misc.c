@@ -47,7 +47,6 @@ void __init init_fpu(void)
 {
 	unsigned long fcr;
 
-	/* save global fcr in arch/csky/hal/v-/src/misc.c */
 	os_config_fcr = (IDE_STAT | IXE_STAT | UFE_STAT |
 			 OFE_STAT | DZE_STAT | IOE_STAT);
 

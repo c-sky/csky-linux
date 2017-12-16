@@ -8,7 +8,7 @@
 #include <asm/cache.h>
 #include <asm/cacheflush.h>
 #include <asm/cachectl.h>
-#include <hal/reg_ops.h>
+#include <abi/reg_ops.h>
 
 static DEFINE_SPINLOCK(cache_lock);
 

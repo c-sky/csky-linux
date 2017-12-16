@@ -1,7 +1,7 @@
 #include <linux/linkage.h>
 #include <linux/init.h>
 #include <asm/page.h>
-#include <hal/regdef.h>
+#include <abi/regdef.h>
 
 ENTRY(_start)
 	/* set super user mode */

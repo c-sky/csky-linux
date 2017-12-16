@@ -9,7 +9,7 @@
 
 #include <linux/errno.h>
 #include <linux/sched.h>
-#include <hal/ckmmu.h>
+#include <abi/ckmmu.h>
 
 /*
  * For the fast tlb miss handlers, we currently keep a per cpu array

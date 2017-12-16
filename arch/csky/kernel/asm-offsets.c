@@ -1,7 +1,7 @@
 #include <linux/sched.h>
 #include <linux/kernel_stat.h>
 #include <linux/kbuild.h>
-#include <hal/regdef.h>
+#include <abi/regdef.h>
 
 int main(void)
 {

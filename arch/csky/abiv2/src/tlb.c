@@ -6,7 +6,7 @@
 #include <asm/mmu_context.h>
 #include <linux/module.h>
 #include <asm/pgtable.h>
-#include <hal/ckmmu.h>
+#include <abi/ckmmu.h>
 
 #undef DEBUG_TLB
 #undef DEBUG_TLBUPDATE

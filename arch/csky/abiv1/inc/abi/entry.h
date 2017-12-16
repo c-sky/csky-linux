@@ -2,7 +2,7 @@
 #define __ASM_CSKY_ENTRY_H
 
 #include <asm/setup.h>
-#include <hal/regdef.h>
+#include <abi/regdef.h>
 
 /*
  * Stack layout in 'ret_from_exception':

@@ -1,7 +1,7 @@
 #include <linux/of.h>
 #include <linux/init.h>
 #include <linux/seq_file.h>
-#include <hal/reg_ops.h>
+#include <abi/reg_ops.h>
 #include <linux/memblock.h>
 
 char cpu_name[32] = CSKYCPU_DEF_NAME;

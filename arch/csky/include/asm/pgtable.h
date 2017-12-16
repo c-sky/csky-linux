@@ -3,7 +3,7 @@
 
 #include <asm/fixmap.h>
 #include <asm/addrspace.h>
-#include <hal/pgtable-bits.h>
+#include <abi/pgtable-bits.h>
 #include <asm-generic/pgtable-nopmd.h>
 
 /* PGDIR_SHIFT determines what a third-level page table entry can map */

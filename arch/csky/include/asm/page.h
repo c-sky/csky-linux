@@ -42,7 +42,7 @@ extern void *memcpy (void *to, const void *from, size_t l);
 
 struct page;
 
-#include <hal/page.h>
+#include <abi/page.h>
 
 struct vm_area_struct;
 

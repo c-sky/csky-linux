@@ -13,7 +13,7 @@
 #include <asm/ptrace.h>
 #include <asm/current.h>
 #include <asm/cache.h>
-#include <hal/regdef.h>
+#include <abi/regdef.h>
 
 struct cpuinfo_csky {
 	unsigned long udelay_val;

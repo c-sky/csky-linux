@@ -1,7 +1,7 @@
 #ifndef __ASM_CSKY_IO_H
 #define __ASM_CSKY_IO_H
 
-#include <hal/pgtable-bits.h>
+#include <abi/pgtable-bits.h>
 #include <linux/types.h>
 
 extern void __iomem *ioremap(phys_addr_t offset, size_t size);
