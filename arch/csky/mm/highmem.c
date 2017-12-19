@@ -18,7 +18,6 @@ void *kmap(struct page *page)
 	if (!PageHighMem(page))
 		return page_address(page);
 	addr = kmap_high(page);
-	flush_tlb_one((unsigned long)addr);
 
 	return addr;
 }
@@ -30,9 +29,6 @@ void kunmap(struct page *page)
 	if (!PageHighMem(page))
 		return;
 	kunmap_high(page);
-#ifdef __CSKYABIV1__
-	flush_dcache_page(page);
-#endif
 }
 EXPORT_SYMBOL(kunmap);
 
@@ -63,9 +59,6 @@ void *kmap_atomic(struct page *page)
 #endif
 	set_pte(kmap_pte-idx, mk_pte(page, PAGE_KERNEL));
 	local_flush_tlb_one((unsigned long)vaddr);
-#ifdef __CSKYABIV1__
-	flush_dcache_page(page);
-#endif
 
 	return (void*) vaddr;
 }
@@ -115,10 +108,7 @@ void *kmap_atomic_pfn(unsigned long pfn)
 	idx = type + KM_TYPE_NR*smp_processor_id();
 	vaddr = __fix_to_virt(FIX_KMAP_BEGIN + idx);
 	set_pte(kmap_pte-idx, pfn_pte(pfn, PAGE_KERNEL));
-	flush_tlb_one(vaddr);
-#ifdef __CSKYABIV1__
-	flush_cache_range(NULL, vaddr, ((unsigned long)vaddr + PAGE_SIZE));
-#endif
+	local_flush_tlb_one(vaddr);
 
 	return (void*) vaddr;
 }
