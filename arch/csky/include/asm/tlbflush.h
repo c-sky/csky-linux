@@ -24,6 +24,5 @@ extern void local_flush_tlb_one(unsigned long vaddr);
 #define flush_tlb_kernel_range(vmaddr,end) \
         local_flush_tlb_kernel_range(vmaddr, end)
 #define flush_tlb_page(vma, page)       local_flush_tlb_page(vma, page)
-#define flush_tlb_one(vaddr)            local_flush_tlb_one(vaddr)
 
 #endif

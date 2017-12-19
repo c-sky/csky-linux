@@ -117,7 +117,6 @@ static inline pte_t pte_mkspecial(pte_t pte) { return pte; }
  * Empty pgd/pmd entries point to the invalid_pte_table.
  */
 #ifdef CONFIG_MMU_HARD_REFILL
-#include <asm/cacheflush.h>
 
 #define __dcache_flush_line(x) \
 	cache_op_line((u32)x, DATA_CACHE|CACHE_CLR);

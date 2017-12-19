@@ -92,25 +92,6 @@ cache_op_range(
 	__asm__ __volatile__("sync\n\t");
 }
 
-void flush_dcache_page(struct page *page)
-{
-	struct address_space *mapping = page_mapping(page);
-	unsigned long addr;
-
-	if (mapping && !mapping_mapped(mapping)) {
-		set_bit(PG_arch_1, &(page)->flags);
-		return;
-	}
-
-	/*
-	 * We could delay the flush for the !page_mapping case too.  But that
-	 * case is for exec env/arg pages and those are %99 certainly going to
-	 * get faulted into the tlb (and thus flushed) anyways.
-	 */
-	addr = (unsigned long) page_address(page);
-	cache_op_range(addr, addr + PAGE_SIZE, CACHE_INV|CACHE_CLR|DATA_CACHE, 0);
-}
-
 SYSCALL_DEFINE3(cacheflush,
 		void __user *, addr,
 		unsigned long, bytes,
