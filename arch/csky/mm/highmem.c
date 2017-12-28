@@ -18,6 +18,7 @@ void *kmap(struct page *page)
 	if (!PageHighMem(page))
 		return page_address(page);
 	addr = kmap_high(page);
+        local_flush_tlb_one((unsigned long)addr);
 
 	return addr;
 }
