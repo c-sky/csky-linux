@@ -14,7 +14,7 @@
 #define _PAGE_SILENT_WRITE          (1<<2)
 #define _CACHE_MASK                 (7<<3)
 
-#define _CACHE_UNCACHED             (0x2)
+#define _CACHE_UNCACHED             (0x22)
 #define _CACHE_CACHED               (0xa)
 
 #define pte_to_pgoff(_pte) \
