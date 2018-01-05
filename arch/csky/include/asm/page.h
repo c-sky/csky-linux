@@ -82,19 +82,19 @@ typedef struct page *pgtable_t;
 #endif
 #define ARCH_PFN_OFFSET	PFN_DOWN(CONFIG_RAM_BASE + PHYS_OFFSET)
 
-#define UNCACHE_MASK	0xdfffffff
+#define MASK_SSEG1(x) ((unsigned long)(x) & (~LOWMEM_LIMIT))
 
-#define __pa(x)		(((unsigned long)(x)&UNCACHE_MASK) - PAGE_OFFSET + PHYS_OFFSET)
+#define __pa(x)		(MASK_SSEG1(x) - PAGE_OFFSET + PHYS_OFFSET)
 #define __va(x)		((void *)((unsigned long)(x) + PAGE_OFFSET - PHYS_OFFSET))
-#define __pa_symbol(x)  __pa(RELOC_HIDE((unsigned long)(x), 0))
+#define __pa_symbol(x)  __pa(RELOC_HIDE(MASK_SSEG1(x), 0))
 
-#define MAP_NR(x)	PFN_DOWN((unsigned long)(x) - PAGE_OFFSET - CONFIG_RAM_BASE)
+#define MAP_NR(x)	PFN_DOWN(MASK_SSEG1(x) - PAGE_OFFSET - CONFIG_RAM_BASE)
 #define virt_to_page(x)		(mem_map + MAP_NR(x))
 
 #define VM_DATA_DEFAULT_FLAGS	(VM_READ | VM_WRITE | VM_EXEC | \
 				 VM_MAYREAD | VM_MAYWRITE | VM_MAYEXEC)
 
-#define UNCACHE_ADDR(x)		(x | (~UNCACHE_MASK))
+#define UNCACHE_ADDR(x)		((unsigned long)(x) | LOWMEM_LIMIT)
 
 /*
  * main RAM and kernel working space are coincident at 0x80000000, but to make
