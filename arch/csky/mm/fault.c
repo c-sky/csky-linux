@@ -232,13 +232,9 @@ vmalloc_fault:
                 pmd_t *pmd, *pmd_k;
                 pte_t *pte_k;
 
-#ifdef CONFIG_MMU_HARD_REFILL
                 unsigned long pgd_base;
 		pgd_base = tlb_get_pgd();
                 pgd = (pgd_t *)pgd_base + offset;
-#else
-                pgd = (pgd_t *) pgd_current[raw_smp_processor_id()] + offset;
-#endif /* CONFIG_MMU_HARD_REFILL */
                 pgd_k = init_mm.pgd + offset;
 
                 if (!pgd_present(*pgd_k))

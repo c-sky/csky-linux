@@ -31,10 +31,6 @@
 #error "CONFIG_HIGHMEM and CONFIG_DISCONTIGMEM dont work together yet"
 #endif
 
-#ifndef CONFIG_MMU_HARD_REFILL
-unsigned long pgd_current[NR_CPUS];
-#endif
-
 pgd_t swapper_pg_dir[PTRS_PER_PGD] __page_aligned_bss;
 pte_t invalid_pte_table[PTRS_PER_PTE] __page_aligned_bss;
 unsigned long empty_zero_page[PAGE_SIZE / sizeof(unsigned long)] __page_aligned_bss;
@@ -102,11 +98,7 @@ void pgd_init(unsigned long *p)
 {
 	int i;
 
-#ifdef CONFIG_MMU_HARD_REFILL
 #define val	(unsigned long) __pa(invalid_pte_table);
-#else
-#define val	(unsigned long) invalid_pte_table;
-#endif
 
 	for (i = 0; i < USER_PTRS_PER_PGD*2; i+=8) {
 		p[i + 0] = val;

@@ -52,21 +52,14 @@
 
 .export handle_tlbinvalidl
 .export handle_tlbmodified
-.export handle_tlbmissinst
-.export handle_tlbmissdata
 .export tlbinvalidl
 .export tlbinvalids
-.export tlbmiss
 .export readtlbinvalid
 .export writetlbinvalid
 .export handle_fpe
 .export handle_illegal
 
 .import irq_stat
-
-#ifndef CONFIG_MMU_HARD_REFILL
-.import pgd_current
-#endif
 
 .data
 sw_ksp:
@@ -86,27 +79,23 @@ tlbinvalidl:
 	mtcr    a2, ss4
 
 	SET_CP_MMU
-#ifdef CONFIG_MMU_HARD_REFILL
+
 	RD_PGDR	r6
 	bclri   r6, 0
 	lrw	a3, PHYS_OFFSET
 	subu	r6, a3
 	bseti	r6, 31
-#else
-	lrw     r6, (pgd_current)
-	ldw     r6, (r6)
-#endif
+
 	RD_MEH	    a3
 	mov     a2, a3
    	lsri    a2, _PGDIR_SHIFT
 	lsli    a2, 2
 	addu    r6, a2
 	ldw     r6, (r6)
-#ifdef CONFIG_MMU_HARD_REFILL
+
 	lrw	a2, PHYS_OFFSET
 	subu	r6, a2
 	bseti	r6, 31
-#endif
 
 	lsri    a3, PTE_INDX_SHIFT
 	lrw     a2, PTE_INDX_MSK
@@ -194,16 +183,12 @@ tlbinvalids:
 	mtcr    a2, ss4
 
 	SET_CP_MMU
-#ifdef CONFIG_MMU_HARD_REFILL
+
 	RD_PGDR	r6
 	bclri   r6, 0
 	lrw	a3, PHYS_OFFSET
 	subu	r6, a3
 	bseti	r6, 31
-#else
- 	lrw 	r6, pgd_current
-	ldw     r6, (r6)
-#endif
 
 	RD_MEH	a3
 	mov     a2, a3
@@ -211,11 +196,10 @@ tlbinvalids:
 	lsli    a2, 2
 	addu    r6, a2
 	ldw     r6, (r6)
-#ifdef CONFIG_MMU_HARD_REFILL
+
 	lrw	a2, PHYS_OFFSET
 	subu	r6, a2
 	bseti   r6, 31
-#endif
 
 	lsri    a3, PTE_INDX_SHIFT
 	lrw     a2, PTE_INDX_MSK
@@ -299,49 +283,6 @@ writetlbinvalid:
 	jmpi    (ret_from_exception)
 
 /*
- * Tlbmiss exception handle routine.
- */
-ENTRY(handle_tlbmiss)
-tlbmiss:
-#ifndef CONFIG_MMU_HARD_REFILL
-	lrw     a0, (pgd_current)
-	ldw     a0, (a0)
-
-	SET_CP_MMU
-	RD_MEH  a1
-#ifdef __CSKYABIV1__
-	mov     a2, a1
-	lsri    a2, _PGDIR_SHIFT
-	ixw     a0, a2
-	ldw     a0, (a0)
-
-	lsri    a1, PTE_INDX_SHIFT
-	lrw     a2, PTE_INDX_MSK
-	and     a1, a2
-	addu    a0, a1
-	bclri   a0, PTE_BIT
-	ldw     a1, (a0)
-	lsri    a1, 6
-	WR_MEL0 a1
-	ldw     a1, (a0, 4)
-	lsri    a1, 6
-	WR_MEL1 a1
-#else
-#error ck8xx only hardrefill for tlbmiss, because some no shadow regs
-#endif
-
-	bgeni   a1, 28           /* TLB write random command, r5 = 0x10000000 */
-	WR_MCIR a1
-#endif
-	/*
-	 * clear TP in psr[13]
-	 */
-	mfcr    a1, epsr
-	bclri   a1, 13
-	mtcr    a1, epsr
-	rte
-
-/*
  * Tlbmodified exception handle routine.
  */
 ENTRY(handle_tlbmodified)
@@ -357,16 +298,12 @@ ENTRY(handle_tlbmodified)
 	mtcr    a3, epsr
 
 	SET_CP_MMU
-#ifdef CONFIG_MMU_HARD_REFILL
+
 	RD_PGDR	r6
 	bclri   r6, 0
 	lrw	a3, PHYS_OFFSET
 	subu	r6, a3
 	bseti   r6, 31
-#else
-	lrw     r6, (pgd_current)
-	ldw     r6, (r6)
-#endif
 
 	RD_MEH  a3
 	mov     a2, a3
@@ -378,11 +315,10 @@ ENTRY(handle_tlbmodified)
 	 * get pte table to r6
 	 */
 	ldw     r6, (r6)
-#ifdef CONFIG_MMU_HARD_REFILL
+
 	lrw	a2, PHYS_OFFSET
 	subu	r6, a2
 	bseti   r6, 31
-#endif
 
 	lsri    a3, PTE_INDX_SHIFT
 	lrw     a2, PTE_INDX_MSK

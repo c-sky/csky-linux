@@ -38,7 +38,6 @@ asmlinkage void fastautohandler(void);
 asmlinkage void handle_tlbinvalidl(void);
 asmlinkage void handle_tlbinvalids(void);
 asmlinkage void handle_tlbmodified(void);
-asmlinkage void handle_tlbmiss(void);
 asmlinkage void handle_fpe(void);
 asmlinkage void handle_illegal(void);
 
@@ -95,7 +94,6 @@ void __init trap_init (void)
 	_ramvec[VEC_TLBINVALIDL] = handle_tlbinvalidl;
 	_ramvec[VEC_TLBINVALIDS] = handle_tlbinvalids;
 	_ramvec[VEC_TLBMODIFIED] = handle_tlbmodified;
-	_ramvec[VEC_TLBMISS] = (void *)((unsigned int)handle_tlbmiss | 0x1);
 	_ramvec[VEC_ILLEGAL] = handle_illegal;
 	_ramvec[VEC_FPE] = handle_fpe;
 }

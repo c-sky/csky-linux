@@ -5,8 +5,6 @@
 #include <linux/mm.h>
 #include <linux/sched.h>
 
-#ifdef CONFIG_MMU_HARD_REFILL
-/* hard refill need fill PA. */
 static inline void pmd_populate_kernel(struct mm_struct *mm, pmd_t *pmd,
         pte_t *pte)
 {
@@ -18,19 +16,6 @@ static inline void pmd_populate(struct mm_struct *mm, pmd_t *pmd,
 {
         set_pmd(pmd, __pmd(__pa(page_address(pte))));
 }
-#else
-static inline void pmd_populate_kernel(struct mm_struct *mm, pmd_t *pmd,
-        pte_t *pte)
-{
-        set_pmd(pmd, __pmd((unsigned long)pte));
-}
-
-static inline void pmd_populate(struct mm_struct *mm, pmd_t *pmd,
-        pgtable_t pte)
-{
-        set_pmd(pmd, __pmd((unsigned long)page_address(pte)));
-}
-#endif
 
 #define pmd_pgtable(pmd) pmd_page(pmd)
 
@@ -101,7 +86,7 @@ static inline pgd_t *pgd_alloc(struct mm_struct *mm)
                 pgd_init((unsigned long *)ret);
                 memcpy(ret + USER_PTRS_PER_PGD, init + USER_PTRS_PER_PGD,
                        (PTRS_PER_PGD - USER_PTRS_PER_PGD) * sizeof(pgd_t));
-#if defined(CONFIG_MMU_HARD_REFILL) && !defined(__ck807__)
+#if !defined(__ck807__)
 		cache_op_range((unsigned int)ret, (unsigned int)(ret + PTRS_PER_PGD)
 			,DATA_CACHE|CACHE_CLR, 0);
 #endif

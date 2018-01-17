@@ -151,12 +151,7 @@ static void __init fixrange_init (unsigned long start, unsigned long end,
 			for (; (k < PTRS_PER_PMD) && (vaddr != end); pmd++, k++) {
 				if (pmd_none(*pmd)) {
 					pte = (pte_t *) alloc_bootmem_low_pages(PAGE_SIZE);
-#ifdef CONFIG_MMU_HARD_REFILL
-/* hard refill need fill PA. */
 					set_pmd(pmd, __pmd(__pa(pte)));
-#else
-					set_pmd(pmd, __pmd((unsigned long)pte));
-#endif
 					BUG_ON(pte != pte_offset_kernel(pmd, 0));
 				}
 				vaddr += PMD_SIZE;

@@ -19,13 +19,7 @@
  * in watch hi/lo. The context register should be used to contiguously
  * map the page tables.
  */
-#ifdef CONFIG_MMU_HARD_REFILL
 #define TLBMISS_HANDLER_SETUP_PGD(pgd) tlbmiss_handler_setup_pgd((unsigned long)pgd)
-#else
-#define TLBMISS_HANDLER_SETUP_PGD(pgd) \
-	pgd_current[smp_processor_id()] = (unsigned long)(pgd)
-extern unsigned long pgd_current[];
-#endif /* CONFIG_MMU_HARD_REFILL */
 
 #define cpu_context(cpu, mm)	((mm)->context.asid[cpu])
 #define cpu_asid(cpu, mm)	(cpu_context((cpu), (mm)) & ASID_MASK)

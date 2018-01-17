@@ -113,11 +113,6 @@ extern pte_t invalid_pte_table[PTRS_PER_PTE];
 static inline int pte_special(pte_t pte) { return 0; }
 static inline pte_t pte_mkspecial(pte_t pte) { return pte; }
 
-/*
- * Empty pgd/pmd entries point to the invalid_pte_table.
- */
-#ifdef CONFIG_MMU_HARD_REFILL
-
 #define __dcache_flush_line(x) \
 	cache_op_line((u32)x, DATA_CACHE|CACHE_CLR);
 
@@ -175,48 +170,6 @@ static inline void pmd_clear(pmd_t *pmdp)
 	__dcache_flush_line(pmdp);
 #endif
 }
-#else /* CONFIG_MMU_HARD_REFILL */
-
-#define set_pte(pteptr, pteval)                                 \
-        do{                                                     \
-                *(pteptr) = (pteval);                           \
-        } while(0)
-#define set_pte_at(mm,addr,ptep,pteval) set_pte(ptep,pteval)
-
-static inline pte_t *pmd_page_vaddr(pmd_t pmd)
-{
-	unsigned long ptr;
-
-	ptr = pmd_val(pmd);
-
-	return (pte_t *)ptr;
-}
-
-#define pmd_phys(pmd)	virt_to_phys((void *)pmd_val(pmd))
-
-/*
- * (pmds are folded into pgds so this doesn't get actually called,
- * but the define is needed for a generic inline function.)
- */
-#define set_pmd(pmdptr, pmdval)	(*(pmdptr) = pmdval)
-
-static inline int pmd_none(pmd_t pmd)
-{
-	return pmd_val(pmd) == (unsigned long) invalid_pte_table;
-}
-
-#define pmd_bad(pmd)	(pmd_val(pmd) & ~PAGE_MASK)
-
-static inline int pmd_present(pmd_t pmd)
-{
-	return (pmd_val(pmd) != (unsigned long) invalid_pte_table);
-}
-
-static inline void pmd_clear(pmd_t *pmdp)
-{
-	pmd_val(*pmdp) = ((unsigned long) invalid_pte_table);
-}
-#endif
 
 /*
  * The following only work if pte_present() is true.

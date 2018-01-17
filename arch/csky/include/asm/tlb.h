@@ -10,7 +10,7 @@
 			INS_CACHE|DATA_CACHE|CACHE_CLR|CACHE_INV, 0); \
 	}  while (0)
 
-#if defined(CONFIG_MMU_HARD_REFILL) && !defined(__ck807__)
+#if !defined(__ck807__)
 /*
  * FIXME: may be use function flush_tlb_range like other arch.
  */
