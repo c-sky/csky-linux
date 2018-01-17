@@ -33,7 +33,7 @@ static inline int read_mmu_entrylo0(void)
 			"cprcr %0, cpcr2\n\t"
 			:"=b" (__res));
 
-	return __res;
+	return __res << 6;
 }
 
 static inline void write_mmu_entrylo0(int value)
@@ -51,7 +51,7 @@ static inline int read_mmu_entrylo1(void)
 			"cprcr %0, cpcr3\n\t"
 			:"=b" (__res));
 
-	return __res;
+	return __res << 6;
 }
 
 static inline void write_mmu_entrylo1(int value)
@@ -167,6 +167,15 @@ static inline void tlb_write_indexed(void)
 static inline void tlb_write_random(void)
 {
 	int value = 0x10000000;
+
+	__asm__ __volatile__(
+			"cpwcr %0, cpcr8\n\t"
+			::"b"(value));
+}
+
+static inline void tlb_invalid_all(void)
+{
+	int value = 0x04000000;
 
 	__asm__ __volatile__(
 			"cpwcr %0, cpcr8\n\t"
