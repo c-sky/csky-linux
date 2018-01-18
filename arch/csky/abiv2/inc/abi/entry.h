@@ -111,7 +111,6 @@
 
 #define SAVE_SWITCH_STACK save_switch_stack
 #define RESTORE_SWITCH_STACK restore_switch_stack
-#define GET_CURRENT(tmp)
 
 .macro	save_switch_stack
         subi    sp, 64
@@ -142,54 +141,14 @@
 .macro  PT_REGS_ADJUST  rx   /* abiv2 when argc>5 need push r4 r5 in syscall */
         addi     \rx, sp, 8
 .endm
-/*
- * Because kernel don't use FPU and only user program use FPU, we select
- * coprocessor 15(MMU) when in super-mode. So this macro is called when
- * CPU enter from user-mode to kernel super-mode except MMU exception.
- */
-.macro SET_SMOD_MMU_CP15
-.endm
 
-/*
- * Below, are macros for MMU operating, use them to switch cop, read or write
- * registers of MMU in assemble files. Macro __CSKYABIV1__ means MMU in
- * coprocessor.
- */
-/* Coprocessor switch to MMU */
-.macro SET_CP_MMU
-.endm
-
-/* MMU registers read operators. */
+/* MMU registers operators. */
 .macro RD_MIR	rx
 	mfcr    \rx, cr<0, 15>
 .endm
 
-.macro RD_MRR	rx
-	mfcr    \rx, cr<1, 15>
-.endm
-
-.macro RD_MEL0	rx
-	mfcr    \rx, cr<2, 15>
-.endm
-
-.macro RD_MEL1	rx
-	mfcr    \rx, cr<3, 15>
-.endm
-
 .macro RD_MEH	rx
 	mfcr    \rx, cr<4, 15>
-.endm
-
-.macro RD_MCR	rx
-	mfcr    \rx, cr<5, 15>
-.endm
-
-.macro RD_MPR	rx
-	mfcr    \rx, cr<6, 15>
-.endm
-
-.macro RD_MWR	rx
-	mfcr    \rx, cr<7, 15>
 .endm
 
 .macro RD_MCIR	rx
@@ -200,48 +159,12 @@
         mfcr    \rx, cr<29, 15>
 .endm
 
-/* MMU registers write operators. */
-.macro WR_MIR	rx
-	mtcr    \rx, cr<0, 15>
-.endm
-
-.macro WR_MRR	rx
-	mtcr    \rx, cr<1, 15>
-.endm
-
-.macro WR_MEL0	rx
-	mtcr    \rx, cr<2, 15>
-.endm
-.macro WR_MEL1	rx
-	mtcr    \rx, cr<3, 15>
-.endm
-
 .macro WR_MEH	rx
 	mtcr    \rx, cr<4, 15>
 .endm
 
-.macro WR_MCR	rx
-	mtcr    \rx, cr<5, 15>
-.endm
-
-.macro WR_MPR	rx
-	mtcr    \rx, cr<6, 15>
-.endm
-
-.macro WR_MWR	rx
-	mtcr    \rx, cr<7, 15>
-.endm
-
 .macro WR_MCIR	rx
 	mtcr    \rx, cr<8, 15>
-.endm
-
-.macro WR_MSA0	rx
-	mtcr    \rx, cr<30, 15>
-.endm
-
-.macro WR_MSA1	rx
-	mtcr    \rx, cr<31, 15>
 .endm
 
 #endif /* __ASM_CSKY_ENTRY_H */

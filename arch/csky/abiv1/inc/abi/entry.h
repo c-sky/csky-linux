@@ -113,7 +113,6 @@
 
 #define SAVE_SWITCH_STACK save_switch_stack
 #define RESTORE_SWITCH_STACK restore_switch_stack
-#define GET_CURRENT(tmp)
 
 .macro	save_switch_stack
 	subi    sp, 32
@@ -128,56 +127,14 @@
 .macro  PT_REGS_ADJUST  rx   /* abiv2 when argc>5 need push r4 r5 in syscall */
         mov      \rx, sp
 .endm
-/*
- * Because kernel don't use FPU and only user program use FPU, we select
- * coprocessor 15(MMU) when in super-mode. So this macro is called when
- * CPU enter from user-mode to kernel super-mode except MMU exception.
- */
-.macro SET_SMOD_MMU_CP15
-	cpseti  cp15
-.endm
 
-/*
- * Below, are macros for MMU operating, use them to switch cop, read or write
- * registers of MMU in assemble files. Macro __CSKYABIV1__ means MMU in
- * coprocessor.
- */
-/* Coprocessor switch to MMU */
-.macro SET_CP_MMU
-	cpseti  cp15
-.endm
-
-/* MMU registers read operators. */
+/* MMU registers operators. */
 .macro RD_MIR	rx
 	cprcr   \rx, cpcr0
 .endm
 
-.macro RD_MRR	rx
-	cprcr   \rx, cpcr1
-.endm
-
-.macro RD_MEL0	rx
-	cprcr   \rx, cpcr2
-.endm
-
-.macro RD_MEL1	rx
-	cprcr   \rx, cpcr3
-.endm
-
 .macro RD_MEH	rx
 	cprcr   \rx, cpcr4
-.endm
-
-.macro RD_MCR	rx
-	cprcr   \rx, cpcr5
-.endm
-
-.macro RD_MPR	rx
-	cprcr   \rx, cpcr6
-.endm
-
-.macro RD_MWR	rx
-	cprcr   \rx, cpcr7
 .endm
 
 .macro RD_MCIR	rx
@@ -188,49 +145,11 @@
         cprcr   \rx, cpcr29
 .endm
 
-/* MMU registers write operators. */
-.macro WR_MIR	rx
-	cpwcr   \rx, cpcr0
-.endm
-
-.macro WR_MRR	rx
-	cpwcr   \rx, cpcr1
-.endm
-
-.macro WR_MEL0	rx
-	cpwcr   \rx, cpcr2
-.endm
-
-.macro WR_MEL1	rx
-	cpwcr   \rx, cpcr3
-.endm
-
 .macro WR_MEH	rx
 	cpwcr   \rx, cpcr4
-.endm
-
-.macro WR_MCR	rx
-	cpwcr   \rx, cpcr5
-.endm
-
-.macro WR_MPR	rx
-	cpwcr   \rx, cpcr6
-.endm
-
-.macro WR_MWR	rx
-	cpwcr   \rx, cpcr7
 .endm
 
 .macro WR_MCIR	rx
 	cpwcr   \rx, cpcr8
 .endm
-
-.macro WR_MSA0	rx
-	cpwcr   \rx, cpcr30
-.endm
-
-.macro WR_MSA1	rx
-	cpwcr   \rx, cpcr31
-.endm
-
 #endif /* __ASM_CSKY_ENTRY_H */

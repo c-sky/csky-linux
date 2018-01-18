@@ -78,15 +78,21 @@ tlbinvalidl:
 	mtcr    r6, ss3
 	mtcr    a2, ss4
 
-	SET_CP_MMU
-
+	bgeni	a2, 31
+	WR_MCIR	a2
+	RD_MIR  a3
+	btsti   a3, 31     /* Is probe success ? */
+	bt      1f
+	bgeni	a2, 25
+	WR_MCIR	a2
+1:
 	RD_PGDR	r6
 	bclri   r6, 0
 	lrw	a3, PHYS_OFFSET
 	subu	r6, a3
 	bseti	r6, 31
 
-	RD_MEH	    a3
+	RD_MEH	a3
 	mov     a2, a3
    	lsri    a2, _PGDIR_SHIFT
 	lsli    a2, 2
@@ -102,8 +108,7 @@ tlbinvalidl:
 	and     a3, a2
 	addu    r6, a3
 	ldw     a3, (r6)
-	bgeni   a2, 31            /* move 0x80000000 to a2 */
-	WR_MCIR	a2
+
 	movi    a2, (_PAGE_PRESENT | _PAGE_READ)
 	and     a3, a2
 	cmpne   a3, a2
@@ -120,36 +125,12 @@ tlbinvalidl:
 	or      a3, a2
 	stw     a3, (r6)
 
-	/*
-	 * Below, fill a jTLB with two PTEs of which we have set one above.
-	 * When do this, we make sure set Entrylo0 with the low PTE in Page
-	 * Table, and Entrylo1 with the high one.
-	 */
-	bclri   r6, PTE_BIT
-#ifdef __CSKYABIV1__
-	ldw     a2, (r6, 4)
-	lsri    a2, 6
-	WR_MEL1 a2
-	ldw     a2, (r6)
-	lsri    a2, 6
-	WR_MEL0 a2
-#else
-	ldw     a2, (r6, 4)
-	WR_MEL1 a2
-	ldw     a2, (r6)
-	WR_MEL0    a2
-#endif
+	movi	a2, 0x32
+	bseti	a2, 6
+	mtcr	r6, cr22
+	mtcr	a2, cr17
+	sync
 
-	RD_MIR  a3         /* Read MIR */
-	bgeni   a2, 29     /* Use write index by default */
-	btsti   a3, 31     /* Is probe success ? */
-	bf      1f
-	bgeni   a2, 25
-	WR_MCIR a2
-	bgeni   a2, 28     /* If probe failed, invalid index and write random */
-
-1:
-	WR_MCIR a2
 	mfcr    a3, ss2
 	mfcr    r6, ss3
 	mfcr    a2, ss4
@@ -161,7 +142,6 @@ readtlbinvalid:
 	mfcr    a2, ss4
 	SAVE_ALL
 
-	SET_CP_MMU
 	RD_MEH	a3
 	bmaski  r8, 12
 	andn    a3, r8             /* r8 = !(0xfffff000) */
@@ -182,8 +162,14 @@ tlbinvalids:
 	mtcr    r6, ss3
 	mtcr    a2, ss4
 
-	SET_CP_MMU
-
+	bgeni	a2, 31
+	WR_MCIR	a2
+	RD_MIR  a3
+	btsti   a3, 31     /* Is probe success ? */
+	bt      1f
+	bgeni	a2, 25
+	WR_MCIR	a2
+1:
 	RD_PGDR	r6
 	bclri   r6, 0
 	lrw	a3, PHYS_OFFSET
@@ -206,8 +192,6 @@ tlbinvalids:
 	and     a3, a2
 	addu    r6, a3
 	ldw     a3, (r6)
-	bgeni   a2, 31           /* TLB probe command, a2 = 0x80000000 */
-	WR_MCIR	a2
 	movi    a2, (_PAGE_PRESENT | _PAGE_WRITE)
 	and     a3, a2
 	xor     a3, a2
@@ -228,36 +212,12 @@ tlbinvalids:
 
 	or      a3, a2
 	stw     a3, (r6)
-	/*
-	 * Below, fill a jTLB with two PTEs of which we have set one above.
-	 * When do this, we make sure set Entrylo0 with the low PTE in Page
-	 * Table, and Entrylo1 with the high one.
-	 */
-	bclri   r6, PTE_BIT
-#ifdef __CSKYABIV1__
-	ldw     a2, (r6,4)
-	lsri    a2, 6
-	WR_MEL1	a2
-	ldw 	a2, (r6)
-	lsri	a2, 6
-	WR_MEL0	a2
-#else
-	ldw     a2, (r6,4)
-	WR_MEL1 a2
-	ldw     a2, (r6)
-	WR_MEL0 a2
-#endif
-
-	RD_MIR  a3         /* Read MIR */
-	bgeni   a2, 29     /* Use write index by default */
-	btsti   a3, 31     /* Is probe success ? */
-	bf      1f
-	bgeni   a2, 25
-	WR_MCIR a2
-	bgeni   a2, 28     /* If probe failed, invalid index and write random */
-
-1:
-	WR_MCIR	a2
+	
+	movi	a2, 0x32
+	bseti 	a2, 6
+	mtcr    r6, cr22
+	mtcr	a2, cr17
+	sync
 
 	mfcr    a3, ss2
 	mfcr    r6, ss3
@@ -270,7 +230,6 @@ writetlbinvalid:
 	mfcr    a2, ss4
 	SAVE_ALL
 
-	SET_CP_MMU
 	RD_MEH	    a3
 	bmaski  r8, 12
 	andn    a3, r8          /* r8 = !(0xfffff000) */
@@ -297,8 +256,14 @@ ENTRY(handle_tlbmodified)
 	bclri   a3, 13
 	mtcr    a3, epsr
 
-	SET_CP_MMU
-
+	bgeni	a2, 31
+	WR_MCIR	a2
+	RD_MIR  a3
+	btsti   a3, 31
+	bt      1f
+	bgeni	a2, 25
+	WR_MCIR	a2
+1:
 	RD_PGDR	r6
 	bclri   r6, 0
 	lrw	a3, PHYS_OFFSET
@@ -310,10 +275,6 @@ ENTRY(handle_tlbmodified)
 	lsri    a2, _PGDIR_SHIFT
 	lsli    a2, 2
 	addu    r6, a2
-
-	/*
-	 * get pte table to r6
-	 */
 	ldw     r6, (r6)
 
 	lrw	a2, PHYS_OFFSET
@@ -325,9 +286,6 @@ ENTRY(handle_tlbmodified)
 	and     a3, a2
 	addu    r6, a3
 	ldw     a3, (r6)/* get pte to a3*/
-
-	bgeni   a2, 31	/* TLB probe command, a2 = 0x80000000 */
-	WR_MCIR	a2	/* find faulting entry */
 
 	/*
 	 * if _PAGE_WRITE == 0, goto tlbmodified.
@@ -352,32 +310,11 @@ ENTRY(handle_tlbmodified)
 	or      a3, a2
 	stw     a3, (r6)
 
-	/* Now reload the entry into the tlb. */
-	bclri   r6, PTE_BIT
-#ifdef __CSKYABIV1__
-	ldw     a2, (r6, 4)
-	lsri    a2, 6
-	WR_MEL1	a2
-	ldw     a2, (r6)
-	lsri    a2, 6
-	WR_MEL0	a2
-#else
-	ldw     a2, (r6, 4)
-	WR_MEL1 a2
-	ldw     a2, (r6)
-	WR_MEL0 a2
-#endif
-
-	RD_MIR  a3         /* Read MIR */
-	bgeni   a2, 29     /* Use write index by default */
-	btsti   a3, 31     /* Is probe success ? */
-	bf      1f
-	bgeni   a2, 25
-	WR_MCIR a2
-	bgeni   a2, 28     /* If probe failed, invalid index and write random */
-
-1:
-	WR_MCIR	a2
+	movi	a2, 0x32
+	bseti 	a2, 6
+	mtcr    r6, cr22
+	mtcr	a2, cr17
+	sync
 
 	mfcr    a3, ss2
 	mfcr    r6, ss3
@@ -391,7 +328,6 @@ tlbmodified:
 	SAVE_ALL
 	kuser_cmpxchg_check
 
-	SET_CP_MMU
 	RD_MEH	a3
 	bmaski  r8, 12
 	andn    a3, r8          /* a3 = a3 & (~0xfff) */
@@ -408,7 +344,6 @@ tlbmodified:
  */
 ENTRY(buserr)
 	SAVE_ALL
-	SET_SMOD_MMU_CP15
 	movi    r11_sig, 0        /* r11 = 0, Not a syscall. use in signal handle */
 	mov     a0, sp            /* Stack address is arg[0] */
 	jbsr    buserr_c          /* Call C level handler */
@@ -416,7 +351,6 @@ ENTRY(buserr)
 
 ENTRY(system_call)
 	SAVE_ALL
-	SET_SMOD_MMU_CP15
 
 	/*
 	 * Do not use r2-r7 here, because the arguments are saved in r2-r6
@@ -585,7 +519,6 @@ ENTRY(sys_rt_sigreturn)
 
 ENTRY(trap)
 	SAVE_ALL
-	SET_SMOD_MMU_CP15
 
 	movi     r11_sig, 0             /* r11 = 0, Not a syscall. */
 	mfcr     a0, psr                /* Get psr register */
@@ -612,7 +545,6 @@ ENTRY(handle_illegal)
  */
 ENTRY(alignment)
 	SAVE_ALL
-	SET_SMOD_MMU_CP15
 	psrset   ee                     /* Enable Exception */
 	movi     r11_sig, 0             /* r11 = 0, Not a syscall. */
 	mov      a0, sp                 /* Push Stack pointer arg */
@@ -799,7 +731,6 @@ ENTRY(handle_fpe)
  */
 ENTRY(inthandler)
 	SAVE_ALL
-	SET_SMOD_MMU_CP15
 	psrset	ee				/* Enable exceptions */
 
 	movi	r11_sig, 0			/* r11 = 0, Not a syscall. */
@@ -847,7 +778,6 @@ ENTRY(inthandler)
 
 ENTRY(autohandler)
 	SAVE_ALL
-	SET_SMOD_MMU_CP15
 	psrset  ee       // enable exception
 	movi    r11_sig, 0                   /* r11 = 0, Not a syscall. */
 

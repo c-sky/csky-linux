@@ -28,32 +28,11 @@ static inline int  read_mmu_entrylo0(void)
 	return   __res;
 }
 
-static inline void  write_mmu_entrylo0(int value)
-{
-	__asm__ __volatile__("mtcr %0,cr<2, 15>\n\t"
-					: :"r" (value));
-}
-
 static inline int  read_mmu_entrylo1(void)
 {
 	int __res;
 
 	__asm__ __volatile__("mfcr %0,cr<3, 15>\n\t"
-					:"=r" (__res));
-	return   __res;
-}
-
-static inline void  write_mmu_entrylo1(int value)
-{
-	__asm__ __volatile__("mtcr %0,cr<3, 15>\n\t"
-					: :"r" (value));
-}
-
-static inline int  read_mmu_pagemask(void)
-{
-	int __res;
-
-	__asm__ __volatile__("mfcr %0,cr<6, 15>\n\t"
 					:"=r" (__res));
 	return   __res;
 }
@@ -93,22 +72,6 @@ static inline void tlb_probe(void)
 static inline void tlb_read(void)
 {
 	int value = 0x40000000;
-
-	__asm__ __volatile__("mtcr %0,cr<8, 15>\n\t"
-					: :"r" (value));
-}
-
-static inline void tlb_write_indexed(void)
-{
-	int value = 0x20000000;
-
-	__asm__ __volatile__("mtcr %0,cr<8,15>\n\t"
-					: :"r" (value));
-}
-
-static inline void tlb_write_random(void)
-{
-	int value = 0x10000000;
 
 	__asm__ __volatile__("mtcr %0,cr<8, 15>\n\t"
 					: :"r" (value));
