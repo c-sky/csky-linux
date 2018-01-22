@@ -18,21 +18,21 @@ static DEFINE_SPINLOCK(cache_lock);
 		"mtcr	%1, cr17\n\t" \
 		::"r"(i), "r"(value))
 
-#define CCR2_L2E (1 << 3)
+#define __cache_op_line_atomic(i, value) \
+	__asm__ __volatile__( \
+		"idly4\n\t" \
+		"mtcr	%0, cr22\n\t" \
+		"mtcr	%1, cr17\n\t" \
+		"sync\n\t" \
+		::"r"(i), "r"(value))
+
 void
 cache_op_line(unsigned int i, unsigned int value)
 {
-	unsigned long flags;
-	spin_lock_irqsave(&cache_lock, flags);
-	__cache_op_line(i, value | CACHE_CLR | CACHE_OMS);
-	spin_unlock_irqrestore(&cache_lock, flags);
-
-	if (mfcr_ccr2() & CCR2_L2E)
-		L1_SYNC;
-	else
-		__asm__ __volatile__("sync\n\t");
+	__cache_op_line_atomic(i, value | CACHE_CLR | CACHE_OMS);
 }
 
+#define CCR2_L2E (1 << 3)
 void
 cache_op_all(unsigned int value, unsigned int l2)
 {
@@ -40,18 +40,14 @@ cache_op_all(unsigned int value, unsigned int l2)
 		"mtcr	%0, cr17\n\t"
 		::"r"(value | CACHE_CLR));
 
-	if (mfcr_ccr2() & CCR2_L2E) {
-		L1_SYNC;
-		if (l2) goto flush_l2;
-	} else
-		__asm__ __volatile__("sync\n\t");
+	__asm__ __volatile__("sync\n\t");
 
-	return;
-flush_l2:
-	__asm__ __volatile__(
-		"mtcr	%0, cr24\n\t"
-		"sync\n\t"
-		::"r"(value));
+	if (l2 && (mfcr_ccr2() & CCR2_L2E)) {
+		__asm__ __volatile__(
+			"mtcr	%0, cr24\n\t"
+			"sync\n\t"
+			::"r"(value));
+	}
 }
 
 #define FLUSH_MAX PAGE_SIZE
@@ -65,7 +61,7 @@ cache_op_range(
 {
 	unsigned long i, flags;
 	unsigned int val = value | CACHE_CLR | CACHE_OMS;
-	unsigned int l2_en = mfcr_ccr2() & CCR2_L2E;
+	bool l2_sync;
 
 	if (unlikely((end - start) >= FLUSH_MAX) ||
 	    unlikely(start < PAGE_OFFSET) ||
@@ -74,20 +70,23 @@ cache_op_range(
 		return;
 	}
 
+	if ((mfcr_ccr2() & CCR2_L2E) && l2)
+		l2_sync = 1;
+	else
+		l2_sync = 0;
 
+	spin_lock_irqsave(&cache_lock, flags);
 	for(i = start; i < end; i += L1_CACHE_BYTES) {
-		spin_lock_irqsave(&cache_lock, flags);
 		__cache_op_line(i, val);
-		if (l2_en) {
-			L1_SYNC;
-			if (l2) __asm__ __volatile__(
+		if (l2_sync) {
+			__asm__ __volatile__(
+				"sync\n\t");
+			__asm__ __volatile__(
 				"mtcr	%0, cr24\n\t"
 				::"r"(val));
 		}
-		spin_unlock_irqrestore(&cache_lock, flags);
 	}
-
-	if(l2_en && !l2) return;
+	spin_unlock_irqrestore(&cache_lock, flags);
 
 	__asm__ __volatile__("sync\n\t");
 }

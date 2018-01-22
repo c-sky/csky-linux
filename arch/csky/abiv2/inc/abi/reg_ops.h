@@ -69,8 +69,6 @@ static inline void mtcr_msa1(unsigned int value)
 		::"r"(value));
 }
 
-#define L1_SYNC do{__asm__ __volatile__("sync 1\t\n");}while(0)
-
 #ifdef CONFIG_CPU_CK807
 #define CSKYCPU_DEF_NAME "csky,ck807"
 #endif
