@@ -13,6 +13,7 @@
 #include <linux/version.h>
 #include <linux/vt_kern.h>
 #include <linux/kernel.h>
+#include <linux/extable.h>
 
 #include <asm/hardirq.h>
 #include <asm/mmu_context.h>
@@ -241,8 +242,8 @@ vmalloc_fault:
                         goto no_context;
                 set_pgd(pgd, *pgd_k);
 
-                pud = pud_offset(pgd, address);
-                pud_k = pud_offset(pgd_k, address);
+                pud = (pud_t *)pgd;
+                pud_k = (pud_t *)pgd_k;
                 if (!pud_present(*pud_k))
                         goto no_context;
 
