@@ -1,5 +1,8 @@
-#include <linux/compiler.h>
+#include <linux/sched.h>
+#include <linux/signal.h>
+#include <linux/ptrace.h>
 #include <linux/kernel.h>
+#include <linux/mm.h>
 #include <linux/errno.h>
 #include <linux/string.h>
 #include <linux/proc_fs.h>
@@ -8,6 +11,7 @@
 #include <linux/sched.h>
 #include <linux/uaccess.h>
 
+#include <asm/siginfo.h>
 #include <asm/unaligned.h>
 
 extern void die_if_kernel(char *, struct pt_regs *, long);
@@ -405,6 +409,9 @@ asmlinkage void alignment_c(struct pt_regs *regs)
 	u16 tinstr = 0;
 	int (*handler)(unsigned long inst, struct pt_regs *regs) = NULL;
 	int isize = 2;
+	siginfo_t info;
+
+
 	mm_segment_t fs;
 
 	instrptr = instruction_pointer(regs);
@@ -475,8 +482,12 @@ user:
 	if (ai_usermode & UM_FIXUP)
 		goto fixup;
 
-	if (ai_usermode & UM_SIGNAL)
-		force_sig(SIGBUS, current);
+	if (ai_usermode & UM_SIGNAL) {
+		info.si_code = NSIGBUS;
+		info.si_signo = SIGBUS;
+		info.si_errno = 0;
+		force_sig_info(SIGBUS, &info, current);
+	}
 
 	return;
 }

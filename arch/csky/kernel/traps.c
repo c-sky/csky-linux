@@ -108,6 +108,8 @@ asmlinkage void handle_illegal_c(struct pt_regs * regs);
 
 asmlinkage void buserr_c(struct frame *fp)
 {
+	siginfo_t info;
+
 	printk("%s(%d): Bus Error Trap\n", __FILE__, __LINE__);
 	show_registers((struct pt_regs *) fp);
 	/* Only set esp0 if coming from user mode */
@@ -116,7 +118,9 @@ asmlinkage void buserr_c(struct frame *fp)
     } else{
 		die_if_kernel("Kernel mode BUS error", (struct pt_regs *)fp, 0);
     }
-	force_sig(SIGSEGV, current);
+	info.si_signo = SIGSEGV;
+	info.si_errno = 0;
+	force_sig_info(SIGSEGV, &info, current);
 }
 
 int kstack_depth_to_print = 48;
@@ -406,11 +410,11 @@ asmlinkage void handle_fpe_c(unsigned long fesr, struct pt_regs * regs)
 			info.si_code = FPE_FLTRES;
 		}
 		else {
-		info.si_code = __SI_FAULT;
+		info.si_code = NSIGFPE;
 		}
 	}
 	else {
-		info.si_code = __SI_FAULT;
+		info.si_code = NSIGFPE;
 		sig = SIGFPE;
 	}
 	info.si_signo = SIGFPE;
