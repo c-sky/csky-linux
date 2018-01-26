@@ -1,5 +1,10 @@
-#include <linux/sched.h>
 #include <linux/module.h>
+#include <linux/sched.h>
+#include <linux/delay.h>
+#include <linux/kallsyms.h>
+#include <linux/uaccess.h>
+#include <asm/elf.h>
+#include <linux/ptrace.h>
 
 struct cpuinfo_csky cpu_data[NR_CPUS];
 

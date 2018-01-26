@@ -3,13 +3,16 @@
 
 #include <abi/pgtable-bits.h>
 #include <linux/types.h>
+#include <linux/version.h>
 
 extern void __iomem *ioremap(phys_addr_t offset, size_t size);
 
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 14, 0))
 extern inline void *ioremap_nocache(phys_addr_t physaddr, unsigned long size)
 {
 	return ioremap(physaddr, size);
 }
+#endif
 
 extern void iounmap(void *addr);
 

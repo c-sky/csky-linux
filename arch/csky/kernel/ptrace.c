@@ -129,7 +129,7 @@ int ptrace_getfpregs(struct task_struct *child, void __user *data)
 	if (!access_ok(VERIFY_WRITE, data, sizeof(struct user_cskyfp_struct)))
 		return -EIO;
 
-	if(copy_to_user(data, &child->thread.fcr,
+	if(raw_copy_to_user(data, &child->thread.fcr,
 				sizeof(struct user_cskyfp_struct)))
 		return -EFAULT;
 
@@ -141,7 +141,7 @@ int ptrace_setfpregs(struct task_struct *child, void __user *data)
 	if (!access_ok(VERIFY_READ, data, sizeof(struct user_cskyfp_struct)))
 		return -EIO;
 
-	if(copy_from_user(&child->thread.fcr, data,
+	if(raw_copy_from_user(&child->thread.fcr, data,
 				sizeof(struct user_cskyfp_struct)))
 		return -EFAULT;
 	return 0;

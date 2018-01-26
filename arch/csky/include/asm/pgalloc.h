@@ -21,13 +21,17 @@ static inline void pmd_populate(struct mm_struct *mm, pmd_t *pmd,
 
 extern void pgd_init(unsigned long *p);
 
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 14, 0))
+#define __GFP_RETRY_MAYFAIL __GFP_REPEAT
+#endif
+
 static inline pte_t *pte_alloc_one_kernel(struct mm_struct *mm,
         unsigned long address)
 {
         pte_t *pte;
 	unsigned long *kaddr, i;
 
-	pte = (pte_t *) __get_free_pages(GFP_KERNEL | __GFP_REPEAT, PTE_ORDER);
+	pte = (pte_t *) __get_free_pages(GFP_KERNEL | __GFP_RETRY_MAYFAIL, PTE_ORDER);
 	kaddr = (unsigned long *)pte;
 	if (address & 0x80000000)
 		for(i=0; i<(PAGE_SIZE/4); i++)
@@ -44,7 +48,7 @@ static inline struct page *pte_alloc_one(struct mm_struct *mm,
 	struct page *pte;
 	unsigned long *kaddr, i;
 
-        pte = alloc_pages(GFP_KERNEL | __GFP_REPEAT, PTE_ORDER);
+        pte = alloc_pages(GFP_KERNEL | __GFP_RETRY_MAYFAIL, PTE_ORDER);
         if (pte) {
 		kaddr = kmap_atomic(pte);
 		if (address & 0x80000000) {

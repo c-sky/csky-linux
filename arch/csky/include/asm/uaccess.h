@@ -10,6 +10,7 @@
 #include <linux/sched.h>
 #include <linux/mm.h>
 #include <linux/string.h>
+#include <linux/version.h>
 #include <asm/segment.h>
 
 #define VERIFY_READ	0
@@ -375,16 +376,22 @@ do{                                                             \
 unsigned long __generic_copy_from_user(void *to, const void *from, unsigned long n);
 unsigned long __generic_copy_to_user(void *to, const void *from, unsigned long n);
 
-#define copy_from_user(to, from, n) __generic_copy_from_user(to, from, n)
-#define copy_to_user(to, from, n) __generic_copy_to_user(to, from, n)
+#define raw_copy_from_user(to, from, n) __generic_copy_from_user(to, from, n)
+#define raw_copy_to_user(to, from, n) __generic_copy_to_user(to, from, n)
 
-#define __copy_from_user(to, from, n) copy_from_user(to, from, n)
-#define __copy_to_user(to, from, n) copy_to_user(to, from, n)
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 14, 0))
+#define __copy_from_user(to, from, n) raw_copy_from_user(to, from, n)
+#define __copy_to_user(to, from, n) raw_copy_to_user(to, from, n)
+
+#define __copy_from_user_inatomic	__copy_from_user
+#define __copy_to_user_inatomic		__copy_to_user
+
+#define copy_from_user			__copy_from_user
+#define copy_to_user			__copy_to_user
+#endif
+
 unsigned long clear_user(void *to, unsigned long n);
 unsigned long __clear_user(void __user *to, unsigned long n);
-
-#define __copy_to_user_inatomic         __copy_to_user
-#define __copy_from_user_inatomic       __copy_from_user
 
 long strncpy_from_user(char *dst, const char *src, long count);
 long __strncpy_from_user(char *dst, const char *src, long count);
