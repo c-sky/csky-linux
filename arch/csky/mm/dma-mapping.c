@@ -279,7 +279,6 @@ struct dma_map_ops csky_dma_map_ops = {
 
 	.mapping_error		= csky_dma_mapping_error,
 	.dma_supported		= csky_dma_supported,
-	.set_dma_mask		= NULL,
 };
 EXPORT_SYMBOL(csky_dma_map_ops);
 
