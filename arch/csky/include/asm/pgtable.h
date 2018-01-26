@@ -53,12 +53,10 @@
 #define pfn_pte(pfn, prot)		__pte(((unsigned long long)(pfn) << PAGE_SHIFT) \
 						| pgprot_val(prot))
 
-#define __READABLE	(_PAGE_READ | _PAGE_SILENT_READ | _PAGE_ACCESSED)
-#define __WRITEABLE	(_PAGE_WRITE | _PAGE_SILENT_WRITE | _PAGE_MODIFIED)
+#define __READABLE	(_PAGE_READ | _PAGE_VALID | _PAGE_ACCESSED)
+#define __WRITEABLE	(_PAGE_WRITE | _PAGE_DIRTY | _PAGE_MODIFIED)
 
 #define _PAGE_CHG_MASK  (PAGE_MASK | _PAGE_ACCESSED | _PAGE_MODIFIED | _CACHE_MASK)
-
-#define PTE_FILE_MAX_BITS 28
 
 #define pte_unmap(pte) ((void)(pte))
 
@@ -142,11 +140,11 @@ static inline pte_t *pmd_page_vaddr(pmd_t pmd)
 
 #define pmd_phys(pmd) pmd_val(pmd)
 
-static inline void set_pmd(pmd_t *pmdptr, pmd_t pmdval)
+static inline void set_pmd(pmd_t *pmdp, pmd_t pmd)
 {
-	pmdptr->pud.pgd.pgd = pmdval.pud.pgd.pgd;
+	*pmdp = pmd;
 #if !defined(__ck807__)
-	__dcache_flush_line(&pmdptr->pud.pgd.pgd);
+	__dcache_flush_line(pmdp);
 #endif
 }
 
@@ -156,7 +154,7 @@ static inline int pmd_none(pmd_t pmd)
 	return pmd_val(pmd) == __pa(invalid_pte_table);
 }
 
-#define pmd_bad(pmd)        (pmd_val(pmd) & ~PAGE_MASK)
+#define pmd_bad(pmd)	(pmd_val(pmd) & ~PAGE_MASK)
 
 static inline int pmd_present(pmd_t pmd)
 {
@@ -177,7 +175,7 @@ static inline void pmd_clear(pmd_t *pmdp)
  */
 static inline int pte_read(pte_t pte)
 {
-	return (pte).pte_low & _PAGE_READ;
+	return pte.pte_low & _PAGE_READ;
 }
 
 static inline int pte_write(pte_t pte)
@@ -195,26 +193,21 @@ static inline int pte_young(pte_t pte)
 	return (pte).pte_low & _PAGE_ACCESSED;
 }
 
-static inline int pte_file(pte_t pte)
-{
-	return pte_val(pte) & _PAGE_FILE;
-}
-
 static inline pte_t pte_wrprotect(pte_t pte)
 {
-	pte_val(pte) &= ~(_PAGE_WRITE | _PAGE_SILENT_WRITE);
+	pte_val(pte) &= ~(_PAGE_WRITE | _PAGE_DIRTY);
 	return pte;
 }
 
 static inline pte_t pte_mkclean(pte_t pte)
 {
-	pte_val(pte) &= ~(_PAGE_MODIFIED|_PAGE_SILENT_WRITE);
+	pte_val(pte) &= ~(_PAGE_MODIFIED|_PAGE_DIRTY);
 	return pte;
 }
 
 static inline pte_t pte_mkold(pte_t pte)
 {
-	pte_val(pte) &= ~(_PAGE_ACCESSED|_PAGE_SILENT_READ);
+	pte_val(pte) &= ~(_PAGE_ACCESSED|_PAGE_VALID);
 	return pte;
 }
 
@@ -222,7 +215,7 @@ static inline pte_t pte_mkwrite(pte_t pte)
 {
 	pte_val(pte) |= _PAGE_WRITE;
 	if (pte_val(pte) & _PAGE_MODIFIED)
-		pte_val(pte) |= _PAGE_SILENT_WRITE;
+		pte_val(pte) |= _PAGE_DIRTY;
 	return pte;
 }
 
@@ -230,7 +223,7 @@ static inline pte_t pte_mkdirty(pte_t pte)
 {
 	pte_val(pte) |= _PAGE_MODIFIED;
 	if (pte_val(pte) & _PAGE_WRITE)
-		pte_val(pte) |= _PAGE_SILENT_WRITE;
+		pte_val(pte) |= _PAGE_DIRTY;
 	return pte;
 }
 
@@ -238,7 +231,7 @@ static inline pte_t pte_mkyoung(pte_t pte)
 {
 	pte_val(pte) |= _PAGE_ACCESSED;
 	if (pte_val(pte) & _PAGE_READ)
-		pte_val(pte) |= _PAGE_SILENT_READ;
+		pte_val(pte) |= _PAGE_VALID;
 	return pte;
 }
 
@@ -281,7 +274,8 @@ static inline pgprot_t pgprot_noncached(pgprot_t _prot)
 #define mk_pte(page, pgprot)    pfn_pte(page_to_pfn(page), (pgprot))
 static inline pte_t pte_modify(pte_t pte, pgprot_t newprot)
 {
-	return __pte((pte_val(pte) & _PAGE_CHG_MASK) | pgprot_val(newprot));
+	return __pte((pte_val(pte) & _PAGE_CHG_MASK) |
+		     (pgprot_val(newprot)));
 }
 
 /* to find an entry in a page-table-directory */
