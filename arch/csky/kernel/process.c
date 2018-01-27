@@ -1,5 +1,10 @@
 #include <linux/module.h>
+#include <linux/version.h>
 #include <linux/sched.h>
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0))
+#include <linux/sched/task_stack.h>
+#include <linux/sched/debug.h>
+#endif
 #include <linux/delay.h>
 #include <linux/kallsyms.h>
 #include <linux/uaccess.h>
