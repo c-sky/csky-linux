@@ -1,7 +1,7 @@
 #include <linux/module.h>
 #include <linux/version.h>
 #include <linux/sched.h>
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0))
+#ifndef COMPAT_KERNEL_4_9
 #include <linux/sched/task_stack.h>
 #include <linux/sched/debug.h>
 #endif

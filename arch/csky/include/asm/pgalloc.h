@@ -21,7 +21,7 @@ static inline void pmd_populate(struct mm_struct *mm, pmd_t *pmd,
 
 extern void pgd_init(unsigned long *p);
 
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 14, 0))
+#ifdef COMPAT_KERNEL_4_9
 #define __GFP_RETRY_MAYFAIL __GFP_REPEAT
 #endif
 

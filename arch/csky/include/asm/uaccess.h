@@ -379,7 +379,7 @@ unsigned long __generic_copy_to_user(void *to, const void *from, unsigned long n
 #define raw_copy_from_user(to, from, n) __generic_copy_from_user(to, from, n)
 #define raw_copy_to_user(to, from, n) __generic_copy_to_user(to, from, n)
 
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 14, 0))
+#ifdef COMPAT_KERNEL_4_9
 #define __copy_from_user(to, from, n) raw_copy_from_user(to, from, n)
 #define __copy_to_user(to, from, n) raw_copy_to_user(to, from, n)
 

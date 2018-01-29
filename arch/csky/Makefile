@@ -15,20 +15,24 @@ CSKYABI	= abiv1
 endif
 
 ifdef CONFIG_CPU_CK810
-CPUTYPE= -mcpu=ck810$(DSPEXT)$(FPUEXT)
+CPUTYPE = -mcpu=ck810$(DSPEXT)$(FPUEXT)
 CSKYABI	= abiv2
 endif
 
 ifdef CONFIG_CPU_CK807
-CPUTYPE= -mcpu=ck807$(DSPEXT)$(FPUEXT)
+CPUTYPE = -mcpu=ck807$(DSPEXT)$(FPUEXT)
 CSKYABI	= abiv2
+endif
+
+ifeq ($(VERSION)_$(PATCHLEVEL), 4_9)
+COMPAT_KERNEL_4_9 = -DCOMPAT_KERNEL_4_9
 endif
 
 KBUILD_CFLAGS +=	-ffreestanding \
 			-fno-tree-dse \
 			-pipe \
 			-Wno-uninitialized \
-			$(CPUTYPE)
+			$(COMPAT_KERNEL_4_9) $(CPUTYPE)
 
 ifeq ($(CONFIG_CSKY_DEBUG_INFO),y)
 KBUILD_CFLAGS += -g
