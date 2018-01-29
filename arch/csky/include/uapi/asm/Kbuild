@@ -4,10 +4,8 @@ header-y += cachectl.h
 header-y += stat.h
 
 generic-y += auxvec.h
-generic-y += byteorder.h
 generic-y += param.h
 generic-y += ptrace.h
-generic-y += sigcontext.h
 generic-y += bpf_perf_event.h
 generic-y += errno.h
 generic-y += ioctl.h
