@@ -12,14 +12,93 @@
 #include <asm/thread_info.h>
 #include <asm/fpu.h>
 
-#define PTE_HALF        0
-#define PTE_SIZE        4
-#define PTE_BIT         2
-#define PTEP_INDX_MSK	0xff8
 #define PTE_INDX_MSK    0xffc
 #define PTE_INDX_SHIFT  10
 #define _PGDIR_SHIFT    22
 #define THREADSIZE_MASK_BIT 13
+
+.text
+
+/*
+ * Use trap 2 use to cmpxchg, reference prototype:
+ *      int __kernel_cmpxchg(int oldval, int newval, int *ptr)
+ *
+ * If *ptr != oldval, direct return 1,
+ * else set *ptr = newval, then return 0.
+ *
+ * Input:
+ *      a0 = oldval
+ *      a1 = newval
+ *      a2 = ptr
+ * Output:
+ *      a0 = returned value (zero or non-zero)
+ *
+ * Clobbered:
+ *      a3!
+ *
+ * Attention: trap 2 is not a atomic function!
+ * The "stw a1, (a2)" may produce tlbmodified exception, then may cause schedule.
+ * So return back to "ldw" after tlbmodified, if stw was interrupted.
+ */
+
+ENTRY(csky_cmpxchg)
+#if defined(__CSKYABIV1__)
+	mtcr     sp, ss1
+	mfcr     sp, ss0
+#endif
+	mfcr     a3, epc		/* Get the trap point */
+#if defined(__CSKYABIV1__)
+	addi     a3, 2			/* Increase the epc */
+#elif defined(__CSKYABIV2__)
+	addi     a3, 4			/* Increase the epc, because the Instruct "trap x" in CK ISA V2 is 32 bit */
+#endif
+	subi     sp, 8
+	stw      a3, (sp, 0)		/* need to save epc to sp */
+	mfcr     a3, epsr
+	stw      a3, (sp, 4)		/* need to save epsr to sp */
+
+	psrset   ee			/* Enable Exception for tlb exception */
+
+1:					/* "1" is for kuser_cmpxchg_fixup */
+	ldw      a3, (a2)
+	cmpne    a0, a3
+	bt16     3f
+2:					/* "2" is for kuser_cmpxchg_fixup */
+	stw      a1, (a2)
+3:
+	mvc      a0			/* return value */
+	ldw      a3, (sp, 0)		/* restore epc */
+	mtcr     a3, epc
+	ldw      a3, (sp, 4)		/* restore epsr */
+	mtcr     a3, epsr
+	addi     sp, 8
+#if defined(__CSKYABIV1__)
+	mtcr     sp, ss0
+	mfcr     sp, ss1
+#endif
+	rte
+
+/*
+ *  Called from kuser_cmpxchg_check macro.
+ *  Input:
+ *  	a0 = address of interrupted insn(epc).
+ *  	1b = first critical insn, 2b = last critical insn.
+ *  Output:
+ *	None.
+ *
+ *  Clobbered:
+ *      a0, a1!
+ *
+ *  If a2 == 2b then saved pt_regs's epc is set to 1b.
+ */
+ENTRY(kuser_cmpxchg_fixup)
+	lrw	a1, 2b
+	cmpne	a1, a0
+	bt	1f
+	subi	a1, (2b - 1b)		/* get 1b */
+	stw	a1, (sp, 0)		/* set pt_reg's epc = 1b */
+1:
+	rts
 
 /*
  * Make sure our user space atomic helper(trap 2) is restarted
@@ -37,42 +116,10 @@
 1:
 .endm
 
-.export system_call
-.export buserr
-.export trap
-.export alignment
-.export inthandler
-.export autohandler
-.export fasthandler
-
-.export fastautohandler
-.export sys_fork, sys_clone
-.export sw_usp
-.export sw_ksp
-
-.export handle_tlbinvalidl
-.export handle_tlbmodified
-.export tlbinvalidl
-.export tlbinvalids
-.export readtlbinvalid
-.export writetlbinvalid
-.export handle_fpe
-.export handle_illegal
-
-.import irq_stat
-
-.data
-sw_ksp:
-.long 0
-sw_usp:
-.long 0
-
-.text
-
 /*
  * Tlbinvalidl exception handle routine.
  */
-ENTRY(handle_tlbinvalidl)
+ENTRY(csky_tlbinvalidl)
 tlbinvalidl:
 	mtcr    a3, ss2
 	mtcr    r6, ss3
@@ -156,7 +203,7 @@ readtlbinvalid:
 /*
  * Tlbinvalids exception handle routine.
  */
-ENTRY(handle_tlbinvalids)
+ENTRY(csky_tlbinvalids)
 tlbinvalids:
 	mtcr    a3, ss2
 	mtcr    r6, ss3
@@ -244,7 +291,7 @@ writetlbinvalid:
 /*
  * Tlbmodified exception handle routine.
  */
-ENTRY(handle_tlbmodified)
+ENTRY(csky_tlbmodified)
 	mtcr    a3, ss2
 	mtcr    r6, ss3
 	mtcr    a2, ss4
@@ -342,14 +389,14 @@ tlbmodified:
 /*
  * This function is used to handle access exception.
  */
-ENTRY(buserr)
+ENTRY(csky_buserr)
 	SAVE_ALL
 	movi    r11_sig, 0        /* r11 = 0, Not a syscall. use in signal handle */
 	mov     a0, sp            /* Stack address is arg[0] */
 	jbsr    buserr_c          /* Call C level handler */
 	jmpi    ret_from_exception
 
-ENTRY(system_call)
+ENTRY(csky_systemcall)
 	SAVE_ALL
 
 	/*
@@ -517,7 +564,7 @@ ENTRY(sys_rt_sigreturn)
  * Common trap handler. Standard traps come through here first
  */
 
-ENTRY(trap)
+ENTRY(csky_trap)
 	SAVE_ALL
 
 	movi     r11_sig, 0             /* r11 = 0, Not a syscall. */
@@ -532,7 +579,7 @@ ENTRY(trap)
  * Common illegal handler.
  */
 
-ENTRY(handle_illegal)
+ENTRY(csky_illegal)
 	SAVE_ALL
 	psrset   ee
 	movi     r11_sig, 0             /* r11 = 0, Not a syscall. */
@@ -543,127 +590,13 @@ ENTRY(handle_illegal)
 /*
  * Alignment_exception handler.
  */
-ENTRY(alignment)
+ENTRY(csky_alignment)
 	SAVE_ALL
 	psrset   ee                     /* Enable Exception */
 	movi     r11_sig, 0             /* r11 = 0, Not a syscall. */
 	mov      a0, sp                 /* Push Stack pointer arg */
 	jbsr     alignment_c            /* Call C-level align exception handler */
 	jmpi     ret_from_exception
-
-ENTRY(trap1)
-#if defined(__CSKYABIV1__)
-	mtcr     sp, ss1
-	mfcr     sp, ss0
-	mtcr     a1, ss4
-#elif defined(__CSKYABIV2__)
-	subi     sp, 8
-	stw      a1,(sp)
-#endif
-	mfcr     a1, epc                /* Get the trap point */
-#if defined(__CSKYABIV1__)
-	addi     a1, 2                  /* Increase the epc */
-#elif defined(__CSKYABIV2__)
-	addi     a1, 4                  /* Increase the epc, because the Instruct "trap x" in CK ISA V2 is 32 bit */
-#endif
-	mtcr     a1, epc                /* Save return point */
-
-	movi     a1, 0x32
-	mtcr     a1, cr17
-#if defined(__CSKYABIV1__)
-	mfcr     a1, ss4
-	mtcr     sp, ss0
-	mfcr     sp, ss1
-#elif defined(__CSKYABIV2__)
-	ldw      a1,(sp)
-	addi     sp, 8
-#endif
-	rte
-
-/*
- * exception  trap 2 use to cmpxchg, reference prototype:
- *      int __kernel_cmpxchg(int oldval, int newval, int *ptr)
- *
- * If *ptr != oldval, direct return 1,
- * else set *ptr = newval, then return 0.
- *
- * Input:
- *      a0 = oldval
- *      a1 = newval
- *      a2 = ptr
- * Output:
- *      a0 = returned value (zero or non-zero)
- *
- * Clobbered:
- *      a3!
- *
- * Attention: trap 2 is not a atomic function!
- * The "stw a1, (a2)" may produce tlbmodified exception, then may cause schedule.
- * So return back to "ldw" after tlbmodified, if stw was interrupted.
- */
-
-ENTRY(trap2)
-#if defined(__CSKYABIV1__)
-	mtcr     sp, ss1
-	mfcr     sp, ss0
-#endif
-	mfcr     a3, epc		/* Get the trap point */
-#if defined(__CSKYABIV1__)
-	addi     a3, 2			/* Increase the epc */
-#elif defined(__CSKYABIV2__)
-	addi     a3, 4			/* Increase the epc, because the Instruct "trap x" in CK ISA V2 is 32 bit */
-#endif
-	subi     sp, 8
-	stw      a3, (sp, 0)		/* need to save epc to sp */
-	mfcr     a3, epsr
-	stw      a3, (sp, 4)		/* need to save epsr to sp */
-
-	psrset   ee			/* Enable Exception for tlb exception */
-
-1:					/* "1" is for kuser_cmpxchg_fixup */
-	ldw      a3, (a2)
-	cmpne    a0, a3
-#if defined(__CSKYABIV1__)
-	bt       3f
-#elif defined(__CSKYABIV2__)
-	bt16     3f
-#endif
-2:					/* "2" is for kuser_cmpxchg_fixup */
-	stw      a1, (a2)
-3:
-	mvc      a0			/* return value */
-	ldw      a3, (sp, 0)		/* restore epc */
-	mtcr     a3, epc
-	ldw      a3, (sp, 4)		/* restore epsr */
-	mtcr     a3, epsr
-	addi     sp, 8
-#if defined(__CSKYABIV1__)
-	mtcr     sp, ss0
-	mfcr     sp, ss1
-#endif
-	rte
-
-/*
- *  Called from kuser_cmpxchg_check macro.
- *  Input:
- *  	a0 = address of interrupted insn(epc).
- *  	1b = first critical insn, 2b = last critical insn.
- *  Output:
- *	None.
- *
- *  Clobbered:
- *      a0, a1!
- *
- *  If a2 == 2b then saved pt_regs's epc is set to 1b.
- */
-ENTRY(kuser_cmpxchg_fixup)
-	lrw	a1, 2b
-	cmpne	a1, a0
-	bt	1f
-	subi	a1, (2b - 1b)		/* get 1b */
-	stw	a1, (sp, 0)		/* set pt_reg's epc = 1b */
-1:
-	rts
 
 /*
  * Reference prototype:
@@ -684,7 +617,7 @@ ENTRY(kuser_cmpxchg_fixup)
  *          : "=r" (__result) : :  ); \
  *     __result; })
  */
-ENTRY(trap3)                        /*added for get tls*/
+ENTRY(csky_get_tls)                        /*added for get tls*/
 #if defined(__CSKYABIV1__)
 	mtcr     sp, ss1
 	mfcr     sp, ss0
@@ -715,7 +648,7 @@ ENTRY(trap3)                        /*added for get tls*/
 /*
  * handle FPU exception.
  */
-ENTRY(handle_fpe)
+ENTRY(csky_fpe)
 	SAVE_ALL
 	/* Clear FPU exception state */
 #if defined(CONFIG_CPU_HAS_FPU)
@@ -729,7 +662,7 @@ ENTRY(handle_fpe)
 /*
  * handle interrupt.
  */
-ENTRY(inthandler)
+ENTRY(csky_inthandler)
 	SAVE_ALL
 	psrset	ee				/* Enable exceptions */
 
@@ -776,7 +709,7 @@ ENTRY(inthandler)
  *
  */
 
-ENTRY(autohandler)
+ENTRY(csky_autohandler)
 	SAVE_ALL
 	psrset  ee       // enable exception
 	movi    r11_sig, 0                   /* r11 = 0, Not a syscall. */

@@ -34,6 +34,3 @@ EXPORT_SYMBOL(__clear_user);
 
 EXPORT_SYMBOL(get_wchan);
 
-extern asmlinkage void trap(void);
-EXPORT_SYMBOL(trap);
-

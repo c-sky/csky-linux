@@ -24,22 +24,21 @@
 extern void csky_tlb_init(void);
 void show_registers(struct pt_regs *fp);
 /* assembler routines */
-asmlinkage void buserr(void);
-asmlinkage void alignment(void);
-asmlinkage void trap(void);
-asmlinkage void trap1(void);
-asmlinkage void trap2(void);
-asmlinkage void trap3(void);
-asmlinkage void system_call(void);
-asmlinkage void inthandler(void);
-asmlinkage void autohandler(void);
-asmlinkage void fastautohandler(void);
 
-asmlinkage void handle_tlbinvalidl(void);
-asmlinkage void handle_tlbinvalids(void);
-asmlinkage void handle_tlbmodified(void);
-asmlinkage void handle_fpe(void);
-asmlinkage void handle_illegal(void);
+asmlinkage void csky_buserr(void);
+asmlinkage void csky_alignment(void);
+asmlinkage void csky_trap(void);
+asmlinkage void csky_cmpxchg(void);
+asmlinkage void csky_get_tls(void);
+asmlinkage void csky_systemcall(void);
+asmlinkage void csky_inthandler(void);
+asmlinkage void csky_autohandler(void);
+
+asmlinkage void csky_tlbinvalidl(void);
+asmlinkage void csky_tlbinvalids(void);
+asmlinkage void csky_tlbmodified(void);
+asmlinkage void csky_fpe(void);
+asmlinkage void csky_illegal(void);
 
 void __init per_cpu_trap_init(void)
 {
@@ -69,33 +68,24 @@ void __init trap_init (void)
 
 	per_cpu_trap_init();
 
-	  /*
-	 *      There is a common trap handler and common interrupt
-	 *      handler that handle almost every vector. We treat
-	 *      the system call and bus error special, they get their
-	 *      own first level handlers.
-	 */
 	for(i = 1; (i <= 31); i++)
-	{
-		_ramvec[i] = trap;
-	}
+		_ramvec[i] = csky_trap;
+
 	for(; (i < 128); i++)
-	{
-		_ramvec[i] = inthandler;
-	}
+		_ramvec[i] = csky_inthandler;
 
-	_ramvec[VEC_ACCESS] = buserr;
-	_ramvec[VEC_ALIGN] = alignment;
-	_ramvec[VEC_TRAP0] = system_call;
-	_ramvec[VEC_TRAP2] = trap2;
-	_ramvec[VEC_TRAP3] = trap3;
-	_ramvec[VEC_AUTOVEC] = autohandler;
+	_ramvec[VEC_ACCESS]	= csky_buserr;
+	_ramvec[VEC_ALIGN]	= csky_alignment;
+	_ramvec[VEC_TRAP0]	= csky_systemcall;
+	_ramvec[VEC_TRAP2]	= csky_cmpxchg;
+	_ramvec[VEC_TRAP3]	= csky_get_tls;
+	_ramvec[VEC_AUTOVEC]	= csky_autohandler;
+	_ramvec[VEC_ILLEGAL]	= csky_illegal;
+	_ramvec[VEC_FPE]	= csky_fpe;
 
-	_ramvec[VEC_TLBINVALIDL] = handle_tlbinvalidl;
-	_ramvec[VEC_TLBINVALIDS] = handle_tlbinvalids;
-	_ramvec[VEC_TLBMODIFIED] = handle_tlbmodified;
-	_ramvec[VEC_ILLEGAL] = handle_illegal;
-	_ramvec[VEC_FPE] = handle_fpe;
+	_ramvec[VEC_TLBINVALIDL] = csky_tlbinvalidl;
+	_ramvec[VEC_TLBINVALIDS] = csky_tlbinvalids;
+	_ramvec[VEC_TLBMODIFIED] = csky_tlbmodified;
 }
 
 void die_if_kernel(char *,struct pt_regs *,int);
