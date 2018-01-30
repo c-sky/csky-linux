@@ -22,6 +22,7 @@ generic-y += siginfo.h
 generic-y += socket.h
 generic-y += sockios.h
 generic-y += statfs.h
+generic-y += setup.h
 generic-y += termbits.h
 generic-y += termios.h
 generic-y += types.h
