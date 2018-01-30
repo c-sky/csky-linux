@@ -5,7 +5,6 @@ header-y += stat.h
 
 generic-y += auxvec.h
 generic-y += param.h
-generic-y += ptrace.h
 generic-y += bpf_perf_event.h
 generic-y += errno.h
 generic-y += ioctl.h
