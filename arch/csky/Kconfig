@@ -122,19 +122,6 @@ source "init/Kconfig"
 
 source "kernel/Kconfig.freezer"
 
-menuconfig CSKY_ADDONS
-	bool "Addons for arch csky"
-	default y
-	help
-	  This is easy way to seperate vendor code and kernel code.
-	  It will make merging "kernel csky vendor" easier.
-
-if CSKY_ADDONS
-
-source "addons/Kconfig"
-
-endif
-
 config CSKY_DEBUG_INFO
 	bool "Compile the kernel with debug info, just add -g"
 	depends on !DEBUG_INFO

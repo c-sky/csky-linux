@@ -64,7 +64,6 @@ core-y				+= arch/csky/boot/dts/
 endif
 
 drivers-$(CONFIG_OPROFILE)	+= arch/csky/oprofile/
-drivers-$(CONFIG_CSKY_ADDONS)	+= addons/
 
 all: zImage
 
