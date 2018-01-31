@@ -9,60 +9,12 @@
 #include <linux/spinlock.h>
 #include <asm/pgtable.h>
 
-#if 0
-#define DEBUGP printk
-#else
-#define DEBUGP(fmt...)
-#endif
-
 #define IS_BSR32(hi16, lo16)        (((hi16) & 0xFC00) == 0xE000)
 #define IS_JSRI32(hi16, lo16)       ((hi16) == 0xEAE0)
 #define CHANGE_JSRI_TO_LRW(addr)    *(uint16_t *)(addr) = (*(uint16_t *)(addr) & 0xFF9F) | 0x0019; \
 							  *((uint16_t *)(addr) + 1) = *((uint16_t *)(addr) + 1) & 0xFFFF
 #define SET_JSR32_R25(addr)         *(uint16_t *)(addr) = 0xE8F9; \
 							  *((uint16_t *)(addr) + 1) = 0x0000;
-
-#ifdef CONFIG_MODULES
-
-void *module_alloc(unsigned long size)
-{
-#ifdef MODULE_START
-	struct vm_struct *area;
-
-	size = PAGE_ALIGN(size);
-	if (!size)
-		return NULL;
-
-	area = __get_vm_area(size, VM_ALLOC, MODULE_START, MODULE_END);
-	if (!area)
-		return NULL;
-
-	return __vmalloc_area(area, GFP_KERNEL, PAGE_KERNEL);
-#else
-	if (size == 0)
-		return NULL;
-	return vmalloc(size);
-#endif
-}
-
-/*
- * Free memory returned from module_alloc
- */
-void module_free(struct module *mod, void *module_region)
-{
-	vfree(module_region);
-	/* FIXME: If module_region == mod->init_region, trim exception
-	   table entries. */
-}
-
-/*
- * We don't need anything special.
- */
-int module_frob_arch_sections(Elf_Ehdr *hdr, Elf_Shdr *sechdrs,
-		char *secstrings, struct module *mod)
-{
-	return 0;
-}
 
 int apply_relocate(Elf_Shdr *sechdrs, const char *strtab, unsigned int symindex,
 		unsigned int relsec, struct module *me)
@@ -73,8 +25,6 @@ int apply_relocate(Elf_Shdr *sechdrs, const char *strtab, unsigned int symindex,
 	uint32_t *location;
 	short * temp;
 
-	DEBUGP("Applying relocate section %u to %u\n", relsec,
-			sechdrs[relsec].sh_info); 
 	for (i = 0; i < sechdrs[relsec].sh_size / sizeof(*rel); i++) {
 		/* This is where to make the change */
 		location = (void *)sechdrs[sechdrs[relsec].sh_info].sh_addr
@@ -126,8 +76,6 @@ int apply_relocate_add(Elf32_Shdr *sechdrs, const char *strtab,
 	uint16_t *location_tmp;
 #endif
 
-	DEBUGP("Applying relocate_add section %u to %u\n", relsec,
-			sechdrs[relsec].sh_info);
 	for (i = 0; i < sechdrs[relsec].sh_size / sizeof(*rel); i++) {
 		/* This is where to make the change */
 		location = (void *)sechdrs[sechdrs[relsec].sh_info].sh_addr
@@ -178,15 +126,3 @@ int apply_relocate_add(Elf32_Shdr *sechdrs, const char *strtab,
 	}
 	return 0;
 }
-
-int module_finalize(const Elf_Ehdr *hdr, const Elf_Shdr *sechdrs,
-		struct module *mod)
-{
-	return 0;
-}
-
-void module_arch_cleanup(struct module *mod)
-{
-}
-
-#endif /* CONFIG_MODULES */
