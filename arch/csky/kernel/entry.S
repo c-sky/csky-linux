@@ -665,8 +665,7 @@ ENTRY(__switch_to)
 	FPU_SAVE_REGS
 #endif
 
-#if  defined(CONFIG_CPU_HAS_DSP) || defined(__CK810__)
-	/* Save DSP regs */
+#if defined(__CSKYABIV2__)
 	lrw      r10, THREAD_DSPHI
 	add      r10, a3
 	mfhi     r6
@@ -694,26 +693,11 @@ ENTRY(__switch_to)
 	FPU_RESTORE_REGS
 #endif
 
-#if  defined(CONFIG_CPU_HAS_DSP) || defined(__CSKYABIV2__)
+#if defined(__CSKYABIV2__)
 	lrw      r10, THREAD_DSPHI
 	add      r10, a3
 	ldw      r6, (r10, 8)   /* THREAD_DSPCSR */
-#if defined(__CSKYABIV2__)
 	mtcr     r6, cr14
-#else
-	/*
-	 * Because bit 0 in CK610's cr14 is read only, we need to restore it by
-	 * using special method
-	 */
-	btsti    r6, 0
-	movi     r7, 0xf
-	bf       1f
-	bmaski   r7, 0           /* old is "lrw r7, 0xffffffff" */
-1:
-	mthi     r7
-	mulua    r7, r7
-#endif
-	/* Restore DSP regs */
 	ldw      r6, (r10, 0)    /* THREAD_DSPHI */
 	ldw      r7, (r10, 4)    /* THREAD_DSPLO */
 	mthi     r6
