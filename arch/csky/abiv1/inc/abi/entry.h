@@ -152,4 +152,19 @@
 .macro WR_MCIR	rx
 	cpwcr   \rx, cpcr8
 .endm
+
+.macro usp_to_ksp
+	mtcr	sp, ss1
+	mfcr	sp, ss0
+.endm
+
+.macro ksp_to_usp
+	mtcr	sp, ss0
+	mfcr	sp, ss1
+.endm
+
+.macro pc_inc	rx
+	addi	\rx, 2
+.endm
+
 #endif /* __ASM_CSKY_ENTRY_H */

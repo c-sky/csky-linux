@@ -18,107 +18,6 @@
 #define THREADSIZE_MASK_BIT 13
 
 .text
-
-/*
- * Use trap 2 use to cmpxchg, reference prototype:
- *      int __kernel_cmpxchg(int oldval, int newval, int *ptr)
- *
- * If *ptr != oldval, direct return 1,
- * else set *ptr = newval, then return 0.
- *
- * Input:
- *      a0 = oldval
- *      a1 = newval
- *      a2 = ptr
- * Output:
- *      a0 = returned value (zero or non-zero)
- *
- * Clobbered:
- *      a3!
- *
- * Attention: trap 2 is not a atomic function!
- * The "stw a1, (a2)" may produce tlbmodified exception, then may cause schedule.
- * So return back to "ldw" after tlbmodified, if stw was interrupted.
- */
-
-ENTRY(csky_cmpxchg)
-#if defined(__CSKYABIV1__)
-	mtcr     sp, ss1
-	mfcr     sp, ss0
-#endif
-	mfcr     a3, epc		/* Get the trap point */
-#if defined(__CSKYABIV1__)
-	addi     a3, 2			/* Increase the epc */
-#elif defined(__CSKYABIV2__)
-	addi     a3, 4			/* Increase the epc, because the Instruct "trap x" in CK ISA V2 is 32 bit */
-#endif
-	subi     sp, 8
-	stw      a3, (sp, 0)		/* need to save epc to sp */
-	mfcr     a3, epsr
-	stw      a3, (sp, 4)		/* need to save epsr to sp */
-
-	psrset   ee			/* Enable Exception for tlb exception */
-
-1:					/* "1" is for kuser_cmpxchg_fixup */
-	ldw      a3, (a2)
-	cmpne    a0, a3
-	bt16     3f
-2:					/* "2" is for kuser_cmpxchg_fixup */
-	stw      a1, (a2)
-3:
-	mvc      a0			/* return value */
-	ldw      a3, (sp, 0)		/* restore epc */
-	mtcr     a3, epc
-	ldw      a3, (sp, 4)		/* restore epsr */
-	mtcr     a3, epsr
-	addi     sp, 8
-#if defined(__CSKYABIV1__)
-	mtcr     sp, ss0
-	mfcr     sp, ss1
-#endif
-	rte
-
-/*
- *  Called from kuser_cmpxchg_check macro.
- *  Input:
- *  	a0 = address of interrupted insn(epc).
- *  	1b = first critical insn, 2b = last critical insn.
- *  Output:
- *	None.
- *
- *  Clobbered:
- *      a0, a1!
- *
- *  If a2 == 2b then saved pt_regs's epc is set to 1b.
- */
-ENTRY(kuser_cmpxchg_fixup)
-	lrw	a1, 2b
-	cmpne	a1, a0
-	bt	1f
-	subi	a1, (2b - 1b)		/* get 1b */
-	stw	a1, (sp, 0)		/* set pt_reg's epc = 1b */
-1:
-	rts
-
-/*
- * Make sure our user space atomic helper(trap 2) is restarted
- * if it was interrupted in a critical region. Here we
- * perform a quick test inline since it should be false
- * 99.9999% of the time. The rest is done out of line.
- *
- * This macro is used in tlbmodified.
- */
-.macro kuser_cmpxchg_check
-	mfcr    a0, epc
-	btsti	a0, 31			/* is in super user mode?    if yes -=> call kuser_cmpxchg_fixup */
-	bf	1f
-	jbsr	kuser_cmpxchg_fixup
-1:
-.endm
-
-/*
- * Tlbinvalidl exception handle routine.
- */
 ENTRY(csky_tlbinvalidl)
 tlbinvalidl:
 	mtcr    a3, ss2
@@ -373,8 +272,12 @@ tlbmodified:
 	mfcr    r6, ss3
 	mfcr    a2, ss4
 	SAVE_ALL
-	kuser_cmpxchg_check
 
+	mfcr    a3, epsr
+	btsti	a3, 31
+	bf	1f
+	jbsr	csky_cmpxchg_fixup
+1:
 	RD_MEH	a3
 	bmaski  r8, 12
 	andn    a3, r8          /* a3 = a3 & (~0xfff) */
@@ -411,11 +314,7 @@ ENTRY(csky_systemcall)
 	 */
 	mfcr    r13, epc                /* Get the trap point */
 
-#if defined(__CSKYABIV1__)
-	addi    r13, 2                  /* Increase the epc */
-#elif defined(__CSKYABIV2__)
-	addi    r13, 4                  /* Increase the epc, because the Instruct "trap x" in CK ISA V2 is 32 bit */
-#endif
+	pc_inc	r13
 
 	mtcr    r13, epc                /* Save return point */
 	stw     r13, (sp)               /* Save it in stack*/
@@ -618,18 +517,11 @@ ENTRY(csky_alignment)
  *     __result; })
  */
 ENTRY(csky_get_tls)                        /*added for get tls*/
-#if defined(__CSKYABIV1__)
-	mtcr     sp, ss1
-	mfcr     sp, ss0
-#endif
+	usp_to_ksp
 
 	subi     sp, 8                  /* because sp may align wich 0x2000 */
 	mfcr     a0, epc                /* Get the trap point */
-#if defined(__CSKYABIV1__)
-	addi     a0, 2                  /* Increase the epc */
-#elif defined(__CSKYABIV2__)
-	addi     a0, 4                  /* Increase the epc, because the Instruct "trap x" in CK ISA V2 is 32 bit */
-#endif
+	pc_inc	 a0
 	mtcr     a0, epc                /* Save return point */
 
 	bmaski   a0, (PAGE_SHIFT + 1)   /* kernel stack is 2*page if page is 4k */
@@ -639,10 +531,7 @@ ENTRY(csky_get_tls)                        /*added for get tls*/
 	ldw      a0, (a0, TINFO_TP_VALUE) /* get tls */
 
 	addi     sp, 8
-#if defined(__CSKYABIV1__)
-	mtcr     sp, ss0
-	mfcr     sp, ss1
-#endif
+	ksp_to_usp
 	rte
 
 /*

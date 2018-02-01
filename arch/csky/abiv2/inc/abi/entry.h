@@ -167,4 +167,13 @@
 	mtcr    \rx, cr<8, 15>
 .endm
 
+.macro ksp_to_usp
+.endm
+
+.macro usp_to_ksp
+.endm
+
+.macro pc_inc	rx
+	addi	\rx, 4
+.endm
 #endif /* __ASM_CSKY_ENTRY_H */
