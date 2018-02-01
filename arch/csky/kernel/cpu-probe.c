@@ -6,29 +6,17 @@
 
 char cpu_name[32] = CSKYCPU_DEF_NAME;
 
-#define MSA_MASK 0xe0000000
-
 static __init void setup_cpu_msa(void)
 {
-	unsigned int tmp;
-
-	tmp = memblock_start_of_DRAM();
-
-	if (tmp != (PHYS_OFFSET + CONFIG_RAM_BASE)) {
-		pr_err("C-SKY: start of DRAM doesn't defconfig: %x-%x.\n",
-		       tmp, PHYS_OFFSET + CONFIG_RAM_BASE);
+	if (memblock_start_of_DRAM() != (PHYS_OFFSET + CONFIG_RAM_BASE)) {
+		pr_err("C-SKY: dts-DRAM doesn't fit .config: %x-%x.\n",
+			memblock_start_of_DRAM(),
+			PHYS_OFFSET + CONFIG_RAM_BASE);
 		return;
 	}
 
-	if ((tmp & MSA_MASK) != (mfcr_msa0() & MSA_MASK)) {
-		pr_err("C-SKY: start of DRAM doesn't fit MMU MSA0: %x-%x.\n",
-			mfcr_msa0(), tmp);
-		return;
-	}
-
-	tmp = tmp & MSA_MASK;
-	mtcr_msa0(tmp | 0xe);
-	mtcr_msa1(tmp | 0x6);
+	mtcr_msa0(PHYS_OFFSET | 0xe);
+	mtcr_msa1(PHYS_OFFSET | 0x6);
 }
 
 __init void cpu_dt_probe(void)
