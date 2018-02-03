@@ -34,7 +34,10 @@ static int c_show(struct seq_file *m, void *v)
 	seq_printf(m, "msa0 reg  : 0x%08x\n", mfcr_msa0());
 	seq_printf(m, "msa1 reg  : 0x%08x\n", mfcr_msa1());
 	seq_printf(m, "\n");
-
+#ifdef CSKY_ARCH_VERSION
+	seq_printf(m, "arch-version : %s\n", CSKY_ARCH_VERSION);
+	seq_printf(m, "\n");
+#endif
 	return 0;
 }
 
