@@ -57,7 +57,7 @@ void __init per_cpu_trap_init(void)
 
 extern e_vector vec_base;
 
-void __init trap_init (void)
+void __init pre_trap_init(void)
 {
 	int i;
 	e_vector *_ramvec = &vec_base;
@@ -70,8 +70,14 @@ void __init trap_init (void)
 
 	for(i = 1; (i <= 31); i++)
 		_ramvec[i] = csky_trap;
+}
 
-	for(; (i < 128); i++)
+void __init trap_init (void)
+{
+	int i;
+	e_vector *_ramvec = &vec_base;
+
+	for(i = 32; (i < 128); i++)
 		_ramvec[i] = csky_inthandler;
 
 	_ramvec[VEC_ACCESS]	= csky_buserr;
@@ -86,6 +92,8 @@ void __init trap_init (void)
 	_ramvec[VEC_TLBINVALIDL] = csky_tlbinvalidl;
 	_ramvec[VEC_TLBINVALIDS] = csky_tlbinvalids;
 	_ramvec[VEC_TLBMODIFIED] = csky_tlbmodified;
+
+	per_cpu_trap_init();
 }
 
 void die_if_kernel(char *,struct pt_regs *,int);

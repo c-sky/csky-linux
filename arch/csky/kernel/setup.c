@@ -119,11 +119,14 @@ void __init setup_arch(char **cmdline_p)
 	init_fpu();
 }
 
+extern void pre_trap_init(void);
 asmlinkage __visible void __init csky_start(
 	unsigned int	unused,
 	void *		param
 	)
 {
+	pre_trap_init();
+
 	/* Setup mmu as coprocessor */
 	select_mmu_cp();
 
