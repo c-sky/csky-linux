@@ -62,7 +62,5 @@ static inline void mtcr_msa1(unsigned int value)
 
 static inline unsigned int mfcr_ccr2(void){return 0;}
 
-#define CSKYCPU_DEF_NAME "csky,ck610"
-
 #endif /* __ASM_REG_OPS_H */
 

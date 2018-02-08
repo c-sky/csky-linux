@@ -149,6 +149,10 @@ config CPU_CK810
 config CPU_CK807
         bool "CSKY CPU ck807"
 	select HIGHMEM
+
+config CPU_CK860
+        bool "CSKY CPU ck860"
+	select HIGHMEM
 endchoice
 
 menuconfig CPU_HAS_FPU
@@ -196,10 +200,6 @@ config OPEN_FPU_IOE
 	default n
 
 endif # if CPU_HAS_FPU
-
-config CPU_HAS_DSP
-	bool "CPU support DSP enhanced instruction"
-	default n
 
 config CPU_BIG_ENDIAN
 	bool "Build big-endian kernel"

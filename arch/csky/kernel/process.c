@@ -85,7 +85,7 @@ int copy_thread(unsigned long clone_flags,
 	save_fp_to_thread(p->thread.fp, &p->thread.fcr, &p->thread.fsr,
 	     &p->thread.fesr);
 #endif
-#if defined(CONFIG_CPU_HAS_DSP) || defined(__CSKYABIV2__)
+#if defined(__CSKYABIV2__)
 	__asm__ __volatile__("mfhi    %0 \n\r"
 			     "mflo    %1 \n\r"
 			    :"=r"(p->thread.hi), "=r"(p->thread.lo)

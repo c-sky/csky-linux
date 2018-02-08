@@ -4,8 +4,6 @@
 #include <abi/reg_ops.h>
 #include <linux/memblock.h>
 
-char cpu_name[32] = CSKYCPU_DEF_NAME;
-
 static __init void setup_cpu_msa(void)
 {
 	if (memblock_start_of_DRAM() != (PHYS_OFFSET + CONFIG_RAM_BASE)) {
@@ -26,7 +24,7 @@ __init void cpu_dt_probe(void)
 
 static int c_show(struct seq_file *m, void *v)
 {
-	seq_printf(m, "C-SKY CPU : %s\n", cpu_name);
+	seq_printf(m, "C-SKY CPU : %s\n", CSKYCPU_DEF_NAME);
 	seq_printf(m, "revision  : 0x%08x\n", mfcr_cpuidrr());
 	seq_printf(m, "ccr reg   : 0x%08x\n", mfcr_ccr());
 	seq_printf(m, "ccr2 reg  : 0x%08x\n", mfcr_ccr2());

@@ -1,26 +1,27 @@
 OBJCOPYFLAGS	:=-O binary
 GZFLAGS		:=-9
 
-ifdef CONFIG_CPU_HAS_DSP
-DSPEXT =e
-endif
-
 ifdef CONFIG_CPU_HAS_FPU
 FPUEXT =f
 endif
 
 ifdef CONFIG_CPU_CK610
-CPUTYPE	= -Wa,-mcpu=ck610$(DSPEXT)$(FPUEXT)
+CPUTYPE	= -Wa,-mcpu=ck610
 CSKYABI	= abiv1
 endif
 
 ifdef CONFIG_CPU_CK810
-CPUTYPE = -mcpu=ck810$(DSPEXT)$(FPUEXT)
+CPUTYPE = ck810$(FPUEXT)
 CSKYABI	= abiv2
 endif
 
 ifdef CONFIG_CPU_CK807
-CPUTYPE = -mcpu=ck807$(DSPEXT)$(FPUEXT)
+CPUTYPE = ck807$(FPUEXT)
+CSKYABI	= abiv2
+endif
+
+ifdef CONFIG_CPU_CK860
+CPUTYPE = ck860$(FPUEXT)
 CSKYABI	= abiv2
 endif
 
@@ -32,7 +33,9 @@ KBUILD_CFLAGS +=	-ffreestanding \
 			-fno-tree-dse \
 			-pipe \
 			-Wno-uninitialized \
-			$(COMPAT_KERNEL_4_9) $(CPUTYPE)
+			$(COMPAT_KERNEL_4_9) \
+			-mcpu=$(CPUTYPE) \
+			-DCSKYCPU_DEF_NAME=\"$(CPUTYPE)\"
 
 ifeq ($(CONFIG_CSKY_DEBUG_INFO),y)
 KBUILD_CFLAGS += -g

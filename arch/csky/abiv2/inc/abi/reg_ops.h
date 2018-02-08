@@ -69,13 +69,5 @@ static inline void mtcr_msa1(unsigned int value)
 		::"r"(value));
 }
 
-#ifdef CONFIG_CPU_CK807
-#define CSKYCPU_DEF_NAME "csky,ck807"
-#endif
-
-#ifdef CONFIG_CPU_CK810
-#define CSKYCPU_DEF_NAME "csky,ck810"
-#endif
-
 #endif /* __ASM_REG_OPS_H */
 
