@@ -6,7 +6,7 @@ FPUEXT =f
 endif
 
 ifdef CONFIG_CPU_CK610
-CPUTYPE	= -Wa,-mcpu=ck610
+CPUTYPE	= ck610
 CSKYABI	= abiv1
 endif
 
