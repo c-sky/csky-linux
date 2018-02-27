@@ -21,6 +21,12 @@ void local_flush_tlb_mm(struct mm_struct *mm)
 		drop_mmu_context(mm,cpu);
 }
 
+#define restore_asid_inv_utlb(oldpid, newpid) \
+do { \
+	if(oldpid == newpid) write_mmu_entryhi(oldpid +1); \
+	write_mmu_entryhi(oldpid); \
+} while(0)
+
 void local_flush_tlb_range(struct vm_area_struct *vma, unsigned long start,
 			   unsigned long end)
 {
@@ -50,7 +56,7 @@ void local_flush_tlb_range(struct vm_area_struct *vma, unsigned long start,
 				if (idx >= 0)
 					tlb_invalid_indexed();
 			}
-			write_mmu_entryhi(oldpid);
+			restore_asid_inv_utlb(oldpid, newpid);
 		} else {
 			drop_mmu_context(mm, cpu);
 		}
@@ -80,7 +86,7 @@ void local_flush_tlb_kernel_range(unsigned long start, unsigned long end)
                         if (idx >= 0)
                                 tlb_invalid_indexed();
                 }
-                write_mmu_entryhi(oldpid);
+		restore_asid_inv_utlb(oldpid, 0);
         } else {
                 local_flush_tlb_all();
         }
@@ -104,7 +110,7 @@ void local_flush_tlb_page(struct vm_area_struct *vma, unsigned long page)
 		idx = read_mmu_index();
 		if(idx >= 0)
 			tlb_invalid_indexed();
-		write_mmu_entryhi(oldpid);
+		restore_asid_inv_utlb(oldpid, newpid);
 		local_irq_restore(flags);
 	}
 }
@@ -128,7 +134,7 @@ void local_flush_tlb_one(unsigned long page)
 	idx = read_mmu_index();
 	if (idx >= 0)
 		tlb_invalid_indexed();
-	write_mmu_entryhi(oldpid);
+	restore_asid_inv_utlb(oldpid, oldpid);
 	local_irq_restore(flags);
 }
 

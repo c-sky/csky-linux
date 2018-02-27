@@ -27,11 +27,9 @@ tlbinvalidl:
 	bgeni	a2, 31
 	WR_MCIR	a2
 	RD_MIR  a3
-	btsti   a3, 31     /* Is probe success ? */
-	bt      1f
 	bgeni	a2, 25
 	WR_MCIR	a2
-1:
+
 	RD_PGDR	r6
 	bclri   r6, 0
 	lrw	a3, PHYS_OFFSET
@@ -71,7 +69,7 @@ tlbinvalidl:
 	or      a3, a2
 	stw     a3, (r6)
 
-	movi	a2, 0x32
+	movi	a2, 0x22
 	bseti	a2, 6
 	mtcr	r6, cr22
 	mtcr	a2, cr17
@@ -111,11 +109,9 @@ tlbinvalids:
 	bgeni	a2, 31
 	WR_MCIR	a2
 	RD_MIR  a3
-	btsti   a3, 31     /* Is probe success ? */
-	bt      1f
 	bgeni	a2, 25
 	WR_MCIR	a2
-1:
+
 	RD_PGDR	r6
 	bclri   r6, 0
 	lrw	a3, PHYS_OFFSET
@@ -159,7 +155,7 @@ tlbinvalids:
 	or      a3, a2
 	stw     a3, (r6)
 	
-	movi	a2, 0x32
+	movi	a2, 0x22
 	bseti 	a2, 6
 	mtcr    r6, cr22
 	mtcr	a2, cr17
@@ -205,11 +201,9 @@ ENTRY(csky_tlbmodified)
 	bgeni	a2, 31
 	WR_MCIR	a2
 	RD_MIR  a3
-	btsti   a3, 31
-	bt      1f
 	bgeni	a2, 25
 	WR_MCIR	a2
-1:
+
 	RD_PGDR	r6
 	bclri   r6, 0
 	lrw	a3, PHYS_OFFSET
@@ -256,7 +250,7 @@ ENTRY(csky_tlbmodified)
 	or      a3, a2
 	stw     a3, (r6)
 
-	movi	a2, 0x32
+	movi	a2, 0x22
 	bseti 	a2, 6
 	mtcr    r6, cr22
 	mtcr	a2, cr17
