@@ -659,7 +659,7 @@ ENTRY(__switch_to)
 	FPU_SAVE_REGS
 #endif
 
-#if defined(__CSKYABIV2__)
+#ifdef CONFIG_CPU_HAS_HILO
 	lrw      r10, THREAD_DSPHI
 	add      r10, a3
 	mfhi     r6
@@ -687,7 +687,7 @@ ENTRY(__switch_to)
 	FPU_RESTORE_REGS
 #endif
 
-#if defined(__CSKYABIV2__)
+#ifdef CONFIG_CPU_HAS_HILO
 	lrw      r10, THREAD_DSPHI
 	add      r10, a3
 	ldw      r6, (r10, 8)   /* THREAD_DSPCSR */

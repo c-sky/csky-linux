@@ -63,10 +63,12 @@
         stw     r15, (sp, 68)
         addi    sp, 72
         stm     r16-r31,(sp)
-        mfhi    r22
-        mflo    r23
+#ifdef CONFIG_CPU_HAS_HILO
+	mfhi    r22
+	mflo    r23
 	stw     r22, (sp, 64)
         stw     r23, (sp, 68)
+#endif
         subi    sp,  72
 
 	mfcr    r22, epsr        /* Get original PSR */
@@ -82,11 +84,12 @@
         ldw     a0, (sp, 8)     /* Get saved PSR */
         mtcr    a0, epsr        /* Restore PSR */
 	addi    sp, 12
+#ifdef CONFIG_CPU_HAS_HILO
 	ldw     a0, (sp, 124)
         ldw     a1, (sp, 128)
 	mthi    a0
-        mtlo    a1
-
+	mtlo    a1
+#endif
 	ldw     a0, (sp, 0)
         ldw     a1, (sp, 4)
         ldw     a2, (sp, 8)

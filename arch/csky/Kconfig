@@ -118,6 +118,10 @@ config PGTABLE_LEVELS
 config ARCH_POPULATES_NODE_MAP
 	def_bool y
 
+config CPU_HAS_HILO
+	bool
+	default n
+
 source "init/Kconfig"
 
 source "kernel/Kconfig.freezer"
@@ -145,10 +149,12 @@ config CPU_CK610
 config CPU_CK810
         bool "CSKY CPU ck810"
 	select HIGHMEM
+	select CPU_HAS_HILO
 
 config CPU_CK807
         bool "CSKY CPU ck807"
 	select HIGHMEM
+	select CPU_HAS_HILO
 
 config CPU_CK860
         bool "CSKY CPU ck860"
