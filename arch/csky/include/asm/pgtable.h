@@ -113,7 +113,7 @@ static inline pte_t pte_mkspecial(pte_t pte) { return pte; }
 #define __dcache_flush_line(x) \
 	cache_op_line((u32)x, DATA_CACHE|CACHE_CLR);
 
-#if !defined(__ck807__)
+#if !defined(CONFIG_CPU_HAS_TLBCACHE)
 #define set_pte(pteptr, pteval)			\
         do{					\
                 *(pteptr) = (pteval);		\
@@ -142,7 +142,7 @@ static inline pte_t *pmd_page_vaddr(pmd_t pmd)
 static inline void set_pmd(pmd_t *pmdp, pmd_t pmd)
 {
 	*pmdp = pmd;
-#if !defined(__ck807__)
+#if !defined(CONFIG_CPU_HAS_TLBCACHE)
 	__dcache_flush_line(pmdp);
 #endif
 }
@@ -163,7 +163,7 @@ static inline int pmd_present(pmd_t pmd)
 static inline void pmd_clear(pmd_t *pmdp)
 {
         pmd_val(*pmdp) = (__pa(invalid_pte_table));
-#if !defined(__ck807__)
+#if !defined(CONFIG_CPU_HAS_TLBCACHE)
 	__dcache_flush_line(pmdp);
 #endif
 }

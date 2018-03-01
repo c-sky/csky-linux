@@ -24,19 +24,22 @@ tlbinvalidl:
 	mtcr    r6, ss3
 	mtcr    a2, ss4
 
+	RD_MEH	a3
+#ifdef CONFIG_CPU_HAS_TLBI
+	tlbi.va	a3
+#else
 	bgeni	a2, 31
 	WR_MCIR	a2
-	RD_MIR  a3
 	bgeni	a2, 25
 	WR_MCIR	a2
+#endif
 
 	RD_PGDR	r6
 	bclri   r6, 0
-	lrw	a3, PHYS_OFFSET
-	subu	r6, a3
+	lrw	a2, PHYS_OFFSET
+	subu	r6, a2
 	bseti	r6, 31
 
-	RD_MEH	a3
 	mov     a2, a3
    	lsri    a2, _PGDIR_SHIFT
 	lsli    a2, 2
@@ -69,12 +72,13 @@ tlbinvalidl:
 	or      a3, a2
 	stw     a3, (r6)
 
+#ifdef CONFIG_CPU_HAS_TLBCACHE
 	movi	a2, 0x22
 	bseti	a2, 6
 	mtcr	r6, cr22
 	mtcr	a2, cr17
 	sync
-
+#endif
 	mfcr    a3, ss2
 	mfcr    r6, ss3
 	mfcr    a2, ss4
@@ -106,19 +110,23 @@ tlbinvalids:
 	mtcr    r6, ss3
 	mtcr    a2, ss4
 
+	RD_MEH	a3
+#ifdef CONFIG_CPU_HAS_TLBI
+	tlbi.va	a3
+#else
 	bgeni	a2, 31
 	WR_MCIR	a2
-	RD_MIR  a3
 	bgeni	a2, 25
 	WR_MCIR	a2
+#endif
 
 	RD_PGDR	r6
 	bclri   r6, 0
-	lrw	a3, PHYS_OFFSET
-	subu	r6, a3
+	lrw	a2, PHYS_OFFSET
+	subu	r6, a2
 	bseti	r6, 31
 
-	RD_MEH	a3
+	mov     a2, a3
 	mov     a2, a3
 	lsri    a2, _PGDIR_SHIFT
 	lsli    a2, 2
@@ -154,13 +162,14 @@ tlbinvalids:
 
 	or      a3, a2
 	stw     a3, (r6)
-	
+
+#ifdef CONFIG_CPU_HAS_TLBCACHE
 	movi	a2, 0x22
 	bseti 	a2, 6
 	mtcr    r6, cr22
 	mtcr	a2, cr17
 	sync
-
+#endif
 	mfcr    a3, ss2
 	mfcr    r6, ss3
 	mfcr    a2, ss4
@@ -198,19 +207,22 @@ ENTRY(csky_tlbmodified)
 	bclri   a3, 13
 	mtcr    a3, epsr
 
+	RD_MEH  a3
+#ifdef CONFIG_CPU_HAS_TLBI
+	tlbi.va	a3
+#else
 	bgeni	a2, 31
 	WR_MCIR	a2
-	RD_MIR  a3
 	bgeni	a2, 25
 	WR_MCIR	a2
+#endif
 
 	RD_PGDR	r6
 	bclri   r6, 0
-	lrw	a3, PHYS_OFFSET
-	subu	r6, a3
+	lrw	a2, PHYS_OFFSET
+	subu	r6, a2
 	bseti   r6, 31
 
-	RD_MEH  a3
 	mov     a2, a3
 	lsri    a2, _PGDIR_SHIFT
 	lsli    a2, 2
@@ -250,12 +262,13 @@ ENTRY(csky_tlbmodified)
 	or      a3, a2
 	stw     a3, (r6)
 
+#ifdef CONFIG_CPU_HAS_TLBCACHE
 	movi	a2, 0x22
 	bseti 	a2, 6
 	mtcr    r6, cr22
 	mtcr	a2, cr17
 	sync
-
+#endif
 	mfcr    a3, ss2
 	mfcr    r6, ss3
 	mfcr    a2, ss4

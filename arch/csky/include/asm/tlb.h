@@ -10,7 +10,6 @@
 			INS_CACHE|DATA_CACHE|CACHE_CLR|CACHE_INV, 0); \
 	}  while (0)
 
-#if !defined(__ck807__)
 /*
  * FIXME: may be use function flush_tlb_range like other arch.
  */
@@ -20,9 +19,6 @@
 		cache_op_range(vma->vm_start, vma->vm_end, \
 			INS_CACHE|DATA_CACHE|CACHE_CLR|CACHE_INV, 0); \
 	}  while (0)
-#else
-#define tlb_end_vma(tlb, vma) do {} while(0)
-#endif
 
 #define tlb_flush(tlb)	flush_tlb_mm((tlb)->mm)
 

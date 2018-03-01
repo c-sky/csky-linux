@@ -79,10 +79,14 @@ static inline void tlb_read(void)
 
 static inline void tlb_invalid_all(void)
 {
+#ifdef CONFIG_CPU_HAS_TLBI
+	__asm__ __volatile__("tlbi.all\n\t");
+#else
 	int value = 0x04000000;
 
 	__asm__ __volatile__("mtcr %0,cr<8, 15>\n\t"
 					: :"r" (value));
+#endif
 }
 
 static inline void tlb_invalid_indexed(void)
