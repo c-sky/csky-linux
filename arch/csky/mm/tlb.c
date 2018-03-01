@@ -23,7 +23,8 @@ void local_flush_tlb_mm(struct mm_struct *mm)
 
 #define restore_asid_inv_utlb(oldpid, newpid) \
 do { \
-	if(oldpid == newpid) write_mmu_entryhi(oldpid +1); \
+	if((oldpid & ASID_MASK) == newpid) \
+		write_mmu_entryhi(oldpid +1); \
 	write_mmu_entryhi(oldpid); \
 } while(0)
 
