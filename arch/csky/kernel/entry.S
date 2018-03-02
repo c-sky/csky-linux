@@ -72,7 +72,7 @@ tlbinvalidl:
 	or      a3, a2
 	stw     a3, (r6)
 
-#ifdef CONFIG_CPU_HAS_TLBCACHE
+#ifndef CONFIG_CPU_HAS_TLBCACHE
 	movi	a2, 0x22
 	bseti	a2, 6
 	mtcr	r6, cr22
@@ -163,7 +163,7 @@ tlbinvalids:
 	or      a3, a2
 	stw     a3, (r6)
 
-#ifdef CONFIG_CPU_HAS_TLBCACHE
+#ifndef CONFIG_CPU_HAS_TLBCACHE
 	movi	a2, 0x22
 	bseti 	a2, 6
 	mtcr    r6, cr22
@@ -262,7 +262,7 @@ ENTRY(csky_tlbmodified)
 	or      a3, a2
 	stw     a3, (r6)
 
-#ifdef CONFIG_CPU_HAS_TLBCACHE
+#ifndef CONFIG_CPU_HAS_TLBCACHE
 	movi	a2, 0x22
 	bseti 	a2, 6
 	mtcr    r6, cr22
