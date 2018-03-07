@@ -1,8 +1,6 @@
 #ifndef __ASM_CSKY_CKMMUV1_H
 #define __ASM_CSKY_CKMMUV1_H
 
-#define CSKY_TLB_SIZE 128
-
 static inline void select_mmu_cp(void)
 {
 	 __asm__ __volatile__("cpseti cp15\n\t");

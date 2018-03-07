@@ -1,8 +1,6 @@
 #ifndef __ASM_CSKY_CKMMUV2_H
 #define __ASM_CSKY_CKMMUV2_H
 
-#define CSKY_TLB_SIZE 128
-
 static inline void select_mmu_cp(void)
 {}
 

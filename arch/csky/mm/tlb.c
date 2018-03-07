@@ -8,6 +8,8 @@
 #include <asm/pgtable.h>
 #include <abi/ckmmu.h>
 
+#define CSKY_TLB_SIZE CONFIG_CPU_TLB_SIZE
+
 void local_flush_tlb_all(void)
 {
 	tlb_invalid_all();
