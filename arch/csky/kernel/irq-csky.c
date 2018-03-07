@@ -16,6 +16,8 @@ static unsigned int intc_reg;
 #define CK_VA_INTC_ISR		(void *)(intc_reg + 0x00)	/* Interrupt status register(Low 16bits) */
 #define CK_VA_INTC_NEN31_00	(void *)(intc_reg + 0x10)	/* Normal interrupt enable register Low */
 #define	CK_VA_INTC_NEN63_32	(void *)(intc_reg + 0x28)	/* Normal interrupt enable register High */
+#define CK_VA_INTC_IFR31_00	(void *)(intc_reg + 0x08)	/* Normal interrupt force register Low */
+#define CK_VA_INTC_IFR63_32	(void *)(intc_reg + 0x20)	/* Normal interrupt force register High */
 #define	CK_VA_INTC_SOURCE	(void *)(intc_reg + 0x40)	/* Proiority Level Select Registers 0 */
 
 static void ck_irq_mask(struct irq_data *d)
@@ -40,6 +42,17 @@ static void ck_irq_unmask(struct irq_data *d)
 	unsigned int temp, irq;
 
 	irq = d->irq;
+
+	/* set IFR to support rising edge triggering */
+	if (irq < 32) {
+		temp = __raw_readl(CK_VA_INTC_IFR31_00);
+		temp &= ~(1 << irq);
+		__raw_writel(temp, CK_VA_INTC_IFR31_00);
+	} else {
+		temp = __raw_readl(CK_VA_INTC_IFR63_32);
+		temp &= ~(1 << (irq -32));
+		__raw_writel(temp, CK_VA_INTC_IFR63_32);
+	}
 
 	if (irq < 32) {
 		temp = __raw_readl(CK_VA_INTC_NEN31_00);
