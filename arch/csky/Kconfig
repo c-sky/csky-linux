@@ -41,6 +41,8 @@ config CSKY
 	select GENERIC_SCHED_CLOCK
 	select GENERIC_IRQ_CHIP
 	select MAY_HAVE_SPARSE_IRQ
+	select CLKSRC_MMIO
+	select CLKSRC_OF
 
 config NR_CPUS
 	int
@@ -281,32 +283,6 @@ config CSKY_BUILTIN_DTB
 config CSKY_BUILTIN_DTB_NAME
 	string "kernel builtin dtb name"
 	depends on CSKY_BUILTIN_DTB
-
-menu "irqchip drivers (in csky)"
-
-config NATIONALCHIP_IRQ
-	bool "nationalchip irq"
-	default y
-
-config CSKY_IRQ
-	bool "csky irq"
-	default y
-
-config DAHUA_IRQ
-	bool "dahua irq"
-	default y
-
-endmenu
-
-menu "Clock Source drivers (in csky)"
-
-config NATIONALCHIP_TIMER
-	bool "nationalchip timer"
-	select CLKSRC_MMIO
-	select CLKSRC_OF
-	default y
-endmenu
-
 endmenu
 
 menu "Power management options"
