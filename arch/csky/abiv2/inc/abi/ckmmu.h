@@ -103,6 +103,7 @@ static inline void tlbmiss_handler_setup_pgd(unsigned long pgd)
 		"bclri %0, 31		\n\t"
 		"addu  %0, %1		\n\t"
 		"mtcr  %0, cr<29, 15>	\n\t"
+		"mtcr  %0, cr<28, 15>	\n\t"
 		::"r"(pgd), "r"(PHYS_OFFSET)
 		:);
 }
