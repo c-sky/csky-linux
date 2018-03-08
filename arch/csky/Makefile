@@ -45,13 +45,8 @@ abidirs := $(patsubst %,arch/csky/%/,$(CSKYABI))
 
 KBUILD_CFLAGS += $(patsubst %,-I$(srctree)/%inc,$(abidirs))
 
-ifeq ($(CONFIG_CPU_BIG_ENDIAN),y)
-KBUILD_CPPFLAGS += -mbig-endian
-LDFLAGS += -EB
-else
 KBUILD_CPPFLAGS += -mlittle-endian
 LDFLAGS += -EL
-endif
 
 KBUILD_AFLAGS += $(KBUILD_CFLAGS)
 

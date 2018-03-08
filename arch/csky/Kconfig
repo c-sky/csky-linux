@@ -225,16 +225,6 @@ config OPEN_FPU_IOE
 
 endif # if CPU_HAS_FPU
 
-config CPU_BIG_ENDIAN
-	bool "Build big-endian kernel"
-	default n
-	---help---
-	  Say Y if you plan on running a kernel in big-endian mode.
-	  Note that your board must be properly built and your board
-	  port must properly enable any big-endian related features
-	   of your chipset/board/processor.
-
-
 config	SOFT_HANDMISSALIGN
 	bool "Software fixup alignment exception."
 	default y
