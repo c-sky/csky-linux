@@ -38,7 +38,7 @@ ENTRY(csky_cmpxchg)
 END(csky_cmpxchg)
 
 /*
- *  Called from tlbmodified exception
+ * Called from tlbmodified exception
  */
 ENTRY(csky_cmpxchg_fixup)
 	mfcr	a0, epc

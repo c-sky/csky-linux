@@ -56,13 +56,14 @@ int fixup_exception(struct pt_regs *regs)
  * routines.
  */
 asmlinkage void do_page_fault(struct pt_regs *regs, unsigned long write,
-                              unsigned long address)
+                              unsigned long mmu_meh)
 {
         struct vm_area_struct * vma = NULL;
         struct task_struct *tsk = current;
         struct mm_struct *mm = tsk->mm;
         siginfo_t info;
-        int fault;
+	int fault;
+	unsigned long address = mmu_meh & PAGE_MASK;
 
         info.si_code = SEGV_MAPERR;
 

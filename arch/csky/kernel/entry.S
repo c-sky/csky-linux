@@ -17,9 +17,8 @@
 #define _PGDIR_SHIFT    22
 #define THREADSIZE_MASK_BIT 13
 
-.text
-ENTRY(csky_tlbinvalidl)
-tlbinvalidl:
+.macro tlbop_begin name, val0, val1, val2
+ENTRY(csky_\name)
 	mtcr    a3, ss2
 	mtcr    r6, ss3
 	mtcr    a2, ss4
@@ -56,22 +55,21 @@ tlbinvalidl:
 	addu    r6, a3
 	ldw     a3, (r6)
 
-	movi    a2, (_PAGE_PRESENT | _PAGE_READ)
+	movi	a2, (_PAGE_PRESENT | \val0)
 	and     a3, a2
 	cmpne   a3, a2
-	bt      readtlbinvalid   /* PTE not present, jump to fix it. */
+	bt	\name
 
-	/* PTE present, now make it valid */
+	/* First read/write the page, just update the flags */
 	ldw     a3, (r6)
-#ifdef __CSKYABIV1__
-	bgeni   a2, 7         /* a2 = (_PAGE_VALID | _PAGE_ACCESSED) */
- 	bseti   a2, 3
-#else
-	movi    a2, (_PAGE_VALID | _PAGE_ACCESSED)
-#endif
+	bgeni   a2, _PAGE_VALID_BIT
+	bseti   a2, _PAGE_ACCESSED_BIT
+	bseti   a2, \val1
+	bseti   a2, \val2
 	or      a3, a2
 	stw     a3, (r6)
 
+	/* Some cpu tlb-hardrefill bypass the cache */
 #ifndef CONFIG_CPU_HAS_TLBCACHE
 	movi	a2, 0x22
 	bseti	a2, 6
@@ -79,222 +77,38 @@ tlbinvalidl:
 	mtcr	a2, cr17
 	sync
 #endif
+
 	mfcr    a3, ss2
 	mfcr    r6, ss3
 	mfcr    a2, ss4
 	rte
-
-readtlbinvalid:
+\name:
 	mfcr    a3, ss2
 	mfcr    r6, ss3
 	mfcr    a2, ss4
 	SAVE_ALL
-
-	RD_MEH	a3
-	bmaski  r8, 12
-	andn    a3, r8             /* r8 = !(0xfffff000) */
-	mov     a2, a3
+.endm
+.macro tlbop_end is_write
+	RD_MEH	a2
 	psrset  ee, ie          /* Enable exception & interrupt */
 	mov     a0, sp
-	movi    a1, 0
+	movi    a1, \is_write
 	jbsr    do_page_fault
 	movi    r11_sig, 0             /* r11 = 0, Not a syscall. */
 	jmpi    ret_from_exception
+.endm
 
-/*
- * Tlbinvalids exception handle routine.
- */
-ENTRY(csky_tlbinvalids)
-tlbinvalids:
-	mtcr    a3, ss2
-	mtcr    r6, ss3
-	mtcr    a2, ss4
+.text
 
-	RD_MEH	a3
-#ifdef CONFIG_CPU_HAS_TLBI
-	tlbi.va	a3
-#else
-	bgeni	a2, 31
-	WR_MCIR	a2
-	bgeni	a2, 25
-	WR_MCIR	a2
-#endif
+tlbop_begin tlbinvalidl, _PAGE_READ, _PAGE_VALID_BIT, _PAGE_ACCESSED_BIT
+tlbop_end 0
 
-	RD_PGDR	r6
-	bclri   r6, 0
-	lrw	a2, PHYS_OFFSET
-	subu	r6, a2
-	bseti	r6, 31
+tlbop_begin tlbinvalids, _PAGE_WRITE, _PAGE_DIRTY_BIT, _PAGE_MODIFIED_BIT
+tlbop_end 1
 
-	mov     a2, a3
-	mov     a2, a3
-	lsri    a2, _PGDIR_SHIFT
-	lsli    a2, 2
-	addu    r6, a2
-	ldw     r6, (r6)
-
-	lrw	a2, PHYS_OFFSET
-	subu	r6, a2
-	bseti   r6, 31
-
-	lsri    a3, PTE_INDX_SHIFT
-	lrw     a2, PTE_INDX_MSK
-	and     a3, a2
-	addu    r6, a3
-	ldw     a3, (r6)
-	movi    a2, (_PAGE_PRESENT | _PAGE_WRITE)
-	and     a3, a2
-	xor     a3, a2
-	cmpnei  a3, 0
-	bt      writetlbinvalid  /* PTE not present, jump to fix it. */
-
-	/* PTE resent, set it to be valid. */
-	ldw     a3, (r6)
-
-#ifdef __CSKYABIV1__
-	/* a2 = (_PAGE_ACCESSED | _PAGE_MODIFIED | _PAGE_VALID | _PAGE_DIRTY) */
-	movi    a2, 0x18
-	bseti   a2, 7
-	bseti   a2, 8
-#else
-	movi    a2, (_PAGE_ACCESSED | _PAGE_MODIFIED | _PAGE_VALID | _PAGE_DIRTY)
-#endif
-
-	or      a3, a2
-	stw     a3, (r6)
-
-#ifndef CONFIG_CPU_HAS_TLBCACHE
-	movi	a2, 0x22
-	bseti 	a2, 6
-	mtcr    r6, cr22
-	mtcr	a2, cr17
-	sync
-#endif
-	mfcr    a3, ss2
-	mfcr    r6, ss3
-	mfcr    a2, ss4
-	rte
-
-writetlbinvalid:
-	mfcr    a3, ss2
-	mfcr    r6, ss3
-	mfcr    a2, ss4
-	SAVE_ALL
-
-	RD_MEH	    a3
-	bmaski  r8, 12
-	andn    a3, r8          /* r8 = !(0xfffff000) */
-	mov     a2, a3
-	psrset  ee, ie          /* Enable exception & interrupt */
-	mov     a0, sp
-	movi    a1, 1
-	jbsr    (do_page_fault)
-	movi    r11_sig, 0             /* r11 = 0, Not a syscall. */
-	jmpi    (ret_from_exception)
-
-/*
- * Tlbmodified exception handle routine.
- */
-ENTRY(csky_tlbmodified)
-	mtcr    a3, ss2
-	mtcr    r6, ss3
-	mtcr    a2, ss4
-
-	/*
-	 * clear TP in psr[13]
-	 */
-	mfcr    a3, epsr
-	bclri   a3, 13
-	mtcr    a3, epsr
-
-	RD_MEH  a3
-#ifdef CONFIG_CPU_HAS_TLBI
-	tlbi.va	a3
-#else
-	bgeni	a2, 31
-	WR_MCIR	a2
-	bgeni	a2, 25
-	WR_MCIR	a2
-#endif
-
-	RD_PGDR	r6
-	bclri   r6, 0
-	lrw	a2, PHYS_OFFSET
-	subu	r6, a2
-	bseti   r6, 31
-
-	mov     a2, a3
-	lsri    a2, _PGDIR_SHIFT
-	lsli    a2, 2
-	addu    r6, a2
-	ldw     r6, (r6)
-
-	lrw	a2, PHYS_OFFSET
-	subu	r6, a2
-	bseti   r6, 31
-
-	lsri    a3, PTE_INDX_SHIFT
-	lrw     a2, PTE_INDX_MSK
-	and     a3, a2
-	addu    r6, a3
-	ldw     a3, (r6)/* get pte to a3*/
-
-	/*
-	 * if _PAGE_WRITE == 0, goto tlbmodified.
-	 */
-	movi    a2, _PAGE_WRITE
-	and     a3, a2
-	cmpnei  a3, 0
-	bf      tlbmodified
-	ldw     a3, (r6)
-
-	/*
-	 * Present and writable bits set, set accessed and dirty bits.
-	 * a2 = (_PAGE_ACCESSED | _PAGE_MODIFIED | _PAGE_VALID | _PAGE_DIRTY)
-	 */
-#ifdef __CSKYABIV1__
-	movi    a2, 0x18
-	bseti   a2, 7
-	bseti   a2, 8
-#else
-	movi    a2, (_PAGE_ACCESSED | _PAGE_MODIFIED | _PAGE_VALID | _PAGE_DIRTY)
-#endif
-	or      a3, a2
-	stw     a3, (r6)
-
-#ifndef CONFIG_CPU_HAS_TLBCACHE
-	movi	a2, 0x22
-	bseti 	a2, 6
-	mtcr    r6, cr22
-	mtcr	a2, cr17
-	sync
-#endif
-	mfcr    a3, ss2
-	mfcr    r6, ss3
-	mfcr    a2, ss4
-	rte
-
-tlbmodified:
-	mfcr    a3, ss2
-	mfcr    r6, ss3
-	mfcr    a2, ss4
-	SAVE_ALL
-
-	mfcr    a3, epsr
-	btsti	a3, 31
-	bf	1f
-	jbsr	csky_cmpxchg_fixup
-1:
-	RD_MEH	a3
-	bmaski  r8, 12
-	andn    a3, r8          /* a3 = a3 & (~0xfff) */
-	mov     a2, a3
-	psrset  ee, ie          /* Enable exception & interrupt */
-	mov     a0, sp
-	movi    a1, 1
-	jbsr    (do_page_fault)
-	movi    r11_sig, 0             /* r11 = 0, Not a syscall. */
-	jmpi    (ret_from_exception)
+tlbop_begin tlbmodified, _PAGE_WRITE, _PAGE_DIRTY_BIT, _PAGE_MODIFIED_BIT
+jbsr csky_cmpxchg_fixup
+tlbop_end 1
 
 /*
  * This function is used to handle access exception.
@@ -406,7 +220,6 @@ ENTRY(ret_from_kernel_thread)
 	mov	 a0, r8
 	jsr	 r9
 	jbsr     ret_from_exception
-
 
 ENTRY(ret_from_fork)
 	jbsr     schedule_tail
