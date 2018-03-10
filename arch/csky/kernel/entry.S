@@ -62,8 +62,8 @@ ENTRY(csky_\name)
 
 	/* First read/write the page, just update the flags */
 	ldw     a3, (r6)
-	bgeni   a2, _PAGE_VALID_BIT
-	bseti   a2, _PAGE_ACCESSED_BIT
+	bgeni   a2, PAGE_VALID_BIT
+	bseti   a2, PAGE_ACCESSED_BIT
 	bseti   a2, \val1
 	bseti   a2, \val2
 	or      a3, a2
@@ -100,13 +100,13 @@ ENTRY(csky_\name)
 
 .text
 
-tlbop_begin tlbinvalidl, _PAGE_READ, _PAGE_VALID_BIT, _PAGE_ACCESSED_BIT
+tlbop_begin tlbinvalidl, _PAGE_READ, PAGE_VALID_BIT, PAGE_ACCESSED_BIT
 tlbop_end 0
 
-tlbop_begin tlbinvalids, _PAGE_WRITE, _PAGE_DIRTY_BIT, _PAGE_MODIFIED_BIT
+tlbop_begin tlbinvalids, _PAGE_WRITE, PAGE_DIRTY_BIT, PAGE_MODIFIED_BIT
 tlbop_end 1
 
-tlbop_begin tlbmodified, _PAGE_WRITE, _PAGE_DIRTY_BIT, _PAGE_MODIFIED_BIT
+tlbop_begin tlbmodified, _PAGE_WRITE, PAGE_DIRTY_BIT, PAGE_MODIFIED_BIT
 jbsr csky_cmpxchg_fixup
 tlbop_end 1
 

@@ -3,23 +3,23 @@
 
 /* implemented in software */
 #define _PAGE_ACCESSED		(1<<7)
-#define _PAGE_ACCESSED_BIT	(7)
+#define PAGE_ACCESSED_BIT	(7)
 
 #define _PAGE_READ		(1<<8)
 #define _PAGE_WRITE		(1<<9)
 #define _PAGE_PRESENT		(1<<10)
 
 #define _PAGE_MODIFIED		(1<<11)
-#define _PAGE_MODIFIED_BIT	(11)
+#define PAGE_MODIFIED_BIT	(11)
 
 /* implemented in hardware */
 #define _PAGE_GLOBAL		(1<<0)
 
 #define _PAGE_VALID		(1<<1)
-#define _PAGE_VALID_BIT		(1)
+#define PAGE_VALID_BIT		(1)
 
 #define _PAGE_DIRTY		(1<<2)
-#define _PAGE_DIRTY_BIT		(2)
+#define PAGE_DIRTY_BIT		(2)
 
 #define _PAGE_SO		(1<<5)
 #define _PAGE_BUF		(1<<6)
