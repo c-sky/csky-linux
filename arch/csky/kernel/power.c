@@ -8,7 +8,7 @@ void machine_power_off(void)
 	local_irq_disable();
 	if (pm_power_off)
 		pm_power_off();
-	while(1);
+	asm volatile ("bkpt");
 }
 
 void machine_halt(void)
