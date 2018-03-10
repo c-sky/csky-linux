@@ -10,9 +10,9 @@
  * else *ptr = newval return 0.
  */
 ENTRY(csky_cmpxchg)
-	usp_to_ksp
+	USPTOKSP
 	mfcr	a3, epc
-	pc_inc	a3
+	INCTRAP	a3
 
 	subi    sp, 8
 	stw     a3, (sp, 0)
@@ -33,7 +33,7 @@ ENTRY(csky_cmpxchg)
 	ldw     a3, (sp, 4)
 	mtcr	a3, epsr
 	addi	sp, 8
-	ksp_to_usp
+	KSPTOUSP
 	rte
 END(csky_cmpxchg)
 

@@ -4,118 +4,93 @@
 #include <asm/setup.h>
 #include <abi/regdef.h>
 
-/*
- * Stack layout in 'ret_from_exception':
- *      Below describes the stack layout after initial exception entry.
- *      All traps, interrupts and exceptions will set up the stack frame
- *      in this way before starting processing proper.
- *	This allows access to the syscall arguments in registers r1-r5
- *
- *	 0(sp) - pc
- *	 4(sp) - orig_a0
- *	 8(sp) - sr
- *	 C(sp) - a0
- *	10(sp) - a1
- *	14(sp) - a2
- *	18(sp) - a3
- *	1C(sp) - regs0
- *	20(sp) - regs1
- *	24(sp) - regs2
- *	28(sp) - regs3
- *	2C(sp) - regs4
- *	30(sp) - regs5
- *	34(sp) - regs6
- *	38(sp) - regs7
- *	3C(sp) - regs8
- *	40(sp) - regs9
- *	44(sp) - r15
- */
 #define LSAVE_A0       0xc
 #define LSAVE_A1       0x10
 #define LSAVE_A2       0x14
 #define LSAVE_A3       0x18
-#define LSAVE_REGS0    0x1C
-#define LSAVE_REGS1    0x20
 
-/*
- *      This code creates the normal kernel pt_regs layout on a trap
- *      or interrupt. The only trick here is that we check whether we
- *      came from supervisor mode before changing stack pointers.
- */
+#define KSPTOUSP
+#define USPTOKSP
 
-.macro	SAVE_ALL
+.macro INCTRAP	rx
+	addi	\rx, 4
+.endm
+
+.macro SAVE_ALL
 	subi    sp,  144
-        stw     a0, (sp, 4)
-        stw     a0, (sp, 12)
-        stw     a1, (sp, 16)
-        stw     a2, (sp, 20)
-        stw     a3, (sp, 24)
-        stw     regs0, (sp, 28)
-        stw     regs1, (sp, 32)
-        stw     regs2, (sp, 36)
-        stw     regs3, (sp, 40)
-        stw     regs4, (sp, 44)
-        stw     regs5, (sp, 48)
-        stw     regs6, (sp, 52)
-        stw     regs7, (sp, 56)
-        stw     regs8, (sp, 60)
-        stw     regs9, (sp, 64)
-        stw     r15, (sp, 68)
-        addi    sp, 72
-        stm     r16-r31,(sp)
+	stw     a0, (sp, 4)
+	stw     a0, (sp, 12)
+	stw     a1, (sp, 16)
+	stw     a2, (sp, 20)
+	stw     a3, (sp, 24)
+	stw     r4, (sp, 28)
+	stw     r5, (sp, 32)
+	stw     r6, (sp, 36)
+	stw     r7, (sp, 40)
+	stw     r8, (sp, 44)
+	stw     r9, (sp, 48)
+	stw     r10, (sp, 52)
+	stw     r11, (sp, 56)
+	stw     r12, (sp, 60)
+	stw     r13, (sp, 64)
+	stw     r15, (sp, 68)
+	addi    sp, 72
+	stm     r16-r31,(sp)
 #ifdef CONFIG_CPU_HAS_HILO
 	mfhi    r22
 	mflo    r23
 	stw     r22, (sp, 64)
         stw     r23, (sp, 68)
 #endif
-        subi    sp,  72
+	subi    sp,  72
 
-	mfcr    r22, epsr        /* Get original PSR */
-        stw     r22, (sp, 8)     /* Save psr on stack */
-        mfcr    r22, epc/* Save PC on stack */
-        stw     r22, (sp)
+	mfcr    r22, epsr
+	stw     r22, (sp, 8)
+	mfcr    r22, epc
+	stw     r22, (sp)
+.endm
+.macro SAVE_ALL_TRAP
+	SAVE_ALL
+	INCTRAP	r22
+	stw     r22, (sp)
 .endm
 
 .macro	RESTORE_ALL
-        psrclr  ie     /* Disable interrupt */
-	ldw     a0, (sp)        /* Restore PC */
-        mtcr    a0, epc/* Set return PC */
-        ldw     a0, (sp, 8)     /* Get saved PSR */
-        mtcr    a0, epsr        /* Restore PSR */
+	psrclr  ie
+	ldw     a0, (sp)
+	mtcr    a0, epc
+	ldw     a0, (sp, 8)
+	mtcr    a0, epsr
 	addi    sp, 12
 #ifdef CONFIG_CPU_HAS_HILO
 	ldw     a0, (sp, 124)
-        ldw     a1, (sp, 128)
+	ldw     a1, (sp, 128)
 	mthi    a0
 	mtlo    a1
 #endif
 	ldw     a0, (sp, 0)
-        ldw     a1, (sp, 4)
-        ldw     a2, (sp, 8)
-        ldw     a3, (sp, 12)
-        ldw     regs0, (sp, 16)
-        ldw     regs1, (sp, 20)
-        ldw     regs2, (sp, 24)
-	ldw     regs3, (sp, 28)
-        ldw     regs4, (sp, 32)
-        ldw     regs5, (sp, 36)
-        ldw     regs6, (sp, 40)
-        ldw     regs7, (sp, 44)
-        ldw     regs8, (sp, 48)
-        ldw     regs9, (sp, 52)
-        ldw     r15, (sp, 56)
-        addi    sp, 60 /* Increment stack pointer */
-        ldm     r16-r31,(sp)
-        addi    sp,  72
+	ldw     a1, (sp, 4)
+	ldw     a2, (sp, 8)
+	ldw     a3, (sp, 12)
+	ldw     r4, (sp, 16)
+	ldw     r5, (sp, 20)
+	ldw     r6, (sp, 24)
+	ldw     r7, (sp, 28)
+	ldw     r8, (sp, 32)
+	ldw     r9, (sp, 36)
+	ldw     r10, (sp, 40)
+	ldw     r11, (sp, 44)
+	ldw     r12, (sp, 48)
+	ldw     r13, (sp, 52)
+	ldw     r15, (sp, 56)
+	addi    sp, 60
+	ldm     r16-r31,(sp)
+	addi    sp,  72
 1:
-        rte
+	rte
 .endm
 
-#define SAVE_SWITCH_STACK save_switch_stack
-#define RESTORE_SWITCH_STACK restore_switch_stack
-
-.macro	save_switch_stack
+.macro SAVE_SWITCH_STACK
         subi    sp, 64
         stm     r4-r11,(sp)
         stw     r15, (sp, 32)
@@ -128,7 +103,7 @@
         stw     r30, (sp, 60)
 .endm
 
-.macro	restore_switch_stack
+.macro RESTORE_SWITCH_STACK
         ldm     r4-r11,(sp)
         ldw     r15, (sp, 32)
         ldw     r16, (sp, 36)
@@ -139,10 +114,6 @@
         ldw     r29, (sp, 56)
         ldw     r30, (sp, 60)
         addi    sp, 64
-.endm
-
-.macro  PT_REGS_ADJUST  rx   /* abiv2 when argc>5 need push r4 r5 in syscall */
-        addi     \rx, sp, 8
 .endm
 
 /* MMU registers operators. */
@@ -170,13 +141,4 @@
 	mtcr    \rx, cr<8, 15>
 .endm
 
-.macro ksp_to_usp
-.endm
-
-.macro usp_to_ksp
-.endm
-
-.macro pc_inc	rx
-	addi	\rx, 4
-.endm
 #endif /* __ASM_CSKY_ENTRY_H */

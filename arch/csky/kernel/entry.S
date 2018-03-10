@@ -121,25 +121,9 @@ ENTRY(csky_buserr)
 	jmpi    ret_from_exception
 
 ENTRY(csky_systemcall)
-	SAVE_ALL
+	SAVE_ALL_TRAP
 
-	/*
-	 * Do not use r2-r7 here, because the arguments are saved in r2-r6
-	 * and the syscall number is saved in syscallid when the exception is a
-	 * systemcall.
-	 * Use temp regs instead
-	 *
-	 * When excuting a trap instruction, the pc does not increase.
-	 * The pc should
-	 * be increased manully and save in epc register.
-	 */
-	mfcr    r13, epc                /* Get the trap point */
-
-	pc_inc	r13
-
-	mtcr    r13, epc                /* Save return point */
-	stw     r13, (sp)               /* Save it in stack*/
-	psrset  ee, ie                 /* Enable Exception & interrupt */
+	psrset  ee, ie
 
 	/* Stack frame for syscall, origin call set_esp0 */
 	mov     r12, sp
@@ -193,8 +177,8 @@ ENTRY(csky_systemcall)
 	stw     r5, (sp, 0x4)
 	stw     r4, (sp, 0x0)
 #else
-	ldw     r6, (sp, LSAVE_REGS0)
-	ldw     r7, (sp, LSAVE_REGS1)
+	ldw     r6, (sp, LSAVE_A4)
+	ldw     r7, (sp, LSAVE_A5)
 #endif
 	jsr     r11                     /* Do system call */
 #if defined(__CSKYABIV2__)
@@ -318,40 +302,29 @@ ENTRY(csky_alignment)
 	jmpi     ret_from_exception
 
 /*
- * Reference prototype:
- *  int __kernel_get_tls(int addr)
- * Input:
- *  none 
- * Output:
- *  r2 = TLS value
- * Clobbered:
- *  none
- * Definition and user space usage example:
- *  typedef int (__kernel_get_tls_t)(int addr);
- * Get the TLS value as previously set via the set_thread_area syscall.
- * This could be used as follows:
- * #define __kernel_get_tls() \
- *  ({ register unsigned int __result asm("a0"); \
- *         asm( "trap  3" \
- *          : "=r" (__result) : :  ); \
- *     __result; })
+ * Prototype from libc:
+ * register unsigned int __result asm("a0");
+ * asm( "trap 3" :"=r"(__result)::);
  */
-ENTRY(csky_get_tls)                        /*added for get tls*/
-	usp_to_ksp
+ENTRY(csky_get_tls)
+	USPTOKSP
 
-	subi     sp, 8                  /* because sp may align wich 0x2000 */
-	mfcr     a0, epc                /* Get the trap point */
-	pc_inc	 a0
-	mtcr     a0, epc                /* Save return point */
+	/* increase epc for continue */
+	mfcr	a0, epc
+	INCTRAP	a0
+	mtcr	a0, epc
 
-	bmaski   a0, (PAGE_SHIFT + 1)   /* kernel stack is 2*page if page is 4k */
+	/* get current task thread_info with kernel 8K stack */
+	bmaski   a0, (PAGE_SHIFT + 1)
 	not      a0
-	and      a0, sp                 /* thread_info local in bottom of stack */
+	subi     sp, 1
+	and      a0, sp
+	addi     sp, 1
 
-	ldw      a0, (a0, TINFO_TP_VALUE) /* get tls */
+	/* get tls */
+	ldw      a0, (a0, TINFO_TP_VALUE)
 
-	addi     sp, 8
-	ksp_to_usp
+	KSPTOUSP
 	rte
 
 /*
