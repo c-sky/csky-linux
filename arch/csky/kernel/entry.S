@@ -446,11 +446,8 @@ ENTRY(__switch_to)
 
 	SAVE_SWITCH_STACK
 
-#if defined(__CSKYABIV2__)
-	mfcr     r6, cr<14, 1>           /* Get current usp */
-#else
-	mfcr     r6, ss1                /* Get current usp */
-#endif
+	GET_USP	 r6
+
 	stw      r6, (a3, THREAD_USP)   /* Save usp in task struct */
 	stw      sp, (a3, THREAD_KSP)   /* Save ksp in task struct */
 
@@ -476,11 +473,7 @@ ENTRY(__switch_to)
 	ldw      sp, (a3, THREAD_KSP)	/* Set next ksp */
 	ldw      r6, (a3, THREAD_USP)	/* Set next usp */
 
-#if defined(__CSKYABIV2__)
-	mtcr     r6, cr<14, 1>           /* Get current usp */
-#else
-	mtcr     r6, ss1                /* Get current usp */
-#endif
+	SET_USP	 r6
 
 #ifdef CONFIG_CPU_HAS_FPU
 	FPU_RESTORE_REGS

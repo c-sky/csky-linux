@@ -12,6 +12,14 @@
 #define KSPTOUSP
 #define USPTOKSP
 
+.macro GET_USP rx
+	mfcr	\rx, cr<14, 1>
+.endm
+
+.macro SET_USP rx
+	mtcr	\rx, cr<14, 1>
+.endm
+
 .macro INCTRAP	rx
 	addi	\rx, 4
 .endm

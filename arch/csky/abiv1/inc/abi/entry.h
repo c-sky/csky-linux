@@ -44,6 +44,14 @@
 	mfcr	sp, ss1
 .endm
 
+.macro GET_USP rx
+	mfcr	\rx, ss1
+.endm
+
+.macro SET_USP rx
+	mtcr	\rx, ss1
+.endm
+
 .macro INCTRAP	rx
 	addi	\rx, 2
 .endm
@@ -57,12 +65,11 @@
 	btsti   r13, 31
 	bt      1f
 	USPTOKSP
-
 1:
 	subi    sp, 32
 	subi    sp, 32
-	stw     r13,	(sp, 0)	/* original epsr */
-	mfcr    r13,	ss2	/* restore r13 */
+	stw     r13,	(sp, 0)
+	mfcr    r13,	ss2
 	stw     a0,	(sp, 4)
 	stw     a1,	(sp, 8)
 	stw     a2,	(sp, 12)
@@ -92,13 +99,14 @@
 .endm
 
 .macro	RESTORE_ALL
-	psrclr  ie     /* Disable interrupt */
-	ldw     a0, (sp)        /* Restore PC */
-	mtcr    a0, epc/* Set return PC */
-	ldw     a0, (sp, 8)     /* Get saved PSR */
-	mtcr    a0, epsr        /* Restore PSR */
+	psrclr  ie
+	ldw     a0, (sp)
+	mtcr    a0, epc
+	ldw     a0, (sp, 8)
+	mtcr    a0, epsr
+	btsti   a0, 31
+
 	addi    sp, 12
-	btsti   a0, 31 /* Check if returning to user */
 	ldw     a0, (sp, 0)
 	ldw     a1, (sp, 4)
 	ldw     a2, (sp, 8)
@@ -114,11 +122,11 @@
 	ldw     r14, (sp, 48)
 	ldw     r1, (sp, 52)
 	ldw     r15, (sp, 56)
-	addi    sp, 32 /* Increment stack pointer */
+	addi    sp, 32
 	addi    sp, 28
+
 	bt      1f
-	mtcr    sp, ss0/* Save kernel stack*/
-	mfcr    sp, ss1/* Set  user stack */
+	KSPTOUSP
 1:
 	rte
 .endm
