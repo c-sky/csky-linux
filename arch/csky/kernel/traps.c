@@ -30,8 +30,7 @@ asmlinkage void csky_trap(void);
 asmlinkage void csky_cmpxchg(void);
 asmlinkage void csky_get_tls(void);
 asmlinkage void csky_systemcall(void);
-asmlinkage void csky_inthandler(void);
-asmlinkage void csky_autohandler(void);
+asmlinkage void csky_irq(void);
 
 asmlinkage void csky_tlbinvalidl(void);
 asmlinkage void csky_tlbinvalids(void);
@@ -60,21 +59,23 @@ void __init trap_init (void)
 	int i;
 	e_vector *_ramvec = &vec_base;
 
-	for(i = 32; (i < 128); i++)
-		_ramvec[i] = csky_inthandler;
-
 	_ramvec[VEC_ACCESS]	= csky_buserr;
 	_ramvec[VEC_ALIGN]	= csky_alignment;
 	_ramvec[VEC_TRAP0]	= csky_systemcall;
 	_ramvec[VEC_TRAP2]	= csky_cmpxchg;
 	_ramvec[VEC_TRAP3]	= csky_get_tls;
-	_ramvec[VEC_AUTOVEC]	= csky_autohandler;
 	_ramvec[VEC_ILLEGAL]	= csky_illegal;
+	_ramvec[VEC_AUTOVEC]	= csky_irq;
 	_ramvec[VEC_FPE]	= csky_fpe;
 
 	_ramvec[VEC_TLBINVALIDL] = csky_tlbinvalidl;
 	_ramvec[VEC_TLBINVALIDS] = csky_tlbinvalids;
 	_ramvec[VEC_TLBMODIFIED] = csky_tlbmodified;
+
+	/* setup vector irq */
+	for(i = 32; (i < 128); i++)
+		_ramvec[i] = _ramvec[VEC_AUTOVEC];
+
 }
 
 void die_if_kernel(char *,struct pt_regs *,int);

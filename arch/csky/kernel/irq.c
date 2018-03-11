@@ -10,7 +10,7 @@ int arch_show_interrupts(struct seq_file *p, int prec)
 	return 0;
 }
 
-asmlinkage void csky_do_IRQ(int irq, struct pt_regs *regs)
+void csky_do_IRQ(int irq, struct pt_regs *regs)
 {
 	struct pt_regs *old_regs = set_irq_regs(regs);
 
@@ -23,7 +23,18 @@ asmlinkage void csky_do_IRQ(int irq, struct pt_regs *regs)
 
 asmlinkage void csky_do_auto_IRQ(struct pt_regs *regs)
 {
-	csky_do_IRQ(csky_get_auto_irqno(), regs);
+	unsigned long irq, psr;
+
+	asm volatile("mfcr %0, psr":"=r"(psr));
+
+	irq = (psr >> 16) & 0xff;
+
+	if (irq == 10)
+		irq = csky_get_auto_irqno();
+	else
+		irq -= 32;
+
+	csky_do_IRQ(irq, regs);
 }
 
 void __init init_IRQ(void)

@@ -341,57 +341,7 @@ ENTRY(csky_fpe)
 #endif
 	jmpi      ret_from_exception
 
-/*
- * handle interrupt.
- */
-ENTRY(csky_inthandler)
-	SAVE_ALL
-	psrset	ee				/* Enable exceptions */
-
-	movi	r11_sig, 0			/* r11 = 0, Not a syscall. */
-
-#ifdef CONFIG_PREEMPT
-	mov	r9, sp				/* Get current stack  pointer */
-	bmaski  r10, THREADSIZE_MASK_BIT
-	andn    r9, r10				/* Get thread_info */
-
-	ldw      r8, (r9, TINFO_PREEMPT)
-	addi     r8, 1
-	stw      r8, (r9, TINFO_PREEMPT)
-#endif
-	mfcr     a0, psr                /* Get PSR register */
-	lsri     a0, 16                 /* Get vector in 7 bits */
-	sextb    a0                     /* Fill upper bytes with zero */
-	subi     a0, 32                 /* Real irq nomber need sub VEC offset(32)*/
-	mov      a1, sp                 /* arg[1] is stack pointer */
-	jbsr     csky_do_IRQ          /* Call handler */
-
-#ifdef CONFIG_PREEMPT
-	subi     r8, 1
-	stw      r8, (r9, TINFO_PREEMPT)
-	cmpnei   r8, 0
-	bt       2f
-	ldw      r8, (r9, TINFO_FLAGS)
-	btsti    r8, TIF_NEED_RESCHED
-	bf       2f
-1:
-	jbsr     preempt_schedule_irq   /* irq en/disable is done inside */
-	ldw      r7, (r9, TINFO_FLAGS)  /* get new tasks TI_FLAGS */
-	btsti    r7, TIF_NEED_RESCHED
-	bt       1b                     /* go again */
-#endif
-2:
-	jmpi     ret_from_exception
-
-/*
- * This is the auto-vectored interrupt handler (for all hardware interrupt
- * sources). It figures out the vector number and calls the appropriate
- * interrupt service routine directly. This is for auto-vectored normal
- * interrupts only.
- *
- */
-
-ENTRY(csky_autohandler)
+ENTRY(csky_irq)
 	SAVE_ALL
 	psrset  ee       // enable exception
 	movi    r11_sig, 0                   /* r11 = 0, Not a syscall. */
