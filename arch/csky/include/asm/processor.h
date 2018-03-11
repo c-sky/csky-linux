@@ -27,8 +27,6 @@ struct cpuinfo_csky {
 } __attribute__((aligned(SMP_CACHE_BYTES)));
 
 extern struct cpuinfo_csky cpu_data[];
-#define current_cpu_data cpu_data[smp_processor_id()]
-
 
 /* read user stack pointer */
 extern inline unsigned long rdusp(void) {

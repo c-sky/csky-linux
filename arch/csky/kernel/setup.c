@@ -106,8 +106,6 @@ void __init setup_arch(char **cmdline_p)
 
 	sparse_init();
 
-	pgd_init((unsigned long *)swapper_pg_dir);
-
 #ifdef CONFIG_HIGHMEM
 	kmap_init();
 #endif
@@ -125,16 +123,25 @@ asmlinkage __visible void __init csky_start(
 	void *		param
 	)
 {
+	/* Clean up bss section */
+	memset(__bss_start, 0, __bss_stop - __bss_start);
+
 	pre_trap_init();
 
 	/* Setup mmu as coprocessor */
 	select_mmu_cp();
 
+	/*
+	 * Setup page-table and enable TLB-hardrefill
+	 */
+	local_flush_tlb_all();
+	pgd_init((unsigned long *)swapper_pg_dir);
+	TLBMISS_HANDLER_SETUP_PGD(swapper_pg_dir);
+
+	asid_cache(smp_processor_id()) = ASID_FIRST_VERSION;
+
 	/* Setup page mask to 4k */
 	write_mmu_pagemask(0);
-
-	/* Clean up bss section */
-	memset(__bss_start, 0, __bss_stop - __bss_start);
 
 #ifdef CONFIG_CSKY_BUILTIN_DTB
 	printk("Use builtin dtb\n");

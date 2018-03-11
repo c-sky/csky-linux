@@ -21,7 +21,6 @@
 
 #include <asm/mmu_context.h>
 
-extern void csky_tlb_init(void);
 void show_registers(struct pt_regs *fp);
 /* assembler routines */
 
@@ -40,21 +39,6 @@ asmlinkage void csky_tlbmodified(void);
 asmlinkage void csky_fpe(void);
 asmlinkage void csky_illegal(void);
 
-void __init per_cpu_trap_init(void)
-{
-	unsigned int cpu = smp_processor_id();
-
-	csky_tlb_init();
-	cpu_data[cpu].asid_cache = ASID_FIRST_VERSION;
-	current_cpu_data.asid_cache = ASID_FIRST_VERSION;
-
-	TLBMISS_HANDLER_SETUP_PGD(swapper_pg_dir);
-
-	atomic_inc(&init_mm.mm_count);
-	current->active_mm = &init_mm;
-	BUG_ON(current->mm);
-}
-
 extern e_vector vec_base;
 
 void __init pre_trap_init(void)
@@ -66,10 +50,9 @@ void __init pre_trap_init(void)
 		"mtcr %0, vbr\n"
 		::"r"(_ramvec));
 
-	per_cpu_trap_init();
-
 	for(i = 1; (i <= 31); i++)
 		_ramvec[i] = csky_trap;
+
 }
 
 void __init trap_init (void)
@@ -92,8 +75,6 @@ void __init trap_init (void)
 	_ramvec[VEC_TLBINVALIDL] = csky_tlbinvalidl;
 	_ramvec[VEC_TLBINVALIDS] = csky_tlbinvalids;
 	_ramvec[VEC_TLBMODIFIED] = csky_tlbmodified;
-
-	per_cpu_trap_init();
 }
 
 void die_if_kernel(char *,struct pt_regs *,int);

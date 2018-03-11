@@ -203,7 +203,3 @@ void show_jtlb_table(void)
 	local_irq_restore(flags);
 }
 
-void __init csky_tlb_init(void)
-{
-	local_flush_tlb_all();
-}
