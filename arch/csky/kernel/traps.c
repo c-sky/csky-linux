@@ -22,21 +22,19 @@
 #include <asm/mmu_context.h>
 
 void show_registers(struct pt_regs *fp);
-/* assembler routines */
 
-asmlinkage void csky_buserr(void);
-asmlinkage void csky_alignment(void);
+/* Defined in entry.S */
 asmlinkage void csky_trap(void);
+asmlinkage void csky_fpe(void);
+
+asmlinkage void csky_systemcall(void);
 asmlinkage void csky_cmpxchg(void);
 asmlinkage void csky_get_tls(void);
-asmlinkage void csky_systemcall(void);
 asmlinkage void csky_irq(void);
 
 asmlinkage void csky_tlbinvalidl(void);
 asmlinkage void csky_tlbinvalids(void);
 asmlinkage void csky_tlbmodified(void);
-asmlinkage void csky_fpe(void);
-asmlinkage void csky_illegal(void);
 
 extern e_vector vec_base;
 
@@ -59,14 +57,12 @@ void __init trap_init (void)
 	int i;
 	e_vector *_ramvec = &vec_base;
 
-	_ramvec[VEC_ACCESS]	= csky_buserr;
-	_ramvec[VEC_ALIGN]	= csky_alignment;
+	_ramvec[VEC_FPE]	= csky_fpe;
+
 	_ramvec[VEC_TRAP0]	= csky_systemcall;
 	_ramvec[VEC_TRAP2]	= csky_cmpxchg;
 	_ramvec[VEC_TRAP3]	= csky_get_tls;
-	_ramvec[VEC_ILLEGAL]	= csky_illegal;
 	_ramvec[VEC_AUTOVEC]	= csky_irq;
-	_ramvec[VEC_FPE]	= csky_fpe;
 
 	_ramvec[VEC_TLBINVALIDL] = csky_tlbinvalidl;
 	_ramvec[VEC_TLBINVALIDS] = csky_tlbinvalids;
@@ -82,21 +78,19 @@ void die_if_kernel(char *,struct pt_regs *,int);
 asmlinkage int do_page_fault(struct pt_regs *regs, unsigned long address,
                              unsigned long error_code);
 
-asmlinkage void trap_c(int vector, struct frame *fp);
 asmlinkage void handle_fpe_c(unsigned long fesr, struct pt_regs * regs);
-asmlinkage void handle_illegal_c(struct pt_regs * regs);
 
-asmlinkage void buserr_c(struct frame *fp)
+void buserr_c(struct pt_regs *regs)
 {
 	siginfo_t info;
 
 	printk("%s(%d): Bus Error Trap\n", __FILE__, __LINE__);
-	show_registers((struct pt_regs *) fp);
+	show_registers(regs);
 	/* Only set esp0 if coming from user mode */
-	if (user_mode(&fp->ptregs)){
-		current->thread.esp0 = (unsigned long) fp;
+	if (user_mode(regs)){
+		current->thread.esp0 = (unsigned long) regs;
     } else{
-		die_if_kernel("Kernel mode BUS error", (struct pt_regs *)fp, 0);
+		die_if_kernel("Kernel mode BUS error", regs, 0);
     }
 	info.si_signo = SIGSEGV;
 	info.si_errno = 0;
@@ -323,35 +317,46 @@ bad_or_fault:
 	return 0;
 }
 
-asmlinkage void trap_c(int vector, struct frame *fp)
+extern void alignment_c(struct pt_regs *regs);
+
+asmlinkage void trap_c(struct pt_regs *regs)
 {
 	int sig;
+	unsigned long vector;
 	siginfo_t info;
 
-	/* send the appropriate signal to the user program */
+	asm volatile("mfcr %0, psr":"=r"(vector));
+
+	vector = (vector >> 16) & 0xff;
+
 	switch (vector) {
 		case VEC_ZERODIV:
 			sig = SIGFPE;
 			break;
 
-		case VEC_PRIV:  /* some reg fcr of ck610 only R/W in super mode. */
-			sig = SIGILL;
-			if(hand_fpcr_rdwr((struct pt_regs *)fp))
+		case VEC_PRIV:
+			if(hand_fpcr_rdwr(regs))
 				return;
+			sig = SIGILL;
 			break;
 
-		case VEC_TRACE:  /* ptrace single step */
+		/* ptrace */
+		case VEC_TRACE:
 			info.si_code = TRAP_TRACE;
 			sig = SIGTRAP;
 			break;
 
-		    /* fp->ptregs.sr &= ~PS_T */
-		case VEC_TRAP1:    /* gdb server breakpoint */
-		case VEC_BREAKPOINT: /* breakpoint */
+		/* gdbserver  breakpoint */
+		case VEC_TRAP1:
+		/* jtagserver breakpoint */
+		case VEC_BREAKPOINT:
 			info.si_code = TRAP_BRKPT;
 			sig = SIGTRAP;
 			break;
-
+		case VEC_ACCESS:
+			return buserr_c(regs);
+		case VEC_ALIGN:
+			return alignment_c(regs);
 		default:
 			sig = SIGILL;
 			break;
@@ -401,14 +406,6 @@ asmlinkage void handle_fpe_c(unsigned long fesr, struct pt_regs * regs)
 	info.si_errno = 0;
 	info.si_addr = (void *)regs->pc;
 	force_sig_info(sig, &info, current);
-}
-
-
-asmlinkage void handle_illegal_c(struct pt_regs * regs)
-{
-	int sig;
-	sig = SIGILL;
-	send_sig(sig, current, 0);
 }
 
 asmlinkage void set_esp0 (unsigned long ssp)

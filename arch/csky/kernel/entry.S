@@ -90,7 +90,7 @@ ENTRY(csky_\name)
 .endm
 .macro tlbop_end is_write
 	RD_MEH	a2
-	psrset  ee, ie          /* Enable exception & interrupt */
+	psrset  ee, ie
 	mov     a0, sp
 	movi    a1, \is_write
 	jbsr    do_page_fault
@@ -110,15 +110,6 @@ tlbop_begin tlbmodified, _PAGE_WRITE, PAGE_DIRTY_BIT, PAGE_MODIFIED_BIT
 jbsr csky_cmpxchg_fixup
 tlbop_end 1
 
-/*
- * This function is used to handle access exception.
- */
-ENTRY(csky_buserr)
-	SAVE_ALL
-	movi    r11_sig, 0        /* r11 = 0, Not a syscall. use in signal handle */
-	mov     a0, sp            /* Stack address is arg[0] */
-	jbsr    buserr_c          /* Call C level handler */
-	jmpi    ret_from_exception
 
 ENTRY(csky_systemcall)
 	SAVE_ALL_TRAP
@@ -269,37 +260,25 @@ ENTRY(sys_rt_sigreturn)
 
 ENTRY(csky_trap)
 	SAVE_ALL
-
+	psrset   ee
 	movi     r11_sig, 0             /* r11 = 0, Not a syscall. */
-	mfcr     a0, psr                /* Get psr register */
-	lsri     a0, 16                 /* Get vector in base 8 bits */
-	sextb    a0                     /* Fill upper bytes with zero */
-	mov      a1, sp                 /* Push Stack pointer arg */
+	mov      a0, sp                 /* Push Stack pointer arg */
 	jbsr     trap_c                 /* Call C-level trap handler */
 	jmpi     ret_from_exception
 
 /*
- * Common illegal handler.
+ * handle FPU exception.
  */
-
-ENTRY(csky_illegal)
+ENTRY(csky_fpe)
 	SAVE_ALL
-	psrset   ee
-	movi     r11_sig, 0             /* r11 = 0, Not a syscall. */
-	mov      a0, sp                 /* Push Stack pointer arg */
-	jbsr     handle_illegal_c       /* Call C-level trap handler */
-	jmpi     ret_from_exception
-
-/*
- * Alignment_exception handler.
- */
-ENTRY(csky_alignment)
-	SAVE_ALL
-	psrset   ee                     /* Enable Exception */
-	movi     r11_sig, 0             /* r11 = 0, Not a syscall. */
-	mov      a0, sp                 /* Push Stack pointer arg */
-	jbsr     alignment_c            /* Call C-level align exception handler */
-	jmpi     ret_from_exception
+	/* Clear FPU exception state */
+#if defined(CONFIG_CPU_HAS_FPU)
+	mfcr      a0, cr<2, 2>	       /* fpu fesr is cr<2,2> in CSKY_CPUV2 */
+	movi      r11_sig, 0           /* r11 = 0, Not a syscall. */
+	mov       a1, sp               /* Push Stack pointer arg */
+	jbsr      handle_fpe_c         /* Call C-level fpe handler */
+#endif
+	jmpi      ret_from_exception
 
 /*
  * Prototype from libc:
@@ -326,20 +305,6 @@ ENTRY(csky_get_tls)
 
 	KSPTOUSP
 	rte
-
-/*
- * handle FPU exception.
- */
-ENTRY(csky_fpe)
-	SAVE_ALL
-	/* Clear FPU exception state */
-#if defined(CONFIG_CPU_HAS_FPU)
-	mfcr      a0, cr<2, 2>	       /* fpu fesr is cr<2,2> in CSKY_CPUV2 */
-	movi      r11_sig, 0           /* r11 = 0, Not a syscall. */
-	mov       a1, sp               /* Push Stack pointer arg */
-	jbsr      handle_fpe_c         /* Call C-level fpe handler */
-#endif
-	jmpi      ret_from_exception
 
 ENTRY(csky_irq)
 	SAVE_ALL
