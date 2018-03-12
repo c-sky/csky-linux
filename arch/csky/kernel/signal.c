@@ -20,8 +20,12 @@
 #include <asm/pgtable.h>
 #include <asm/traps.h>
 #include <asm/ucontext.h>
-#include <abi/regdef.h>
 #include <asm/vdso.h>
+
+#include <abi/regdef.h>
+#ifdef CONFIG_CPU_HAS_FPU
+#include <abi/fpu.h>
+#endif
 
 #define _BLOCKABLE (~(sigmask(SIGKILL) | sigmask(SIGSTOP)))
 
@@ -33,67 +37,6 @@ struct rt_sigframe
 	struct siginfo info;
 	struct ucontext uc;
 };
-
-typedef struct fpregset {
-	int f_fcr;
-	int f_fsr;		/* Nothing in CPU_CSKYV2 */
-	int f_fesr;
-	int f_feinst1;		/* Nothing in CPU_CSKYV2 */
-	int f_feinst2;		/* Nothing in CPU_CSKYV2 */
-	int f_fpregs[32];
-} fpregset_t;
-
-static inline int restore_fpu_state(struct sigcontext *sc)
-{
-	int err = 0;
-#ifdef CONFIG_CPU_HAS_FPU
-	fpregset_t fpregs;
-	unsigned long flg;
-	unsigned long tmp1, tmp2, tmp3, tmp4;
-	unsigned long fctl0, fctl1, fctl2;
-	int * fpgr;
-
-	if (__copy_from_user(&fpregs, &sc->sc_fcr, sizeof(fpregs)))
-	{
-		err = 1;
-		goto out;
-	}
-
-	local_irq_save(flg);
-	fctl0 = fpregs.f_fcr;
-	fctl1 = fpregs.f_fsr;
-	fctl2 = fpregs.f_fesr;
-	fpgr = &(fpregs.f_fpregs[0]);
-	__asm__ __volatile__(
-			"mtcr   %0, cr<1, 2> \n\r"
-			"mtcr   %1, cr<2, 2> \n\r"
-			::"r"(fctl0), "r"(fctl2));
-
-	__asm__ __volatile__(LDW_FPU_REGS(0, 4, 8, 12)
-			FMTVR_FPU_REGS(vr0, vr1)
-			LDW_FPU_REGS(16, 20, 24, 28)
-			FMTVR_FPU_REGS(vr2, vr3)
-			LDW_FPU_REGS(32, 36, 40, 44)
-			FMTVR_FPU_REGS(vr4, vr5)
-			LDW_FPU_REGS(48, 52, 56, 60)
-			FMTVR_FPU_REGS(vr6, vr7)
-			"addi   %4, 32 \n\r"
-			"addi   %4, 32 \n\r"
-			LDW_FPU_REGS(0, 4, 8, 12)
-			FMTVR_FPU_REGS(vr8, vr9)
-			LDW_FPU_REGS(16, 20, 24, 28)
-			FMTVR_FPU_REGS(vr10, vr11)
-			LDW_FPU_REGS(32, 36, 40, 44)
-			FMTVR_FPU_REGS(vr12, vr13)
-			LDW_FPU_REGS(48, 52, 56, 60)
-			FMTVR_FPU_REGS(vr14, vr15)
-			:"=a"(tmp1), "=a"(tmp2), "=a"(tmp3), "=a"(tmp4),
-			"+a"(fpgr));
-	local_irq_restore(flg);
-out:
-#endif
-	return err;
-}
 
 static inline int
 restore_sigframe(struct pt_regs *regs, struct sigcontext *usc, int *pr2)
@@ -126,7 +69,10 @@ restore_sigframe(struct pt_regs *regs, struct sigcontext *usc, int *pr2)
 	err |= __get_user(regs->pc, &usc->sc_pc);
 	err |= __get_user(usp, &usc->sc_usp);
 	wrusp(usp);
+
+#ifdef CONFIG_CPU_HAS_FPU
 	err |= restore_fpu_state(usc);
+#endif
 	*pr2 = regs->a0;
 	return err;
 }
@@ -165,48 +111,6 @@ badframe:
  * Set up a signal frame.
  */
 
-static inline int save_fpu_state(struct sigcontext *sc, struct pt_regs *regs)
-{
-	int err = 0;
-#ifdef CONFIG_CPU_HAS_FPU
-	fpregset_t fpregs;
-	unsigned long flg;
-	unsigned long tmp1, tmp2, tmp3, tmp4;
-	int * fpgr;
-
-	local_irq_save(flg);
-	fpgr = &(fpregs.f_fpregs[0]);
-	__asm__ __volatile__("mfcr    %0, cr<1, 2> \n\r"
-			"mfcr    %1, cr<2, 2> \n\r"
-			: "=r"(fpregs.f_fcr), "=r"(fpregs.f_fesr));
-
-	__asm__ __volatile__(FMFVR_FPU_REGS(vr0, vr1)
-			STW_FPU_REGS(0, 4, 8, 12)
-			FMFVR_FPU_REGS(vr2, vr3)
-			STW_FPU_REGS(16, 20, 24, 28)
-			FMFVR_FPU_REGS(vr4, vr5)
-			STW_FPU_REGS(32, 36, 40, 44)
-			FMFVR_FPU_REGS(vr6, vr7)
-			STW_FPU_REGS(48, 52, 56, 60)
-			"addi    %4, 32 \n\r"
-			"addi    %4, 32 \n\r"
-			FMFVR_FPU_REGS(vr8, vr9)
-			STW_FPU_REGS(0, 4, 8, 12)
-			FMFVR_FPU_REGS(vr10, vr11)
-			STW_FPU_REGS(16, 20, 24, 28)
-			FMFVR_FPU_REGS(vr12, vr13)
-			STW_FPU_REGS(32, 36, 40, 44)
-			FMFVR_FPU_REGS(vr14, vr15)
-			STW_FPU_REGS(48, 52, 56, 60)
-			:"=a"(tmp1), "=a"(tmp2), "=a"(tmp3), "=a"(tmp4),
-			"+a"(fpgr));
-	local_irq_restore(flg);
-
-	err |= copy_to_user(&sc->sc_fcr, &fpregs, sizeof(fpregs));
-#endif
-	return err;
-}
-
 static inline int setup_sigframe(struct sigcontext *sc, struct pt_regs *regs,
 		unsigned long mask)
 {
@@ -234,7 +138,10 @@ static inline int setup_sigframe(struct sigcontext *sc, struct pt_regs *regs,
 #endif
 	err |= __put_user(regs->sr, &sc->sc_sr);
 	err |= __put_user(regs->pc, &sc->sc_pc);
+
+#ifdef CONFIG_CPU_HAS_FPU
 	err |= save_fpu_state(sc, regs);
+#endif
 
 	return err;
 }

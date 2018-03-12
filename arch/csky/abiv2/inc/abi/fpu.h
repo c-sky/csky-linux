@@ -3,7 +3,15 @@
 
 #ifndef __ASSEMBLY__ /* C source */
 
-#include <linux/irqflags.h>
+#include <asm/sigcontext.h>
+#include <asm/ptrace.h>
+
+int fpu_libc_helper(struct pt_regs *regs);
+void fpu_fpe(struct pt_regs *regs);
+void __init init_fpu(void);
+
+int restore_fpu_state(struct sigcontext *sc);
+int save_fpu_state(struct sigcontext *sc, struct pt_regs *regs);
 
 /*
  * Define the fesr bit for fpe handle.
@@ -54,46 +62,45 @@
 #define IOE_STAT   0
 #endif
 
-#define FMFS_FPU_REGS(frw, frx, fry, frz)       \
-	"fmfs   %0, "#frw" \n\r"        \
-	"fmfs   %1, "#frx" \n\r"        \
-	"fmfs   %2, "#fry" \n\r"        \
+#define FMFS_FPU_REGS(frw, frx, fry, frz) \
+	"fmfs   %0, "#frw" \n\r" \
+	"fmfs   %1, "#frx" \n\r" \
+	"fmfs   %2, "#fry" \n\r" \
 	"fmfs   %3, "#frz" \n\r"
 
-#define FMTS_FPU_REGS(frw, frx, fry, frz)       \
-	"fmts   %0, "#frw" \n\r"        \
-	"fmts   %1, "#frx" \n\r"        \
-	"fmts   %2, "#fry" \n\r"        \
+#define FMTS_FPU_REGS(frw, frx, fry, frz) \
+	"fmts   %0, "#frw" \n\r" \
+	"fmts   %1, "#frx" \n\r" \
+	"fmts   %2, "#fry" \n\r" \
 	"fmts   %3, "#frz" \n\r"
 
-#define FMFVR_FPU_REGS(vrx, vry)        \
-	"fmfvrl %0, "#vrx" \n\r"        \
-	"fmfvrh %1, "#vrx" \n\r"        \
-	"fmfvrl %2, "#vry" \n\r"        \
+#define FMFVR_FPU_REGS(vrx, vry) \
+	"fmfvrl %0, "#vrx" \n\r" \
+	"fmfvrh %1, "#vrx" \n\r" \
+	"fmfvrl %2, "#vry" \n\r" \
 	"fmfvrh %3, "#vry" \n\r"
 
-#define FMTVR_FPU_REGS(vrx, vry)        \
-	"fmtvrl "#vrx", %0 \n\r"        \
-	"fmtvrh "#vrx", %1 \n\r"        \
-	"fmtvrl "#vry", %2 \n\r"        \
+#define FMTVR_FPU_REGS(vrx, vry) \
+	"fmtvrl "#vrx", %0 \n\r" \
+	"fmtvrh "#vrx", %1 \n\r" \
+	"fmtvrl "#vry", %2 \n\r" \
 	"fmtvrh "#vry", %3 \n\r"
 
-#define STW_FPU_REGS(a, b, c, d)        \
-	"stw    %0, (%4, "#a") \n\r"    \
-	"stw    %1, (%4, "#b") \n\r"    \
-	"stw    %2, (%4, "#c") \n\r"    \
+#define STW_FPU_REGS(a, b, c, d) \
+	"stw    %0, (%4, "#a") \n\r" \
+	"stw    %1, (%4, "#b") \n\r" \
+	"stw    %2, (%4, "#c") \n\r" \
 	"stw    %3, (%4, "#d") \n\r"
 
-#define LDW_FPU_REGS(a, b, c, d)        \
-	"ldw    %0, (%4, "#a") \n\r"    \
-	"ldw    %1, (%4, "#b") \n\r"    \
-	"ldw    %2, (%4, "#c") \n\r"    \
+#define LDW_FPU_REGS(a, b, c, d) \
+	"ldw    %0, (%4, "#a") \n\r" \
+	"ldw    %1, (%4, "#b") \n\r" \
+	"ldw    %2, (%4, "#c") \n\r" \
 	"ldw    %3, (%4, "#d") \n\r"
 
 static inline void save_fp_to_thread(unsigned long  * fpregs,
 	   unsigned long * fcr, unsigned long * fsr, unsigned long * fesr)
 {
-#if defined(__CSKYABIV2__)
 	unsigned long flg;
 	unsigned long tmp1, tmp2, tmp3, tmp4;
 
@@ -103,7 +110,8 @@ static inline void save_fp_to_thread(unsigned long  * fpregs,
 	                     "mfcr    %1, cr<2, 2> \n\r"
 	                     :"+r"(tmp1), "+r"(tmp2) : );
 	*fcr = tmp1;
-	*fsr = 0;      // not use in fpuv2
+	/* not use in fpuv2 */
+	*fsr = 0;
 	*fesr = tmp2;
 	__asm__ __volatile__(FMFVR_FPU_REGS(vr0, vr1)
 	                     STW_FPU_REGS(0, 4, 8, 12)
@@ -126,7 +134,6 @@ static inline void save_fp_to_thread(unsigned long  * fpregs,
 	                     :"=a"(tmp1), "=a"(tmp2), "=a"(tmp3), "=a"(tmp4),
 	                       "+a"(fpregs));
 	local_irq_restore(flg);
-#endif
 }
 
 #else  /* __ASSEMBLY__ */

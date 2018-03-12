@@ -12,14 +12,16 @@
 #include <linux/rtc.h>
 
 #include <asm/setup.h>
-#include <asm/fpu.h>
 #include <asm/uaccess.h>
 #include <asm/traps.h>
 #include <asm/pgalloc.h>
 #include <asm/siginfo.h>
-#include <asm/misc_csky.h>
 
 #include <asm/mmu_context.h>
+
+#ifdef CONFIG_CPU_HAS_FPU
+#include <abi/fpu.h>
+#endif
 
 void show_registers(struct pt_regs *fp);
 
@@ -66,6 +68,9 @@ void __init trap_init (void)
 	_ramvec[VEC_AUTOVEC]		= csky_irq;
 	for(i=32;i<128;i++)_ramvec[i]	= csky_irq;
 
+#ifdef CONFIG_CPU_HAS_FPU
+	init_fpu();
+#endif
 }
 
 void die_if_kernel (char *str, struct pt_regs *regs, int nr)
@@ -79,7 +84,7 @@ void die_if_kernel (char *str, struct pt_regs *regs, int nr)
 	do_exit(SIGSEGV);
 }
 
-void buserr_c(struct pt_regs *regs)
+void buserr(struct pt_regs *regs)
 {
 	siginfo_t info;
 
@@ -170,188 +175,6 @@ void dump_stack(void)
 }
 EXPORT_SYMBOL(dump_stack);
 
-/* use as fpc control reg read/write in glibc. */
-int hand_fpcr_rdwr(struct pt_regs * regs)
-{
-	mm_segment_t fs;
-	unsigned long instrptr, regx = 0;
-	unsigned int fault;
-#if defined(__CSKYABIV1__)
-	unsigned long index_regx = 0, index_fpregx = 0;
-	u16 tinstr = 0;
-
-	instrptr = instruction_pointer(regs);
-
-	fs = get_fs();
-	set_fs(KERNEL_DS);
-	fault = __get_user(tinstr, (u16 *)(instrptr & ~1));
-	set_fs(fs);
-	if (fault) {
-		goto bad_or_fault;
-	}
-
-	index_regx = tinstr & 0x7;
-	index_fpregx = ((tinstr >> 3) & 0x17);
-	tinstr = tinstr >> 8;
-	if(tinstr == 0x6f)
-	{
-		regx = read_pt_regs(index_regx, regs);
-		if(index_fpregx == 1) {
-			write_fpcr(regx);
-		}
-		else if(index_fpregx == 4) {
-			write_fpesr(regx);
-		} else
-			goto bad_or_fault;
-
-		regs->pc +=2;
-		return 1;
-	}
-	else if(tinstr == 0x6b)
-	{
-		if(index_fpregx == 1) {
-			regx = read_fpcr();
-		}
-		else if(index_fpregx == 2) { /* need test fpu is busy */
-			regx = read_fpsr();
-		}
-		else if(index_fpregx == 4) {
-			regx = read_fpesr();
-		} else
-			goto bad_or_fault;
-
-		write_pt_regs(regx, index_regx, regs);
-		regs->pc +=2;
-		return 1;
-	}
-#else
-	u16 instr_hi, instr_low;
-	unsigned long index_regx = 0, index_fpregx_prev = 0, index_fpregx_next = 0;
-	unsigned long tinstr = 0;
-
-	instrptr = instruction_pointer(regs);
-
-	/* CSKYV2's 32 bit instruction may not align 4 words */
-	fs = get_fs();
-	set_fs(KERNEL_DS);
-	fault = __get_user(instr_low, (u16 *)(instrptr & ~1));
-	set_fs(fs);
-	if (fault) {
-		goto bad_or_fault;
-	}
-
-	fs = get_fs();
-	set_fs(KERNEL_DS);
-	fault = __get_user(instr_hi, (u16 *)((instrptr + 2) & ~1));
-	set_fs(fs);
-	if (fault) {
-		goto bad_or_fault;
-	}
-
-	tinstr = instr_hi | ((unsigned long)instr_low << 16);
-
-	index_fpregx_next = ((tinstr >> 21) & 0x1F);
-
-	/* just want to handle instruction which opration cr<1, 2> or cr<2, 2> */
-	if(index_fpregx_next != 2){
-		goto bad_or_fault;
-	}
-
-/*
- * define four macro to distinguish the instruction is mfcr or mtcr.
- */
-#define MTCR_MASK 0xFC00FFE0
-#define MFCR_MASK 0xFC00FFE0
-#define MTCR_DISTI 0xC0006420
-#define MFCR_DISTI 0xC0006020
-
-	if ((tinstr & MTCR_MASK) == MTCR_DISTI)
-	{
-		index_regx = (tinstr >> 16) & 0x1F;
-		index_fpregx_prev = tinstr & 0x1F;
-
-		regx = read_pt_regs(index_regx, regs);
-
-		if(index_fpregx_prev == 1) {
-			write_fpcr(regx);
-		} else if (index_fpregx_prev == 2) {
-			write_fpesr(regx);
-		} else {
-			goto bad_or_fault;
-		}
-
-		regs->pc +=4;
-		return 1;
-	} else if ((tinstr & MFCR_MASK) == MFCR_DISTI) {
-		index_regx = tinstr & 0x1F;
-		index_fpregx_prev = ((tinstr >> 16) & 0x1F);
-
-		if (index_fpregx_prev == 1) {
-			regx = read_fpcr();
-		} else if (index_fpregx_prev == 2) {
-			regx = read_fpesr();
-		} else {
-			goto bad_or_fault;
-		}
-
-		write_pt_regs(regx, index_regx, regs);
-
-		regs->pc +=4;
-		return 1;
-	}
-#endif /* define __CSKYABIV1__ */
-bad_or_fault:
-	return 0;
-}
-
-void handle_fpe_c(struct pt_regs * regs)
-{
-	int sig;
-	unsigned int fesr;
-	siginfo_t info;
-#ifdef CONFIG_CPU_HAS_FPU
-	asm volatile("mfcr %0, cr<2, 2>":"=r"(fesr));
-
-	if(fesr & FPE_ILLE){
-		info.si_code = ILL_ILLOPC;
-		sig = SIGILL;
-	}
-	else if(fesr & FPE_IDC){
-		info.si_code = ILL_ILLOPN;
-		sig = SIGILL;
-	}
-	else if(fesr & FPE_FEC){
-		sig = SIGFPE;
-		if(fesr & FPE_IOC){
-			info.si_code = FPE_FLTINV;
-		}
-		else if(fesr & FPE_DZC){
-			info.si_code = FPE_FLTDIV;
-		}
-		else if(fesr & FPE_UFC){
-			info.si_code = FPE_FLTUND;
-		}
-		else if(fesr & FPE_OFC){
-			info.si_code = FPE_FLTOVF;
-		}
-		else if(fesr & FPE_IXC){
-			info.si_code = FPE_FLTRES;
-		}
-		else {
-			info.si_code = NSIGFPE;
-		}
-	}
-	else {
-		info.si_code = NSIGFPE;
-		sig = SIGFPE;
-	}
-#endif
-	info.si_signo = SIGFPE;
-	info.si_errno = 0;
-	info.si_addr = (void *)regs->pc;
-	force_sig_info(sig, &info, current);
-}
-
 extern void alignment_c(struct pt_regs *regs);
 asmlinkage void trap_c(struct pt_regs *regs)
 {
@@ -367,13 +190,6 @@ asmlinkage void trap_c(struct pt_regs *regs)
 		case VEC_ZERODIV:
 			sig = SIGFPE;
 			break;
-
-		case VEC_PRIV:
-			if(hand_fpcr_rdwr(regs))
-				return;
-			sig = SIGILL;
-			break;
-
 		/* ptrace */
 		case VEC_TRACE:
 			info.si_code = TRAP_TRACE;
@@ -388,11 +204,15 @@ asmlinkage void trap_c(struct pt_regs *regs)
 			sig = SIGTRAP;
 			break;
 		case VEC_ACCESS:
-			return buserr_c(regs);
+			return buserr(regs);
 		case VEC_ALIGN:
 			return alignment_c(regs);
+#ifdef CONFIG_CPU_HAS_FPU
 		case VEC_FPE:
-			return handle_fpe_c(regs);
+			return fpu_fpe(regs);
+		case VEC_PRIV:
+			if(fpu_libc_helper(regs)) return;
+#endif
 		default:
 			sig = SIGILL;
 			break;

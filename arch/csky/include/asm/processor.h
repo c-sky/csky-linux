@@ -9,11 +9,13 @@
 
 #include <linux/bitops.h>
 #include <asm/segment.h>
-#include <asm/fpu.h>
 #include <asm/ptrace.h>
 #include <asm/current.h>
 #include <asm/cache.h>
 #include <abi/regdef.h>
+#ifdef CONFIG_CPU_HAS_FPU
+#include <abi/fpu.h>
+#endif
 
 struct cpuinfo_csky {
 	unsigned long udelay_val;

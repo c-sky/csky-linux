@@ -82,7 +82,6 @@ static void __init csky_memblock_init(void)
 }
 
 extern void cpu_dt_probe(void);
-extern void init_fpu(void);
 void __init setup_arch(char **cmdline_p)
 {
 	*cmdline_p = boot_command_line;
@@ -114,7 +113,6 @@ void __init setup_arch(char **cmdline_p)
 #if defined(CONFIG_VT) && defined(CONFIG_DUMMY_CONSOLE)
 	conswitchp = &dummy_con;
 #endif
-	init_fpu();
 }
 
 extern void pre_trap_init(void);

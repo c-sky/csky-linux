@@ -10,7 +10,9 @@
 #include <asm/setup.h>
 #include <asm/page.h>
 #include <asm/thread_info.h>
-#include <asm/fpu.h>
+#ifdef CONFIG_CPU_HAS_FPU
+#include <abi/fpu.h>
+#endif
 
 #define PTE_INDX_MSK    0xffc
 #define PTE_INDX_SHIFT  10
