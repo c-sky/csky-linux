@@ -124,7 +124,7 @@ config CPU_HAS_HILO
 	bool
 	default n
 
-config CPU_HAS_TLBCACHE
+config CPU_HAS_TLBSYNC
 	bool
 	default n
 
@@ -155,22 +155,22 @@ choice
 
 config CPU_CK610
         bool "CSKY CPU ck610"
+	select CPU_HAS_TLBSYNC
 
 config CPU_CK810
         bool "CSKY CPU ck810"
 	select HIGHMEM
 	select CPU_HAS_HILO
+	select CPU_HAS_TLBSYNC
 
 config CPU_CK807
         bool "CSKY CPU ck807"
 	select HIGHMEM
 	select CPU_HAS_HILO
-	select CPU_HAS_TLBCACHE
 
 config CPU_CK860
         bool "CSKY CPU ck860"
 	select HIGHMEM
-	select CPU_HAS_TLBCACHE
 	select CPU_HAS_TLBI
 endchoice
 

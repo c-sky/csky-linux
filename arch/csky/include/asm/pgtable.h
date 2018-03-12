@@ -113,20 +113,14 @@ static inline pte_t pte_mkspecial(pte_t pte) { return pte; }
 #define __dcache_flush_line(x) \
 	cache_op_line((u32)x, DATA_CACHE|CACHE_CLR);
 
-#if !defined(CONFIG_CPU_HAS_TLBCACHE)
-#define set_pte(pteptr, pteval)			\
-        do{					\
-                *(pteptr) = (pteval);		\
-                __dcache_flush_line(pteptr)	\
-        } while(0)
-#define set_pte_at(mm,addr,ptep,pteval) set_pte(ptep,pteval)
-#else
-#define set_pte(pteptr, pteval)			\
-        do{					\
-                *(pteptr) = (pteval);		\
-        } while(0)
-#define set_pte_at(mm,addr,ptep,pteval) set_pte(ptep,pteval)
+static inline void set_pte(pte_t *p, pte_t pte)
+{
+	*p = pte;
+#if defined(CONFIG_CPU_HAS_TLBSYNC)
+        __dcache_flush_line(p);
 #endif
+}
+#define set_pte_at(mm,addr,ptep,pteval) set_pte(ptep,pteval)
 
 static inline pte_t *pmd_page_vaddr(pmd_t pmd)
 {
@@ -139,11 +133,11 @@ static inline pte_t *pmd_page_vaddr(pmd_t pmd)
 
 #define pmd_phys(pmd) pmd_val(pmd)
 
-static inline void set_pmd(pmd_t *pmdp, pmd_t pmd)
+static inline void set_pmd(pmd_t *p, pmd_t pmd)
 {
-	*pmdp = pmd;
-#if !defined(CONFIG_CPU_HAS_TLBCACHE)
-	__dcache_flush_line(pmdp);
+	*p = pmd;
+#if defined(CONFIG_CPU_HAS_TLBSYNC)
+        __dcache_flush_line(p);
 #endif
 }
 
@@ -160,11 +154,11 @@ static inline int pmd_present(pmd_t pmd)
         return (pmd_val(pmd) != __pa(invalid_pte_table));
 }
 
-static inline void pmd_clear(pmd_t *pmdp)
+static inline void pmd_clear(pmd_t *p)
 {
-        pmd_val(*pmdp) = (__pa(invalid_pte_table));
-#if !defined(CONFIG_CPU_HAS_TLBCACHE)
-	__dcache_flush_line(pmdp);
+        pmd_val(*p) = (__pa(invalid_pte_table));
+#if defined(CONFIG_CPU_HAS_TLBSYNC)
+	__dcache_flush_line(p);
 #endif
 }
 
@@ -233,12 +227,6 @@ static inline pte_t pte_mkyoung(pte_t pte)
 		pte_val(pte) |= _PAGE_VALID;
 	return pte;
 }
-
-#define PGD_T_LOG2	ffz(~sizeof(pgd_t))
-#define PMD_T_LOG2	ffz(~sizeof(pmd_t))
-#define PTE_T_LOG2	ffz(~sizeof(pte_t))
-
-#define page_pte(page)	page_pte_prot(page, __pgprot(0))
 
 #define __pgd_offset(address)	pgd_index(address)
 #define __pud_offset(address)	(((address) >> PUD_SHIFT) & (PTRS_PER_PUD-1))

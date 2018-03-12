@@ -70,7 +70,7 @@ ENTRY(csky_\name)
 	stw     a3, (r6)
 
 	/* Some cpu tlb-hardrefill bypass the cache */
-#ifndef CONFIG_CPU_HAS_TLBCACHE
+#ifdef CONFIG_CPU_HAS_TLBSYNC
 	movi	a2, 0x22
 	bseti	a2, 6
 	mtcr	r6, cr22
@@ -109,7 +109,6 @@ tlbop_end 1
 tlbop_begin tlbmodified, _PAGE_WRITE, PAGE_DIRTY_BIT, PAGE_MODIFIED_BIT
 jbsr csky_cmpxchg_fixup
 tlbop_end 1
-
 
 ENTRY(csky_systemcall)
 	SAVE_ALL_TRAP
