@@ -266,20 +266,6 @@ ENTRY(csky_trap)
 	jmpi     ret_from_exception
 
 /*
- * handle FPU exception.
- */
-ENTRY(csky_fpe)
-	SAVE_ALL
-	/* Clear FPU exception state */
-#if defined(CONFIG_CPU_HAS_FPU)
-	mfcr      a0, cr<2, 2>	       /* fpu fesr is cr<2,2> in CSKY_CPUV2 */
-	movi      r11_sig, 0           /* r11 = 0, Not a syscall. */
-	mov       a1, sp               /* Push Stack pointer arg */
-	jbsr      handle_fpe_c         /* Call C-level fpe handler */
-#endif
-	jmpi      ret_from_exception
-
-/*
  * Prototype from libc:
  * register unsigned int __result asm("a0");
  * asm( "trap 3" :"=r"(__result)::);

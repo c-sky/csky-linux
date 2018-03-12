@@ -97,18 +97,7 @@ void free_initmem(void)
 void pgd_init(unsigned long *p)
 {
 	int i;
-
-#define val	(unsigned long) __pa(invalid_pte_table);
-
-	for (i = 0; i < USER_PTRS_PER_PGD*2; i+=8) {
-		p[i + 0] = val;
-		p[i + 1] = val;
-		p[i + 2] = val;
-		p[i + 3] = val;
-		p[i + 4] = val;
-		p[i + 5] = val;
-		p[i + 6] = val;
-		p[i + 7] = val;
-	}
+	for (i = 0; i<PTRS_PER_PGD; i++)
+		p[i] = __pa(invalid_pte_table);
 }
 

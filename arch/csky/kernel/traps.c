@@ -25,7 +25,6 @@ void show_registers(struct pt_regs *fp);
 
 /* Defined in entry.S */
 asmlinkage void csky_trap(void);
-asmlinkage void csky_fpe(void);
 
 asmlinkage void csky_systemcall(void);
 asmlinkage void csky_cmpxchg(void);
@@ -41,57 +40,55 @@ extern e_vector vec_base;
 void __init pre_trap_init(void)
 {
 	int i;
-	e_vector *_ramvec = &vec_base;
+	e_vector *_ramvec		= &vec_base;
 
 	__asm__ __volatile__(
 		"mtcr %0, vbr\n"
 		::"r"(_ramvec));
 
-	for(i = 1; (i <= 31); i++)
-		_ramvec[i] = csky_trap;
-
+	for(i=1;i<128;i++) _ramvec[i]	= csky_trap;
 }
 
 void __init trap_init (void)
 {
 	int i;
-	e_vector *_ramvec = &vec_base;
+	e_vector *_ramvec		= &vec_base;
 
-	_ramvec[VEC_FPE]	= csky_fpe;
+	_ramvec[VEC_TRAP0]		= csky_systemcall;
+	_ramvec[VEC_TRAP2]		= csky_cmpxchg;
+	_ramvec[VEC_TRAP3]		= csky_get_tls;
 
-	_ramvec[VEC_TRAP0]	= csky_systemcall;
-	_ramvec[VEC_TRAP2]	= csky_cmpxchg;
-	_ramvec[VEC_TRAP3]	= csky_get_tls;
-	_ramvec[VEC_AUTOVEC]	= csky_irq;
-
-	_ramvec[VEC_TLBINVALIDL] = csky_tlbinvalidl;
-	_ramvec[VEC_TLBINVALIDS] = csky_tlbinvalids;
-	_ramvec[VEC_TLBMODIFIED] = csky_tlbmodified;
+	_ramvec[VEC_TLBINVALIDL]	= csky_tlbinvalidl;
+	_ramvec[VEC_TLBINVALIDS]	= csky_tlbinvalids;
+	_ramvec[VEC_TLBMODIFIED]	= csky_tlbmodified;
 
 	/* setup vector irq */
-	for(i = 32; (i < 128); i++)
-		_ramvec[i] = _ramvec[VEC_AUTOVEC];
+	_ramvec[VEC_AUTOVEC]		= csky_irq;
+	for(i=32;i<128;i++)_ramvec[i]	= csky_irq;
 
 }
 
-void die_if_kernel(char *,struct pt_regs *,int);
-asmlinkage int do_page_fault(struct pt_regs *regs, unsigned long address,
-                             unsigned long error_code);
+void die_if_kernel (char *str, struct pt_regs *regs, int nr)
+{
+	if (user_mode(regs)) return;
 
-asmlinkage void handle_fpe_c(unsigned long fesr, struct pt_regs * regs);
+	console_verbose();
+	printk("%s: %08x\n",str,nr);
+        show_registers(regs);
+        add_taint(TAINT_DIE, LOCKDEP_NOW_UNRELIABLE);
+	do_exit(SIGSEGV);
+}
 
 void buserr_c(struct pt_regs *regs)
 {
 	siginfo_t info;
 
-	printk("%s(%d): Bus Error Trap\n", __FILE__, __LINE__);
+	die_if_kernel("Kernel mode BUS error", regs, 0);
+
+	printk("User mode Bus Error\n");
 	show_registers(regs);
-	/* Only set esp0 if coming from user mode */
-	if (user_mode(regs)){
-		current->thread.esp0 = (unsigned long) regs;
-    } else{
-		die_if_kernel("Kernel mode BUS error", regs, 0);
-    }
+
+	current->thread.esp0 = (unsigned long) regs;
 	info.si_signo = SIGSEGV;
 	info.si_errno = 0;
 	force_sig_info(SIGSEGV, &info, current);
@@ -172,16 +169,6 @@ void dump_stack(void)
 	show_trace(&stack);
 }
 EXPORT_SYMBOL(dump_stack);
-
-void bad_super_trap (int vector, struct frame *fp)
-{
-	console_verbose();
-
-	printk("Kernel: Bad trap from supervisor state, vector = %d\n", vector);
-	printk("Current process id is %d\n", current->pid);
-	show_registers((struct pt_regs *)fp);
-	panic("Trap from supervisor state\n");
-}
 
 /* use as fpc control reg read/write in glibc. */
 int hand_fpcr_rdwr(struct pt_regs * regs)
@@ -317,8 +304,55 @@ bad_or_fault:
 	return 0;
 }
 
-extern void alignment_c(struct pt_regs *regs);
+void handle_fpe_c(struct pt_regs * regs)
+{
+	int sig;
+	unsigned int fesr;
+	siginfo_t info;
+#ifdef CONFIG_CPU_HAS_FPU
+	asm volatile("mfcr %0, cr<2, 2>":"=r"(fesr));
 
+	if(fesr & FPE_ILLE){
+		info.si_code = ILL_ILLOPC;
+		sig = SIGILL;
+	}
+	else if(fesr & FPE_IDC){
+		info.si_code = ILL_ILLOPN;
+		sig = SIGILL;
+	}
+	else if(fesr & FPE_FEC){
+		sig = SIGFPE;
+		if(fesr & FPE_IOC){
+			info.si_code = FPE_FLTINV;
+		}
+		else if(fesr & FPE_DZC){
+			info.si_code = FPE_FLTDIV;
+		}
+		else if(fesr & FPE_UFC){
+			info.si_code = FPE_FLTUND;
+		}
+		else if(fesr & FPE_OFC){
+			info.si_code = FPE_FLTOVF;
+		}
+		else if(fesr & FPE_IXC){
+			info.si_code = FPE_FLTRES;
+		}
+		else {
+			info.si_code = NSIGFPE;
+		}
+	}
+	else {
+		info.si_code = NSIGFPE;
+		sig = SIGFPE;
+	}
+#endif
+	info.si_signo = SIGFPE;
+	info.si_errno = 0;
+	info.si_addr = (void *)regs->pc;
+	force_sig_info(sig, &info, current);
+}
+
+extern void alignment_c(struct pt_regs *regs);
 asmlinkage void trap_c(struct pt_regs *regs)
 {
 	int sig;
@@ -357,55 +391,13 @@ asmlinkage void trap_c(struct pt_regs *regs)
 			return buserr_c(regs);
 		case VEC_ALIGN:
 			return alignment_c(regs);
+		case VEC_FPE:
+			return handle_fpe_c(regs);
 		default:
 			sig = SIGILL;
 			break;
 	}
 	send_sig(sig, current, 0);
-}
-
-asmlinkage void handle_fpe_c(unsigned long fesr, struct pt_regs * regs)
-{
-	int sig;
-	siginfo_t info;
-
-	if(fesr & FPE_ILLE){
-		info.si_code = ILL_ILLOPC;
-		sig = SIGILL;
-	}
-	else if(fesr & FPE_IDC){
-		info.si_code = ILL_ILLOPN;
-		sig = SIGILL;
-	}
-	else if(fesr & FPE_FEC){
-		sig = SIGFPE;
-		if(fesr & FPE_IOC){
-			info.si_code = FPE_FLTINV;
-		}
-		else if(fesr & FPE_DZC){
-			info.si_code = FPE_FLTDIV;
-		}
-		else if(fesr & FPE_UFC){
-			info.si_code = FPE_FLTUND;
-		}
-		else if(fesr & FPE_OFC){
-			info.si_code = FPE_FLTOVF;
-		}
-		else if(fesr & FPE_IXC){
-			info.si_code = FPE_FLTRES;
-		}
-		else {
-		info.si_code = NSIGFPE;
-		}
-	}
-	else {
-		info.si_code = NSIGFPE;
-		sig = SIGFPE;
-	}
-	info.si_signo = SIGFPE;
-	info.si_errno = 0;
-	info.si_addr = (void *)regs->pc;
-	force_sig_info(sig, &info, current);
 }
 
 asmlinkage void set_esp0 (unsigned long ssp)
@@ -417,18 +409,6 @@ void show_trace_task(struct task_struct *tsk)
 {
 	/* DAVIDM: we can do better, need a proper stack dump */
 	printk("STACK ksp=0x%lx, usp=0x%lx\n", tsk->thread.ksp, tsk->thread.usp);
-}
-
-void die_if_kernel (char *str, struct pt_regs *fp, int nr)
-{
-	if (!(fp->sr & PS_S))
-		return;
-
-	console_verbose();
-	printk("%s: %08x\n",str,nr);
-        show_registers(fp);
-        add_taint(TAINT_DIE, LOCKDEP_NOW_UNRELIABLE);
-	do_exit(SIGSEGV);
 }
 
 /*
