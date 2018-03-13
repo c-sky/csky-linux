@@ -37,36 +37,36 @@ asmlinkage void csky_tlbinvalidl(void);
 asmlinkage void csky_tlbinvalids(void);
 asmlinkage void csky_tlbmodified(void);
 
-extern e_vector vec_base;
-
 void __init pre_trap_init(void)
 {
 	int i;
-	e_vector *_ramvec		= &vec_base;
 
 	__asm__ __volatile__(
 		"mtcr %0, vbr\n"
-		::"r"(_ramvec));
+		::"r"(vec_base));
 
-	for(i=1;i<128;i++) _ramvec[i]	= csky_trap;
+	for(i=1;i<128;i++) VEC_INIT(i, csky_trap);
 }
 
 void __init trap_init (void)
 {
 	int i;
-	e_vector *_ramvec		= &vec_base;
 
-	_ramvec[VEC_TRAP0]		= csky_systemcall;
-	_ramvec[VEC_TRAP2]		= csky_cmpxchg;
-	_ramvec[VEC_TRAP3]		= csky_get_tls;
+	/* setup irq */
+	for(i=32;i<128;i++)
+		  VEC_INIT(i, csky_irq);
+	VEC_INIT(VEC_AUTOVEC, csky_irq);
 
-	_ramvec[VEC_TLBINVALIDL]	= csky_tlbinvalidl;
-	_ramvec[VEC_TLBINVALIDS]	= csky_tlbinvalids;
-	_ramvec[VEC_TLBMODIFIED]	= csky_tlbmodified;
+	/* setup trap0 trap2 trap3 */
+	VEC_INIT(VEC_TRAP0, csky_systemcall);
+	VEC_INIT(VEC_TRAP2, csky_cmpxchg);
+	VEC_INIT(VEC_TRAP3, csky_get_tls);
 
-	/* setup vector irq */
-	_ramvec[VEC_AUTOVEC]		= csky_irq;
-	for(i=32;i<128;i++)_ramvec[i]	= csky_irq;
+	/* setup MMU TLB exception */
+	VEC_INIT(VEC_TLBINVALIDL, csky_tlbinvalidl);
+	VEC_INIT(VEC_TLBINVALIDS, csky_tlbinvalids);
+	VEC_INIT(VEC_TLBMODIFIED, csky_tlbmodified);
+
 
 #ifdef CONFIG_CPU_HAS_FPU
 	init_fpu();

@@ -6,8 +6,6 @@
 #include <linux/linkage.h>
 #include <asm/ptrace.h>
 
-typedef void (*e_vector)(void);
-
 #endif
 
 #define VEC_RESET       0
@@ -49,8 +47,6 @@ typedef void (*e_vector)(void);
 #define VEC_INT7        39
 #define VEC_INT8        40
 
-#define VECOFF(vec)     ((vec)<<2)
-
 #ifndef __ASSEMBLY__
 
 /* Status register bits */
@@ -69,6 +65,8 @@ typedef void (*e_vector)(void);
 
 #define PS_VECMASK      0x007f0000              /* VEC mask */
 
+extern void * vec_base[];
+#define VEC_INIT(i, func) vec_base[i] = (void *)func
 
 
 /* structure for stack frames */
