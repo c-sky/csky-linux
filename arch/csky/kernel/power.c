@@ -16,14 +16,14 @@ void machine_halt(void)
 	local_irq_disable();
 	if (pm_power_off)
 		pm_power_off();
-	while(1);
+	asm volatile ("bkpt");
 }
 
 void machine_restart(char *cmd)
 {
 	local_irq_disable();
 	do_kernel_restart(cmd);
-	while(1);
+	asm volatile ("bkpt");
 }
 
 
