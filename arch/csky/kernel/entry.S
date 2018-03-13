@@ -3,7 +3,6 @@
 #include <abi/pgtable-bits.h>
 #include <asm/errno.h>
 #include <asm/setup.h>
-#include <asm/traps.h>
 #include <asm/unistd.h>
 #include <asm/asm-offsets.h>
 #include <linux/threads.h>

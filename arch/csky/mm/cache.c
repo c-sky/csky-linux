@@ -13,17 +13,17 @@
 static DEFINE_SPINLOCK(cache_lock);
 
 #define __cache_op_line(i, value) \
-	__asm__ __volatile__( \
-		"mtcr	%0, cr22\n\t" \
-		"mtcr	%1, cr17\n\t" \
+	asm volatile( \
+		"mtcr	%0, cr22\n" \
+		"mtcr	%1, cr17\n" \
 		::"r"(i), "r"(value))
 
 #define __cache_op_line_atomic(i, value) \
-	__asm__ __volatile__( \
-		"idly4\n\t" \
-		"mtcr	%0, cr22\n\t" \
-		"mtcr	%1, cr17\n\t" \
-		"sync\n\t" \
+	asm volatile( \
+		"idly4\n" \
+		"mtcr	%0, cr22\n" \
+		"mtcr	%1, cr17\n" \
+		"sync\n" \
 		::"r"(i), "r"(value))
 
 void
@@ -36,16 +36,16 @@ cache_op_line(unsigned int i, unsigned int value)
 void
 cache_op_all(unsigned int value, unsigned int l2)
 {
-	__asm__ __volatile__(
-		"mtcr	%0, cr17\n\t"
+	asm volatile(
+		"mtcr	%0, cr17\n"
 		::"r"(value | CACHE_CLR));
 
-	__asm__ __volatile__("sync\n\t");
+	asm volatile("sync\n");
 
 	if (l2 && (mfcr_ccr2() & CCR2_L2E)) {
-		__asm__ __volatile__(
-			"mtcr	%0, cr24\n\t"
-			"sync\n\t"
+		asm volatile(
+			"mtcr	%0, cr24\n"
+			"sync\n"
 			::"r"(value));
 	}
 }
@@ -79,16 +79,16 @@ cache_op_range(
 	for(i = start; i < end; i += L1_CACHE_BYTES) {
 		__cache_op_line(i, val);
 		if (l2_sync) {
-			__asm__ __volatile__(
-				"sync\n\t");
-			__asm__ __volatile__(
-				"mtcr	%0, cr24\n\t"
+			asm volatile(
+				"sync\n");
+			asm volatile(
+				"mtcr	%0, cr24\n"
 				::"r"(val));
 		}
 	}
 	spin_unlock_irqrestore(&cache_lock, flags);
 
-	__asm__ __volatile__("sync\n\t");
+	asm volatile("sync\n");
 }
 
 SYSCALL_DEFINE3(cacheflush,

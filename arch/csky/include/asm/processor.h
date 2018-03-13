@@ -13,6 +13,7 @@
 #include <asm/current.h>
 #include <asm/cache.h>
 #include <abi/regdef.h>
+#include <abi/reg_ops.h>
 #ifdef CONFIG_CPU_HAS_FPU
 #include <abi/fpu.h>
 #endif
@@ -29,29 +30,6 @@ struct cpuinfo_csky {
 } __attribute__((aligned(SMP_CACHE_BYTES)));
 
 extern struct cpuinfo_csky cpu_data[];
-
-/* read user stack pointer */
-extern inline unsigned long rdusp(void) {
-	register unsigned long usp;
-#if defined(__CSKYABIV2__)
-        __asm__ __volatile__("mfcr %0, cr<14, 1> \n\r" : "=r" (usp));
-#else
-        __asm__ __volatile__("mfcr %0, ss1\n\r" : "=r" (usp));
-#endif
-	return usp;
-}
-
-/* write user stack pointer
-   Fix me: should not only update user stack pointer in ss1,
-   the user stack pointer saved in stack frame should be update
-   either.*/
-extern inline void wrusp(unsigned long usp) {
-#if defined(__CSKYABIV2__)
-        __asm__ __volatile__("mtcr %0, cr<14, 1> \n\r" : : "r" (usp));
-#else
-        __asm__ __volatile__("mtcr %0, ss1\n\r" : : "r" (usp));
-#endif
-}
 
 /*
  * User space process size: 2GB. This is hardcoded into a few places,

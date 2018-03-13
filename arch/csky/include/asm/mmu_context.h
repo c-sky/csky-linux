@@ -44,7 +44,6 @@ get_new_mmu_context(struct mm_struct *mm, unsigned long cpu)
 	unsigned long asid = asid_cache(cpu);
 
 	if (! ((asid += ASID_INC) & ASID_MASK) ) {
-//		cache_op_all(INS_CACHE|DATA_CACHE|CACHE_CLR|CACHE_INV);
 		local_flush_tlb_all();	/* start new asid cycle */
 		if (!asid)		/* fix version if needed */
 			asid = ASID_FIRST_VERSION;

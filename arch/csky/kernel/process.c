@@ -26,40 +26,6 @@ unsigned long thread_saved_pc(struct task_struct *tsk)
 	return sw->r15;
 }
 
-void show_regs(struct pt_regs * regs)
-{
-	printk("\n");
-	printk("PC: %08lx  Status: %04lx  orig_a0: %08lx  %s\n",
-                regs->pc, regs->sr, regs->orig_a0, print_tainted());
-
-#if defined(__CSKYABIV1__)
-	printk("r2: %08lx   r3: %08lx   r4: %08lx   r5: %08lx \n",
-		regs->a0, regs->a1, regs->a2, regs->a3);
-	printk("r6: %08lx   r7: %08lx   r8: %08lx   r9: %08lx \n",
-		regs->regs[0], regs->regs[1], regs->regs[2], regs->regs[3]);
-	printk("r10: %08lx  r11: %08lx  r12: %08lx  r13: %08lx \n",
-		regs->regs[4], regs->regs[5], regs->regs[6], regs->regs[7]);
-	printk("r14: %08lx  r1: %08lx  r15: %08lx\n \n",
-		regs->regs[8], regs->regs[9], regs->r15);
-#endif
-
-#if defined(__CSKYABIV2__)
-        printk("r16:0x%08lx    r17: 0x%08lx    r18: 0x%08lx    r19: 0x%08lx\n",
-                regs->exregs[0], regs->exregs[1], regs->exregs[2], regs->exregs[3]);
-        printk("r20 0x%08lx    r21: 0x%08lx    r22: 0x%08lx    r23: 0x%08lx\n",
-                regs->exregs[4], regs->exregs[5], regs->exregs[6], regs->exregs[7]);
-        printk("r24 0x%08lx    r25: 0x%08lx    r26: 0x%08lx    r27: 0x%08lx\n",
-                regs->exregs[8], regs->exregs[9], regs->exregs[10], regs->exregs[11]);
-        printk("r28 0x%08lx    r29: 0x%08lx    r30: 0x%08lx    r31: 0x%08lx\n",
-                regs->exregs[12], regs->exregs[13], regs->exregs[14], regs->exregs[15]);
-        printk("hi 0x%08lx     lo: 0x%08lx \n",
-                regs->rhi, regs->rlo);
-#endif
-
-	if (!(regs->sr & PS_S))
-		printk("USP: %08lx\n", rdusp());
-}
-
 /*
  * Some archs flush debug and FPU info here
  */
