@@ -16,7 +16,6 @@
 
 extern void die_if_kernel(char *, struct pt_regs *, long);
 
-#ifdef CONFIG_SOFT_HANDMISSALIGN
 #define HANDLER_SUCCESS 0
 #define HANDLER_FAILURE	1
 #define SP_NUM 0
@@ -401,7 +400,7 @@ fault:
 	return HANDLER_FAILURE;
 }
 
-asmlinkage void alignment_c(struct pt_regs *regs)
+void csky_alignment(struct pt_regs *regs)
 {
 	int err;
 	unsigned long instr = 0, instrptr;
@@ -515,29 +514,3 @@ static int __init alignment_init(void)
 	return 0;
 }
 fs_initcall(alignment_init);
-
-#else /* !CONFIG_SOFT_HANDMISSALIGN */
-
-asmlinkage void alignment_c(struct pt_regs *regs)
-{
-	int sig;
-	siginfo_t info;
-
-	sig = SIGBUS;
-	info.si_code = BUS_ADRALN;
-	info.si_signo = sig;
-	info.si_errno = 0;
-	info.si_addr = (void *)regs->pc;
-	if (user_mode(regs)){
-		force_sig_info(sig, &info, current);
-        return;
-	}
-
-	if(fixup_exception(regs)) {
-	    return;
-	}
-	die_if_kernel("Kernel mode Alignment exception", regs, 0);
-	return;
-}
-
-#endif /* CONFIG_SOFT_HANDMISSALIGN */

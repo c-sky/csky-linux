@@ -71,7 +71,7 @@ ENTRY(csky_\name)
 	stw     a3, (r6)
 
 	/* Some cpu tlb-hardrefill bypass the cache */
-#ifdef CONFIG_CPU_HAS_TLBSYNC
+#ifdef CONFIG_CPU_NEED_TLBSYNC
 	movi	a2, 0x22
 	bseti	a2, 6
 	mtcr	r6, cr22

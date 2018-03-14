@@ -32,4 +32,6 @@
 extern void * vec_base[];
 #define VEC_INIT(i, func) vec_base[i] = (void *)func
 
+void csky_alignment(struct pt_regs*);
+
 #endif /* __ASM_CSKY_TRAPS_H */

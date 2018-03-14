@@ -97,7 +97,6 @@ void buserr(struct pt_regs *regs)
 	force_sig_info(SIGSEGV, &info, current);
 }
 
-extern void alignment_c(struct pt_regs *regs);
 asmlinkage void trap_c(struct pt_regs *regs)
 {
 	int sig;
@@ -127,8 +126,10 @@ asmlinkage void trap_c(struct pt_regs *regs)
 			break;
 		case VEC_ACCESS:
 			return buserr(regs);
+#ifdef CONFIG_CPU_NEED_SOFTALIGN
 		case VEC_ALIGN:
-			return alignment_c(regs);
+			return csky_alignment(regs);
+#endif
 #ifdef CONFIG_CPU_HAS_FPU
 		case VEC_FPE:
 			return fpu_fpe(regs);

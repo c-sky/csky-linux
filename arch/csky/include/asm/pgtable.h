@@ -116,7 +116,7 @@ static inline pte_t pte_mkspecial(pte_t pte) { return pte; }
 static inline void set_pte(pte_t *p, pte_t pte)
 {
 	*p = pte;
-#if defined(CONFIG_CPU_HAS_TLBSYNC)
+#if defined(CONFIG_CPU_NEED_TLBSYNC)
         __dcache_flush_line(p);
 #endif
 }
@@ -136,7 +136,7 @@ static inline pte_t *pmd_page_vaddr(pmd_t pmd)
 static inline void set_pmd(pmd_t *p, pmd_t pmd)
 {
 	*p = pmd;
-#if defined(CONFIG_CPU_HAS_TLBSYNC)
+#if defined(CONFIG_CPU_NEED_TLBSYNC)
         __dcache_flush_line(p);
 #endif
 }
@@ -157,7 +157,7 @@ static inline int pmd_present(pmd_t pmd)
 static inline void pmd_clear(pmd_t *p)
 {
         pmd_val(*p) = (__pa(invalid_pte_table));
-#if defined(CONFIG_CPU_HAS_TLBSYNC)
+#if defined(CONFIG_CPU_NEED_TLBSYNC)
 	__dcache_flush_line(p);
 #endif
 }

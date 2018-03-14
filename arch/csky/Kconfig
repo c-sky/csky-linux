@@ -1,7 +1,3 @@
-#
-# For a description of the syntax of this configuration file,
-# see Documentation/kbuild/kconfig-language.txt.
-#
 config CSKY
 	bool
 	default y
@@ -124,11 +120,15 @@ config CPU_HAS_HILO
 	bool
 	default n
 
-config CPU_HAS_TLBSYNC
+config CPU_HAS_TLBI
 	bool
 	default n
 
-config CPU_HAS_TLBI
+config CPU_NEED_TLBSYNC
+	bool
+	default n
+
+config CPU_NEED_SOFTALIGN
 	bool
 	default n
 
@@ -155,13 +155,14 @@ choice
 
 config CPU_CK610
         bool "CSKY CPU ck610"
-	select CPU_HAS_TLBSYNC
+	select CPU_NEED_TLBSYNC
+	select CPU_NEED_SOFTALIGN
 
 config CPU_CK810
         bool "CSKY CPU ck810"
 	select HIGHMEM
 	select CPU_HAS_HILO
-	select CPU_HAS_TLBSYNC
+	select CPU_NEED_TLBSYNC
 
 config CPU_CK807
         bool "CSKY CPU ck807"
@@ -185,15 +186,12 @@ menuconfig CPU_HAS_FPU
 	default n
 	---help---
 	  You can say N here if you C-SKY CPU don't have Floating-Point Coprocessor 	  or the user program need not to support FPU.
-
-	  You'll have say N here if you C-SKY CPU have Floating-Point Coprocessor
 	  and the user program need to support FPU. Floating-Point Coprocessor (FPC)
 	  is a coprocessor of CK serial processor. The function of FPC is to provide
 	  low-cost high-speed float point computation, which is full compliance with
 	  ANSI/IEEE Std 754, IEEE Standard for Binary Floating-Point Arithmetic.
 
-	  Generally, the FPU need not to open exception. See also "FPC User Guide"
-	  and " C-SKY CPU Linux-2.6 User Guide" for more details.
+	  Generally, the FPU need not to open exception.
 
 if CPU_HAS_FPU
 
@@ -224,19 +222,6 @@ config OPEN_FPU_IOE
 	default n
 
 endif # if CPU_HAS_FPU
-
-config	SOFT_HANDMISSALIGN
-	bool "Software fixup alignment exception."
-	default y
-	depends on CPU_CK610
-	help
-          CSKY CPU cannot fetch/store information which is not
-          naturally aligned on the bus, i.e., a 4 byte fetch must start at an
-          address divisible by 4. On 32-bit CSKY processors, these non-aligned
-          fetch/store instructions will be emulated in software if you say
-          here, which has a severe performance impact. This is necessary for
-          correct operation of some network protocols. With an IP-only
-          configuration it is safe to say N, otherwise say Y.
 
 comment "*****System type*****"
 
