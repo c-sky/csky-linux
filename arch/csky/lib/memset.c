@@ -34,5 +34,3 @@ void *memset(void *dest, int c, size_t l)
 	}
 	return dest;
 }
-EXPORT_SYMBOL(memset);
-

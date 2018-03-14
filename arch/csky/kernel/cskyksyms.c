@@ -25,3 +25,5 @@ EXPORT_SYMBOL(__ucmpdi2);
  */
 EXPORT_SYMBOL(memcpy);
 
+/* Defined in lib/memset.c */
+EXPORT_SYMBOL(memset);
