@@ -1,28 +1,31 @@
 #include <asm/uaccess.h>
 #include <linux/types.h>
 
-
-unsigned long __generic_copy_from_user(void *to, const void *from, 
-							unsigned long n)
+unsigned long
+raw_copy_from_user(
+		void *to,
+		const void *from,
+		unsigned long n)
 {
-	if (access_ok(VERIFY_READ, from, n)) {
+	if (access_ok(VERIFY_READ, from, n))
 		__copy_user_zeroing(to,from,n); 
-	}
-	else/* security hole - plug it */
+	else
 		memset(to,0, n);
 	return n;
-
 }
+EXPORT_SYMBOL(raw_copy_from_user);
 
-unsigned long __generic_copy_to_user(void *to, const void *from,
-							unsigned long n)
+unsigned long
+raw_copy_to_user(
+		void *to,
+		const void *from,
+		unsigned long n)
 {
-	if (access_ok(VERIFY_WRITE, to, n)) {
+	if (access_ok(VERIFY_WRITE, to, n))
 		__copy_user(to,from,n);
-	}
 	return n;
-
 }
+EXPORT_SYMBOL(raw_copy_to_user);
 
 
 /*
@@ -80,12 +83,17 @@ do{                                                     \
  * and returns @count.
  */
 long
-__strncpy_from_user(char *dst, const char *src, long count)
+__strncpy_from_user(
+	char *dst,
+	const char *src,
+	long count)
 {
 	long res;
 	__do_strncpy_from_user(dst, src, count, res);
 	return res;
 }
+EXPORT_SYMBOL(__strncpy_from_user);
+
 /*
  * strncpy_from_user: - Copy a NUL terminated string from userspace.
  * @dst:   Destination address, in kernel space.  This buffer must be at
@@ -105,13 +113,17 @@ __strncpy_from_user(char *dst, const char *src, long count)
  * and returns @count.
  */
 long
-strncpy_from_user(char *dst, const char *src, long count)
+strncpy_from_user(
+	char *dst,
+	const char *src,
+	long count)
 {
 	long res = -EFAULT;
 	if (access_ok(VERIFY_READ, src, 1))
 		__do_strncpy_from_user(dst, src, count, res);
 	return res;
 }
+EXPORT_SYMBOL(strncpy_from_user);
 
 /*
  * strlen_user: - Get the size of a string in user space.
@@ -157,6 +169,7 @@ long strnlen_user(const char *s, long n)
 	}
 	return 0;     
 }
+EXPORT_SYMBOL(strnlen_user);
 
 #define __do_clear_user(addr, size)                             \
 do {                                                            \
@@ -199,18 +212,18 @@ do {                                                            \
 		".section __ex_table,\"a\"      \n"             \
 		".align   2                     \n"             \
 		".long    8b, 9b                \n"             \
-		".long    10b, 9b                \n"            \
-		".long    11b, 9b                \n"            \
-		".long    12b, 9b                \n"            \
-		".long    13b, 9b                \n"            \
-		".long    14b, 9b                \n"            \
-		".long    15b, 9b                \n"            \
-		".long    16b, 9b                \n"            \
+		".long    10b, 9b               \n"             \
+		".long    11b, 9b               \n"             \
+		".long    12b, 9b               \n"             \
+		".long    13b, 9b               \n"             \
+		".long    14b, 9b               \n"             \
+		".long    15b, 9b               \n"             \
+		".long    16b, 9b               \n"             \
 		".long    4b, 9b                \n"             \
 		".long    6b, 9b                \n"             \
 		".previous                      \n"             \
 		"7:                             \n"             \
-		: "=r"(size), "=r" (__d0), "=r"(zvalue), "=r"(tmp)    \
+		: "=r"(size), "=r" (__d0), "=r"(zvalue), "=r"(tmp) \
 		: "0"(size), "1"(addr), "2"(0)                  \
 		: "memory"                                      \
 	);                                                      \
@@ -233,6 +246,8 @@ clear_user(void __user *to, unsigned long n)
 		__do_clear_user(to, n);
 	return n;
 }
+EXPORT_SYMBOL(clear_user);
+
 /*
  * __clear_user: - Zero a block of memory in user space, with less checking.
  * @to:   Destination address, in user space.
@@ -250,4 +265,5 @@ __clear_user(void __user *to, unsigned long n)
 	__do_clear_user(to, n);
 	return n;
 }
-                 
+EXPORT_SYMBOL(__clear_user);
+

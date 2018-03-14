@@ -145,3 +145,4 @@ unsigned long get_wchan(struct task_struct *p)
 	return 0;
 }
 
+EXPORT_SYMBOL(get_wchan);
