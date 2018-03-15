@@ -13,6 +13,8 @@
 #include <asm/processor.h>
 #include <asm/asm-offsets.h>
 
+#include <abi/regdef.h>
+
 /*
  * does not yet catch signals sent when the child dies.
  * in exit.c or in signal.c.
@@ -28,31 +30,8 @@
  * PT_xxx is the stack offset at which the register is  saved.
  * Notice that usp has no stack-slot and needs to be treated
  * specially (see get_reg/put_reg below).
- * No usrsp of CSKY ABIV2 in this array !
  */
-static int regoff[] = {
-#if defined(__CSKYABIV2__)
-	PT_A0,    PT_A1,     PT_A2,    PT_A3,
-	PT_REGS0, PT_REGS1,  PT_REGS2, PT_REGS3,
-	PT_REGS4, PT_REGS5,  PT_REGS6, PT_REGS7,
-	PT_REGS8, PT_REGS9,  -1,       PT_R15,
-	PT_R16,   PT_R17,    PT_R18,   PT_R19,
-	PT_R20,   PT_R21,    PT_R22,   PT_R23,
-	PT_R24,   PT_R25,    PT_R26,   PT_R27,
-	PT_R28,   PT_R29,    PT_R30,   PT_R31,
-	PT_SR,    PT_PC,     PT_RHI,   PT_RLO,
-#else
-	-1,       PT_REGS9,  PT_A0,    PT_A1,
-	PT_A2,    PT_A3,     PT_REGS0, PT_REGS1,
-	PT_REGS2, PT_REGS3,  PT_REGS4, PT_REGS5,
-	PT_REGS6, PT_REGS7,  PT_REGS8, PT_R15,
-	-1,       -1,        -1,       -1,
-	-1,       -1,        -1,       -1,
-	-1,       -1,        -1,       -1,
-	-1,       -1,        -1,       -1,
-	PT_SR,    PT_PC,     -1,       -1,
-#endif
-};
+static int regoff[] = PTRACE_REGOFF_ABI;
 
 /*
  * Get contents of register REGNO in task TASK.
@@ -255,17 +234,12 @@ out_eio:
 asmlinkage void syscall_trace(int why, struct pt_regs * regs)
 {
 	long saved_why;
-#ifdef __CSKYABIV2__
-	unsigned int SAVEDNUM =  5;  // r9 in ABIV2
-#else
-	unsigned int SAVEDNUM =  3;  // r9 in ABIV1
-#endif
 	/*
 	 * Save saved_why, why is used to denote syscall entry/exit;
 	 * why = 0:entry, why = 1: exit
 	 */
-	saved_why = regs->regs[SAVEDNUM];
-	regs->regs[SAVEDNUM] = why;
+	saved_why = regs->regs[SYSTRACE_SAVENUM];
+	regs->regs[SYSTRACE_SAVENUM] = why;
 
 	/* the 0x80 provides a way for the tracing parent to distinguish
 	   between a syscall stop and SIGTRAP delivery */
@@ -281,7 +255,7 @@ asmlinkage void syscall_trace(int why, struct pt_regs * regs)
 		current->exit_code = 0;
 	}
 
-	regs->regs[SAVEDNUM] = saved_why;
+	regs->regs[SYSTRACE_SAVENUM] = saved_why;
 	return;
 }
 
