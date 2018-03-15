@@ -12,12 +12,12 @@ static inline int ffs(int x)
 {
 	if(!x) return 0;
 
-	__asm__ __volatile__ (
-			"brev %0\n\t"
-			"ff1  %0\n\t"
-			"addi %0, 1\n\t"
-			: "=r"(x)
-			: "0"(x));
+	asm volatile (
+		"brev %0\n"
+		"ff1  %0\n"
+		"addi %0, 1\n"
+		:"=r"(x)
+		:"0"(x));
 	return x;
 }
 
@@ -26,11 +26,11 @@ static inline int ffs(int x)
  */
 static __always_inline unsigned long __ffs(unsigned long x)
 {
-	__asm__ __volatile__ (
-			"brev %0\n\t"
-			"ff1  %0\n\t"
-			: "=r"(x)
-			: "0"(x));
+	asm volatile (
+		"brev %0\n"
+		"ff1  %0\n"
+		:"=r"(x)
+		:"0"(x));
 	return x;
 }
 
@@ -39,10 +39,10 @@ static __always_inline unsigned long __ffs(unsigned long x)
  */
 static __always_inline int fls(int x)
 {
-	__asm__ __volatile__(
-			"ff1 %0\n\t"
-			:"=r" (x)
-			:"0" (x));
+	asm volatile(
+		"ff1 %0\n"
+		:"=r"(x)
+		:"0"(x));
 
 	return (32 - x);
 }

@@ -3,70 +3,69 @@
 
 static inline void select_mmu_cp(void)
 {
-	 __asm__ __volatile__("cpseti cp15\n\t");
-
+	 asm volatile("cpseti cp15\n");
 }
 
 static inline int read_mmu_index(void)
 {
-	int __res;
-	__asm__ __volatile__(
-			"cprcr %0, cpcr0\n\t"
-			:"=b" (__res));
-	return   __res;
+	int res;
+	asm volatile(
+		"cprcr %0, cpcr0\n"
+		:"=b" (res));
+	return   res;
 }
 
 static inline void write_mmu_index(int value)
 {
 
-	__asm__ __volatile__(
-			"cpwcr %0, cpcr0\n\t"
-			::"b"(value));
+	asm volatile(
+		"cpwcr %0, cpcr0\n"
+		::"b"(value));
 }
 
 static inline int read_mmu_entrylo0(void)
 {
-	int __res;
-	__asm__ __volatile__(
-			"cprcr %0, cpcr2\n\t"
-			:"=b" (__res));
+	int res;
+	asm volatile(
+		"cprcr %0, cpcr2\n"
+		:"=b" (res));
 
-	return __res << 6;
+	return res << 6;
 }
 
 static inline int read_mmu_entrylo1(void)
 {
-	int __res;
-	__asm__ __volatile__(
-			"cprcr %0, cpcr3\n\t"
-			:"=b" (__res));
+	int res;
+	asm volatile(
+		"cprcr %0, cpcr3\n"
+		:"=b" (res));
 
-	return __res << 6;
+	return res << 6;
 }
 
 static inline void write_mmu_pagemask(int value)
 {
-	__asm__ __volatile__(
-			"cpwcr %0, cpcr6\n\t"
-			::"b"(value));
+	asm volatile(
+		"cpwcr %0, cpcr6\n"
+		::"b"(value));
 }
 
 static inline int read_mmu_entryhi(void)
 {
-	int __res;
-	__asm__ __volatile__(
-			"cprcr %0, cpcr4\n\t"
-			:"=b" (__res));
+	int res;
+	asm volatile(
+		"cprcr %0, cpcr4\n"
+		:"=b" (res));
 
-	return __res;
+	return res;
 }
 
 static inline void write_mmu_entryhi(int value)
 {
 
-	__asm__ __volatile__(
-			"cpwcr %0, cpcr4\n\t"
-			::"b"(value));
+	asm volatile(
+		"cpwcr %0, cpcr4\n"
+		::"b"(value));
 }
 
 /*
@@ -76,47 +75,47 @@ static inline void tlb_probe(void)
 {
 	int value = 0x80000000;
 
-	__asm__ __volatile__(
-			"cpwcr %0, cpcr8\n\t"
-			::"b"(value));
+	asm volatile(
+		"cpwcr %0, cpcr8\n"
+		::"b"(value));
 }
 
 static inline void tlb_read(void)
 {
 	int value = 0x40000000;
 
-	__asm__ __volatile__(
-			"cpwcr %0, cpcr8\n\t"
-			::"b"(value));
+	asm volatile(
+		"cpwcr %0, cpcr8\n"
+		::"b"(value));
 }
 
 static inline void tlb_invalid_all(void)
 {
 	int value = 0x04000000;
 
-	__asm__ __volatile__(
-			"cpwcr %0, cpcr8\n\t"
-			::"b"(value));
+	asm volatile(
+		"cpwcr %0, cpcr8\n"
+		::"b"(value));
 }
 
 static inline void tlb_invalid_indexed(void)
 {
 	int value = 0x02000000;
 
-	__asm__ __volatile__(
-			"cpwcr %0, cpcr8\n\t"
-			::"b"(value));
+	asm volatile(
+		"cpwcr %0, cpcr8\n"
+		::"b"(value));
 }
 
 /* misc */
 static inline void tlbmiss_handler_setup_pgd(unsigned long pgd)
 {
-	__asm__ __volatile__(
-		"bseti %0, 0		\n\t"
-		"bclri %0, 31		\n\t"
-		"addu  %0, %1		\n\t"
-		"cpseti cp15		\n\t"
-		"cpwcr %0, cpcr29	\n\t"
+	asm volatile(
+		"bseti %0, 0		\n"
+		"bclri %0, 31		\n"
+		"addu  %0, %1		\n"
+		"cpseti cp15		\n"
+		"cpwcr %0, cpcr29	\n"
 		::"b"(pgd), "r"(PHYS_OFFSET)
 		:);
 }
@@ -124,12 +123,12 @@ static inline void tlbmiss_handler_setup_pgd(unsigned long pgd)
 static inline unsigned long tlb_get_pgd(void)
 {
 	unsigned long pgd;
-	__asm__ __volatile__(
-		"cpseti	cp15		\n\r"
-		"cprcr	%0, cpcr29	\n\r"
-		"bclri	%0, 0		\n\r"
-		"subu	%0, %1		\n\r"
-                "bseti	%0, 31		\n\r"
+	asm volatile(
+		"cpseti	cp15		\n"
+		"cprcr	%0, cpcr29	\n"
+		"bclri	%0, 0		\n"
+		"subu	%0, %1		\n"
+                "bseti	%0, 31		\n"
                 :"=&b"(pgd)
 		:"r"(PHYS_OFFSET)
                 :);

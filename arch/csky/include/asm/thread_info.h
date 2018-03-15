@@ -38,9 +38,7 @@ static inline struct thread_info *current_thread_info(void)
 {
 	unsigned long sp;
 
-	__asm__ __volatile__(
-			"mov %0, sp\n\t"
-			:"=r"(sp));
+	asm volatile("mov %0, sp\n":"=r"(sp));
 
 	return (struct thread_info *)(sp & ~(THREAD_SIZE - 1));
 }

@@ -35,7 +35,7 @@ EXPORT_SYMBOL(raw_copy_to_user);
 do{                                                     \
         int tmp;                                        \
         long faultres;                                  \
-        __asm__ __volatile__(                           \
+        asm volatile(                           \
         "       cmpnei  %3, 0           \n"             \
         "       bf      4f              \n"             \
         "1:     cmpnei  %1, 0          	\n"             \
@@ -141,7 +141,7 @@ long strnlen_user(const char *s, long n)
 
 	unsigned long res,tmp;
 	if(s){
-		__asm__ __volatile__(
+	asm volatile(
         "       cmpnei  %1, 0           \n"
         "       bf      3f              \n"
         "1:     cmpnei  %0, 0           \n"              
@@ -176,7 +176,7 @@ do {                                                            \
 	int __d0;                                               \
 	int zvalue;                                             \
 	int tmp;                                                \
-	__asm__ __volatile__(                                   \
+	asm volatile(						\
 		"0:     cmpnei  %1, 0           \n"             \
 		"       bf      7f              \n"             \
 		"       mov     %3, %1          \n"             \

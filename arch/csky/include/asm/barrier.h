@@ -3,8 +3,8 @@
 
 #ifndef __ASSEMBLY__
 
-#define nop()	__asm__ __volatile__ ("nop")
-#define mb()	__asm__ __volatile__ ("sync" :::"memory")
+#define nop()	asm volatile ("nop")
+#define mb()	asm volatile ("sync":::"memory")
 
 #include <asm-generic/barrier.h>
 

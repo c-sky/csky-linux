@@ -39,7 +39,7 @@ void __init pre_trap_init(void)
 {
 	int i;
 
-	__asm__ __volatile__(
+	asm volatile(
 		"mtcr %0, vbr\n"
 		::"r"(vec_base));
 

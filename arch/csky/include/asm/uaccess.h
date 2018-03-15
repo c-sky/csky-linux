@@ -83,7 +83,7 @@ extern int __put_user_bad(void);
 	typeof(*(ptr)) *__pu_addr = (ptr);                              \
 	typeof(*(ptr)) __pu_val = (typeof(*(ptr)))(x);                  \
 	if(__pu_addr){                                                  \
-		__put_user_size(__pu_val, (__pu_addr), (size), __pu_err);   \
+	    __put_user_size(__pu_val, (__pu_addr), (size), __pu_err);   \
 	}                                                               \
 	__pu_err;                                                       \
 })
@@ -121,7 +121,7 @@ do {                                                                    \
 #define __put_user_asm_b(x, ptr, err)                           \
 do{                                                             \
 	int errcode;                                            \
-	 __asm__ __volatile__(                                  \
+	asm volatile(                                           \
 	         "1:     stb   %1, (%2,0)        \n"            \
 	         "       br    3f                \n"            \
 	         "2:     mov   %0, %3            \n"            \
@@ -131,15 +131,15 @@ do{                                                             \
 	         ".long    1b,2b                 \n"            \
 	         ".previous                      \n"            \
 	          "3:                            \n"            \
-	         : "=r"(err), "=r"(x), "=r"(ptr), "=r"(errcode)  \
-	         : "0"(err), "1"(x), "2"(ptr), "3"(-EFAULT)      \
+	         : "=r"(err), "=r"(x), "=r"(ptr), "=r"(errcode) \
+	         : "0"(err), "1"(x), "2"(ptr), "3"(-EFAULT)     \
 	         : "memory");                                   \
 }while(0)
 
 #define __put_user_asm_h(x, ptr, err)                           \
 do{                                                             \
 	int errcode;                                            \
-	 __asm__ __volatile__(                                  \
+	asm volatile(                                           \
 	         "1:     sth   %1, (%2,0)        \n"            \
 	         "       br    3f                \n"            \
 	         "2:     mov   %0, %3            \n"            \
@@ -157,7 +157,7 @@ do{                                                             \
 #define __put_user_asm_w(x, ptr, err)                           \
 do{                                                             \
 	int errcode;                                            \
-	 __asm__ __volatile__(                                  \
+	asm volatile(                                           \
 	         "1:     stw   %1, (%2,0)        \n"            \
 	         "       br    3f                \n"            \
 	         "2:     mov   %0, %3            \n"            \
@@ -180,7 +180,7 @@ do{                                                             \
 	typeof(*(ptr)) src = ( typeof(*(ptr)))x;                \
 	typeof(*(ptr)) *psrc = &src;                            \
 	                                                        \
-	__asm__ __volatile__(                                   \
+	asm volatile(                                           \
 	        "     ldw     %3, (%1, 0)     \n"               \
 	        "1:   stw     %3, (%2, 0)     \n"               \
 	        "     ldw     %3, (%1, 4)     \n"               \
@@ -194,8 +194,8 @@ do{                                                             \
 	        ".long    2b, 3b              \n"               \
 	        ".previous                    \n"               \
 	        "4:                           \n"               \
-	        :"=r"(err), "=r"(psrc), "=r"(ptr), "=r"(tmp), "=r"(errcode) \
-	        : "0"(err), "1"(psrc), "2"(ptr), "3"(0), "4"(-EFAULT)       \
+	        :"=r"(err),"=r"(psrc),"=r"(ptr),"=r"(tmp),"=r"(errcode) \
+	        : "0"(err), "1"(psrc), "2"(ptr), "3"(0), "4"(-EFAULT) \
 	        : "memory" );                                   \
 }while (0)
 
@@ -230,7 +230,7 @@ do {                                                            \
 #define __get_user_asm_common(x, ptr, ins, err)                 \
 do{                                                             \
 	int errcode;                                            \
-	__asm__ __volatile__(                                   \
+	asm volatile(                                           \
 	        "1:   " ins "   %1, (%4,0)      \n"             \
 	        "       br    3f                \n"             \
 	        /* Fix up codes */                              \
@@ -252,7 +252,7 @@ extern int __get_user_bad(void);
 #define __copy_user(to, from, n)                                \
 do{                                                             \
 	int w0, w1, w2, w3;                                     \
-	__asm__ __volatile__(                                   \
+	asm volatile(                                           \
 		"0:     cmpnei  %1, 0           \n"             \
 		"       bf      8f              \n"             \
 		"       mov     %3, %1          \n"             \
@@ -311,7 +311,7 @@ do{                                                             \
 do{                                                             \
 	int tmp;                                                \
 	int nsave;                                              \
-	__asm__ __volatile__(                                   \
+	asm volatile(                                           \
 		"0:     cmpnei  %1, 0           \n"             \
 		"       bf      7f              \n"             \
 		"       mov     %3, %1          \n"             \

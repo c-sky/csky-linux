@@ -35,21 +35,15 @@
 #define __ARCH_WANT_SYS_OLD_SELECT
 #define __ARCH_WANT_SYNC_FILE_RANGE2
 
-/*
- * FIXME:
- * __NR_rt_sigreturn must be 173
- */
 #undef	__NR_rt_sigreturn
 #undef	__NR_getppid
 
 #include <asm-generic/unistd.h>
 
 /*
- * FIXME:
  * __NR_rt_sigreturn must be 173
- * Because gcc/config/csky/linux-unwind.h
- * use hard code design,
- * and didn't use our kernel headers.
+ * Because gcc/config/csky/linux-unwind.h use hard-code 173
+ * to parse rt_sigframe.
  */
 #if __NR_rt_sigreturn != 139
 #error __NR_rt_sigreturn has changed.

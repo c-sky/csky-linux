@@ -10,9 +10,6 @@
 			INS_CACHE|DATA_CACHE|CACHE_CLR|CACHE_INV, 0); \
 	}  while (0)
 
-/*
- * FIXME: may be use function flush_tlb_range like other arch.
- */
 #define tlb_end_vma(tlb, vma) \
 	do { \
 		if (!tlb->fullmm) \
@@ -20,7 +17,7 @@
 			INS_CACHE|DATA_CACHE|CACHE_CLR|CACHE_INV, 0); \
 	}  while (0)
 
-#define tlb_flush(tlb)	flush_tlb_mm((tlb)->mm)
+#define tlb_flush(tlb) flush_tlb_mm((tlb)->mm)
 
 #include <asm-generic/tlb.h>
 

@@ -4,17 +4,12 @@
 
 void __delay(unsigned long loops)
 {
-       __asm__ __volatile__ (
-#ifdef __CSKYABIV1__
-				".balignw 4, 0x1200\n\t"
-#else /* __CSKYABIV1__ */
-                                ".balignw 4, 0x6c8b\n\t"
-				"mov r0, r0\n\t"
-#endif
-                                "1: declt  %0\n\t"
-                                "bf   1b"
-                                  : "=r" (loops)
-	                          : "0" (loops) );
+       asm volatile (
+		"mov r0, r0\n"
+		"1:declt %0\n"
+		"bf	1b"
+                :"=r"(loops)
+	        :"0"(loops));
 }
 EXPORT_SYMBOL(__delay);
 

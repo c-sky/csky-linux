@@ -30,7 +30,7 @@ write_pt_regs(unsigned int value, unsigned int rx, struct pt_regs *regs)
 		*((int *)regs + rx + 3) = value;
 	else if(rx == 14)
 		if(user_mode(regs))
-			asm volatile("mtcr %0, cr<14, 1> \n\r"::"r"(value));
+			asm volatile("mtcr %0, cr<14, 1>\n"::"r"(value));
 		else
 			printk("math emulate trying to write sp.\n");
 	else
@@ -222,30 +222,32 @@ int save_fpu_state(struct sigcontext *sc, struct pt_regs *regs)
 
 	local_irq_save(flg);
 	fpgr = &(fpregs.f_fpregs[0]);
-	__asm__ __volatile__("mfcr    %0, cr<1, 2> \n\r"
-			     "mfcr    %1, cr<2, 2> \n\r"
-			     : "=r"(fpregs.f_fcr), "=r"(fpregs.f_fesr));
+	asm volatile(
+		"mfcr    %0, cr<1, 2>\n"
+		"mfcr    %1, cr<2, 2>\n"
+		:"=r"(fpregs.f_fcr),"=r"(fpregs.f_fesr));
 
-	__asm__ __volatile__(FMFVR_FPU_REGS(vr0, vr1)
-			     STW_FPU_REGS(0, 4, 8, 12)
-			     FMFVR_FPU_REGS(vr2, vr3)
-			     STW_FPU_REGS(16, 20, 24, 28)
-			     FMFVR_FPU_REGS(vr4, vr5)
-			     STW_FPU_REGS(32, 36, 40, 44)
-			     FMFVR_FPU_REGS(vr6, vr7)
-			     STW_FPU_REGS(48, 52, 56, 60)
-			     "addi    %4, 32 \n\r"
-			     "addi    %4, 32 \n\r"
-			     FMFVR_FPU_REGS(vr8, vr9)
-			     STW_FPU_REGS(0, 4, 8, 12)
-			     FMFVR_FPU_REGS(vr10, vr11)
-			     STW_FPU_REGS(16, 20, 24, 28)
-			     FMFVR_FPU_REGS(vr12, vr13)
-			     STW_FPU_REGS(32, 36, 40, 44)
-			     FMFVR_FPU_REGS(vr14, vr15)
-			     STW_FPU_REGS(48, 52, 56, 60)
-			     :"=a"(tmp1), "=a"(tmp2), "=a"(tmp3), "=a"(tmp4),
-			     "+a"(fpgr));
+	asm volatile(
+		FMFVR_FPU_REGS(vr0, vr1)
+		STW_FPU_REGS(0, 4, 8, 12)
+		FMFVR_FPU_REGS(vr2, vr3)
+		STW_FPU_REGS(16, 20, 24, 28)
+		FMFVR_FPU_REGS(vr4, vr5)
+		STW_FPU_REGS(32, 36, 40, 44)
+		FMFVR_FPU_REGS(vr6, vr7)
+		STW_FPU_REGS(48, 52, 56, 60)
+		"addi    %4, 32\n"
+		"addi    %4, 32\n"
+		FMFVR_FPU_REGS(vr8, vr9)
+		STW_FPU_REGS(0, 4, 8, 12)
+		FMFVR_FPU_REGS(vr10, vr11)
+		STW_FPU_REGS(16, 20, 24, 28)
+		FMFVR_FPU_REGS(vr12, vr13)
+		STW_FPU_REGS(32, 36, 40, 44)
+		FMFVR_FPU_REGS(vr14, vr15)
+		STW_FPU_REGS(48, 52, 56, 60)
+		:"=a"(tmp1),"=a"(tmp2),"=a"(tmp3),
+		"=a"(tmp4),"+a"(fpgr));
 	local_irq_restore(flg);
 
 	err |= copy_to_user(&sc->sc_fcr, &fpregs, sizeof(fpregs));
@@ -272,31 +274,32 @@ int restore_fpu_state(struct sigcontext *sc)
 	fctl1 = fpregs.f_fsr;
 	fctl2 = fpregs.f_fesr;
 	fpgr = &(fpregs.f_fpregs[0]);
-	__asm__ __volatile__(
-			"mtcr   %0, cr<1, 2> \n\r"
-			"mtcr   %1, cr<2, 2> \n\r"
-			::"r"(fctl0), "r"(fctl2));
+	asm volatile(
+		"mtcr   %0, cr<1, 2>\n"
+		"mtcr   %1, cr<2, 2>\n"
+		::"r"(fctl0), "r"(fctl2));
 
-	__asm__ __volatile__(LDW_FPU_REGS(0, 4, 8, 12)
-			FMTVR_FPU_REGS(vr0, vr1)
-			LDW_FPU_REGS(16, 20, 24, 28)
-			FMTVR_FPU_REGS(vr2, vr3)
-			LDW_FPU_REGS(32, 36, 40, 44)
-			FMTVR_FPU_REGS(vr4, vr5)
-			LDW_FPU_REGS(48, 52, 56, 60)
-			FMTVR_FPU_REGS(vr6, vr7)
-			"addi   %4, 32 \n\r"
-			"addi   %4, 32 \n\r"
-			LDW_FPU_REGS(0, 4, 8, 12)
-			FMTVR_FPU_REGS(vr8, vr9)
-			LDW_FPU_REGS(16, 20, 24, 28)
-			FMTVR_FPU_REGS(vr10, vr11)
-			LDW_FPU_REGS(32, 36, 40, 44)
-			FMTVR_FPU_REGS(vr12, vr13)
-			LDW_FPU_REGS(48, 52, 56, 60)
-			FMTVR_FPU_REGS(vr14, vr15)
-			:"=a"(tmp1), "=a"(tmp2), "=a"(tmp3), "=a"(tmp4),
-			"+a"(fpgr));
+	asm volatile(
+		LDW_FPU_REGS(0, 4, 8, 12)
+		FMTVR_FPU_REGS(vr0, vr1)
+		LDW_FPU_REGS(16, 20, 24, 28)
+		FMTVR_FPU_REGS(vr2, vr3)
+		LDW_FPU_REGS(32, 36, 40, 44)
+		FMTVR_FPU_REGS(vr4, vr5)
+		LDW_FPU_REGS(48, 52, 56, 60)
+		FMTVR_FPU_REGS(vr6, vr7)
+		"addi   %4, 32\n"
+		"addi   %4, 32\n"
+		LDW_FPU_REGS(0, 4, 8, 12)
+		FMTVR_FPU_REGS(vr8, vr9)
+		LDW_FPU_REGS(16, 20, 24, 28)
+		FMTVR_FPU_REGS(vr10, vr11)
+		LDW_FPU_REGS(32, 36, 40, 44)
+		FMTVR_FPU_REGS(vr12, vr13)
+		LDW_FPU_REGS(48, 52, 56, 60)
+		FMTVR_FPU_REGS(vr14, vr15)
+		:"=a"(tmp1),"=a"(tmp2),"=a"(tmp3),
+		"=a"(tmp4),"+a"(fpgr));
 	local_irq_restore(flg);
 out:
 	return err;

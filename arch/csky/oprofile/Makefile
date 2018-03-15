@@ -6,8 +6,6 @@ DRIVER_OBJS := $(addprefix ../../../drivers/oprofile/, \
 		oprofilefs.o oprofile_stats.o \
 		timer_int.o )
 
-# FIXME:
-# HW_PERF need perf_pmu_register with kernel/event framework.
 ifeq ($(CONFIG_HW_PERF_EVENTS),y)
 DRIVER_OBJS += $(addprefix ../../../drivers/oprofile/, oprofile_perf.o)
 endif

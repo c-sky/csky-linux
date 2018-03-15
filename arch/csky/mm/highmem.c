@@ -70,7 +70,7 @@ void __kunmap_atomic(void *kvaddr)
 	unsigned long vaddr = (unsigned long) kvaddr & PAGE_MASK;
 	int type;
 	
-	if (vaddr < FIXADDR_START) { // FIXME
+	if (vaddr < FIXADDR_START) {
 	    pagefault_enable();
 	    return;
 	}

@@ -105,15 +105,15 @@ struct irq_chip nc_irq_chip = {
 inline int ff1_64(unsigned int hi, unsigned int lo)
 {
 	int result;
-	__asm__ __volatile__(
-		"ff1 %0"
+	asm volatile(
+		"ff1 %0\n"
 		:"=r"(hi)
 		:"r"(hi)
 		:
 	);
 
-	__asm__ __volatile__(
-		"ff1 %0"
+	asm volatile(
+		"ff1 %0\n"
 		:"=r"(lo)
 		:"r"(lo)
 		:

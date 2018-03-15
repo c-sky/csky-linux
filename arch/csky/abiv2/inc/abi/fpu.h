@@ -63,40 +63,40 @@ int save_fpu_state(struct sigcontext *sc, struct pt_regs *regs);
 #endif
 
 #define FMFS_FPU_REGS(frw, frx, fry, frz) \
-	"fmfs   %0, "#frw" \n\r" \
-	"fmfs   %1, "#frx" \n\r" \
-	"fmfs   %2, "#fry" \n\r" \
-	"fmfs   %3, "#frz" \n\r"
+	"fmfs   %0, "#frw" \n" \
+	"fmfs   %1, "#frx" \n" \
+	"fmfs   %2, "#fry" \n" \
+	"fmfs   %3, "#frz" \n"
 
 #define FMTS_FPU_REGS(frw, frx, fry, frz) \
-	"fmts   %0, "#frw" \n\r" \
-	"fmts   %1, "#frx" \n\r" \
-	"fmts   %2, "#fry" \n\r" \
-	"fmts   %3, "#frz" \n\r"
+	"fmts   %0, "#frw" \n" \
+	"fmts   %1, "#frx" \n" \
+	"fmts   %2, "#fry" \n" \
+	"fmts   %3, "#frz" \n"
 
 #define FMFVR_FPU_REGS(vrx, vry) \
-	"fmfvrl %0, "#vrx" \n\r" \
-	"fmfvrh %1, "#vrx" \n\r" \
-	"fmfvrl %2, "#vry" \n\r" \
-	"fmfvrh %3, "#vry" \n\r"
+	"fmfvrl %0, "#vrx" \n" \
+	"fmfvrh %1, "#vrx" \n" \
+	"fmfvrl %2, "#vry" \n" \
+	"fmfvrh %3, "#vry" \n"
 
 #define FMTVR_FPU_REGS(vrx, vry) \
-	"fmtvrl "#vrx", %0 \n\r" \
-	"fmtvrh "#vrx", %1 \n\r" \
-	"fmtvrl "#vry", %2 \n\r" \
-	"fmtvrh "#vry", %3 \n\r"
+	"fmtvrl "#vrx", %0 \n" \
+	"fmtvrh "#vrx", %1 \n" \
+	"fmtvrl "#vry", %2 \n" \
+	"fmtvrh "#vry", %3 \n"
 
 #define STW_FPU_REGS(a, b, c, d) \
-	"stw    %0, (%4, "#a") \n\r" \
-	"stw    %1, (%4, "#b") \n\r" \
-	"stw    %2, (%4, "#c") \n\r" \
-	"stw    %3, (%4, "#d") \n\r"
+	"stw    %0, (%4, "#a") \n" \
+	"stw    %1, (%4, "#b") \n" \
+	"stw    %2, (%4, "#c") \n" \
+	"stw    %3, (%4, "#d") \n"
 
 #define LDW_FPU_REGS(a, b, c, d) \
-	"ldw    %0, (%4, "#a") \n\r" \
-	"ldw    %1, (%4, "#b") \n\r" \
-	"ldw    %2, (%4, "#c") \n\r" \
-	"ldw    %3, (%4, "#d") \n\r"
+	"ldw    %0, (%4, "#a") \n" \
+	"ldw    %1, (%4, "#b") \n" \
+	"ldw    %2, (%4, "#c") \n" \
+	"ldw    %3, (%4, "#d") \n"
 
 static inline void save_fp_to_thread(unsigned long  * fpregs,
 	   unsigned long * fcr, unsigned long * fsr, unsigned long * fesr)
@@ -106,33 +106,36 @@ static inline void save_fp_to_thread(unsigned long  * fpregs,
 
 	local_save_flags(flg);
 
-	__asm__ __volatile__("mfcr    %0, cr<1, 2> \n\r"
-	                     "mfcr    %1, cr<2, 2> \n\r"
-	                     :"+r"(tmp1), "+r"(tmp2) : );
+	asm volatile(
+		"mfcr    %0, cr<1, 2> \n"
+		"mfcr    %1, cr<2, 2> \n"
+		:"+r"(tmp1),"+r"(tmp2));
+
 	*fcr = tmp1;
 	/* not use in fpuv2 */
 	*fsr = 0;
 	*fesr = tmp2;
-	__asm__ __volatile__(FMFVR_FPU_REGS(vr0, vr1)
-	                     STW_FPU_REGS(0, 4, 8, 12)
-	                     FMFVR_FPU_REGS(vr2, vr3)
-	                     STW_FPU_REGS(16, 20, 24, 28)
-	                     FMFVR_FPU_REGS(vr4, vr5)
-	                     STW_FPU_REGS(32, 36, 40, 44)
-	                     FMFVR_FPU_REGS(vr6, vr7)
-	                     STW_FPU_REGS(48, 52, 56, 60)
-	                     "addi    %4, 32 \n\r"
-	                     "addi    %4, 32 \n\r"
-	                     FMFVR_FPU_REGS(vr8, vr9)
-	                     STW_FPU_REGS(0, 4, 8, 12)
-	                     FMFVR_FPU_REGS(vr10, vr11)
-	                     STW_FPU_REGS(16, 20, 24, 28)
-	                     FMFVR_FPU_REGS(vr12, vr13)
-	                     STW_FPU_REGS(32, 36, 40, 44)
-	                     FMFVR_FPU_REGS(vr14, vr15)
-	                     STW_FPU_REGS(48, 52, 56, 60)
-	                     :"=a"(tmp1), "=a"(tmp2), "=a"(tmp3), "=a"(tmp4),
-	                       "+a"(fpregs));
+	asm volatile(
+		FMFVR_FPU_REGS(vr0, vr1)
+		STW_FPU_REGS(0, 4, 8, 12)
+		FMFVR_FPU_REGS(vr2, vr3)
+		STW_FPU_REGS(16, 20, 24, 28)
+		FMFVR_FPU_REGS(vr4, vr5)
+		STW_FPU_REGS(32, 36, 40, 44)
+		FMFVR_FPU_REGS(vr6, vr7)
+		STW_FPU_REGS(48, 52, 56, 60)
+		"addi    %4, 32 \n"
+		"addi    %4, 32 \n"
+		FMFVR_FPU_REGS(vr8, vr9)
+		STW_FPU_REGS(0, 4, 8, 12)
+		FMFVR_FPU_REGS(vr10, vr11)
+		STW_FPU_REGS(16, 20, 24, 28)
+		FMFVR_FPU_REGS(vr12, vr13)
+		STW_FPU_REGS(32, 36, 40, 44)
+		FMFVR_FPU_REGS(vr14, vr15)
+		STW_FPU_REGS(48, 52, 56, 60)
+		:"=a"(tmp1),"=a"(tmp2),"=a"(tmp3),
+		"=a"(tmp4),"+a"(fpregs));
 	local_irq_restore(flg);
 }
 

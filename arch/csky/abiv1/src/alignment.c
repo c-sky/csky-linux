@@ -24,10 +24,6 @@ extern void die_if_kernel(char *, struct pt_regs *, long);
 #define R16_NUM 16
 #define R28_NUM 28
 
-
-/* C-SKY CPU V2 32 bit instruction like 11'B in the highest two bit  */
-#define IS_T32(hi16)  (((hi16) & 0xc000) == 0xc000 )
-
 #define CODING_BITS(i)  (i & 0xFC000000)
 #define LDST_TYPE(i)    (i & 0xf000)
 
@@ -106,7 +102,7 @@ static const struct file_operations alignment_proc_fops = {
 #endif
 
 #define __get8_unaligned_check(val,addr,err)		\
-	__asm__(					\
+	asm(					\
 	"1:	ldb	%1, (%2)\n"			\
 	"	addi	%2, 1\n"			\
 	"	br	3f\n"				\
@@ -149,7 +145,7 @@ static const struct file_operations alignment_proc_fops = {
 #define put16_unaligned_check(val,addr)				\
 	do {							\
 		unsigned int err = 0, v = val, a = addr;	\
-		__asm__( FIRST_BYTE_16				\
+		asm( FIRST_BYTE_16				\
 		"1:	stb	%1, (%2)\n"			\
 		"	addi	%2, 1\n"			\
 			NEXT_BYTE				\
@@ -172,7 +168,7 @@ static const struct file_operations alignment_proc_fops = {
 #define put32_unaligned_check(val,addr)				\
 	do {							\
 		unsigned int err = 0, v = val, a = addr;	\
-		__asm__( FIRST_BYTE_32				\
+		asm( FIRST_BYTE_32				\
 		"1:	stb	%1, (%2)\n"			\
 		"	addi	%2, 1\n"			\
 			NEXT_BYTE				\
@@ -207,8 +203,7 @@ get_regs_value(unsigned int rx, struct pt_regs *regs)
 
 	if(rx == 0){
 		if(user_mode(regs)){
-			__asm__ __volatile__("mfcr %0, ss1 \n\r"
-						:"=r"(value));
+			asm volatile("mfcr %0, ss1\n":"=r"(value));
 		}else{
 			value = sizeof(struct pt_regs) + ((unsigned int)regs);
 		}
