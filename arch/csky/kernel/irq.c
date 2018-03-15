@@ -5,11 +5,6 @@
 
 unsigned int (*csky_get_auto_irqno) (void) = NULL;
 
-int arch_show_interrupts(struct seq_file *p, int prec)
-{
-	return 0;
-}
-
 void csky_do_IRQ(int irq, struct pt_regs *regs)
 {
 	struct pt_regs *old_regs = set_irq_regs(regs);
