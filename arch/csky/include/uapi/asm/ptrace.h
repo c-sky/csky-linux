@@ -4,12 +4,6 @@
 #define REGNO_SR   	32
 #define REGNO_PC   	33
 
-#if defined(__CSKYABIV2__)
-#define REGNO_USP  14
-#else
-#define REGNO_USP  0
-#endif
-
 #ifndef __ASSEMBLY__
 
 /* this struct defines the way the registers are stored on the

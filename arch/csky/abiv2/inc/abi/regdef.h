@@ -21,4 +21,6 @@
 
 #define SYSTRACE_SAVENUM	5
 
+#define REGNO_USP		14
+
 #endif /* __ASM_CSKY_REGDEF_H */
