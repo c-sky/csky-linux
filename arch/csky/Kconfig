@@ -180,18 +180,21 @@ config CPU_TLB_SIZE
 	default "128"	if(CPU_CK610 || CPU_CK807 || CPU_CK810)
 	default "1024"	if(CPU_CK860)
 
+config L1_CACHE_SHIFT
+	int
+	default "4"	if(CPU_CK610)
+	default "5"	if(CPU_CK807 || CPU_CK810)
+	default "6"	if(CPU_CK860)
+
 menuconfig CPU_HAS_FPU
 	bool "CPU has FPU coprocessor"
-	depends on CPU_CK810 || CPU_CK807
+	depends on CPU_CK807 || CPU_CK810 || CPU_CK860
 	default n
 	---help---
-	  You can say N here if you C-SKY CPU don't have Floating-Point Coprocessor 	  or the user program need not to support FPU.
-	  and the user program need to support FPU. Floating-Point Coprocessor (FPC)
-	  is a coprocessor of CK serial processor. The function of FPC is to provide
-	  low-cost high-speed float point computation, which is full compliance with
-	  ANSI/IEEE Std 754, IEEE Standard for Binary Floating-Point Arithmetic.
-
-	  Generally, the FPU need not to open exception.
+	  Floating-Point Coprocessor (FPC) is a coprocessor of CK serial processor.
+	  The function of FPC is to provide low-cost high-speed float point computation,
+	  which is full compliance with ANSI/IEEE Std 754, IEEE Standard for Binary
+	  Floating-Point Arithmetic.
 
 if CPU_HAS_FPU
 

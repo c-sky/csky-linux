@@ -68,7 +68,6 @@ static inline void pte_free_kernel(struct mm_struct *mm, pte_t *pte)
         free_pages((unsigned long)pte, PTE_ORDER);
 }
 
-
 static inline void pte_free(struct mm_struct *mm, pgtable_t pte)
 {
         pgtable_page_dtor(pte);
@@ -90,7 +89,7 @@ static inline pgd_t *pgd_alloc(struct mm_struct *mm)
                 pgd_init((unsigned long *)ret);
                 memcpy(ret + USER_PTRS_PER_PGD, init + USER_PTRS_PER_PGD,
                        (PTRS_PER_PGD - USER_PTRS_PER_PGD) * sizeof(pgd_t));
-#if !defined(__ck807__)
+#ifdef CONFIG_CPU_NEED_TLBSYNC
 		cache_op_range((unsigned int)ret, (unsigned int)(ret + PTRS_PER_PGD)
 			,DATA_CACHE|CACHE_CLR, 0);
 #endif
