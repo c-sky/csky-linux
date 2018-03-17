@@ -36,7 +36,7 @@ static int __init init_vdso(void)
 	err = setup_vdso_page(vdso->rt_signal_retcode);
 	if (err) panic("Cannot set signal return code, err: %x.", err);
 
-	cache_op_range((unsigned long)vdso, ((unsigned long)vdso) + 16, DATA_CACHE|CACHE_CLR, 0);
+	dcache_wb_range((unsigned long)vdso, (unsigned long)vdso + 16);
 
 	vunmap(vdso);
 

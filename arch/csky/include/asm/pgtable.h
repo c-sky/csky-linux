@@ -110,14 +110,11 @@ extern pte_t invalid_pte_table[PTRS_PER_PTE];
 static inline int pte_special(pte_t pte) { return 0; }
 static inline pte_t pte_mkspecial(pte_t pte) { return pte; }
 
-#define __dcache_flush_line(x) \
-	cache_op_line((u32)x, DATA_CACHE|CACHE_CLR);
-
 static inline void set_pte(pte_t *p, pte_t pte)
 {
 	*p = pte;
 #if defined(CONFIG_CPU_NEED_TLBSYNC)
-        __dcache_flush_line(p);
+	dcache_wb_line((u32)p);
 #endif
 }
 #define set_pte_at(mm,addr,ptep,pteval) set_pte(ptep,pteval)
@@ -137,7 +134,7 @@ static inline void set_pmd(pmd_t *p, pmd_t pmd)
 {
 	*p = pmd;
 #if defined(CONFIG_CPU_NEED_TLBSYNC)
-        __dcache_flush_line(p);
+	dcache_wb_line((u32)p);
 #endif
 }
 
@@ -158,7 +155,7 @@ static inline void pmd_clear(pmd_t *p)
 {
         pmd_val(*p) = (__pa(invalid_pte_table));
 #if defined(CONFIG_CPU_NEED_TLBSYNC)
-	__dcache_flush_line(p);
+        dcache_wb_line((u32)p);
 #endif
 }
 

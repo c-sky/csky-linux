@@ -6,15 +6,13 @@
 #define tlb_start_vma(tlb, vma) \
 	do { \
 		if (!tlb->fullmm) \
-		cache_op_range(vma->vm_start, vma->vm_end, \
-			INS_CACHE|DATA_CACHE|CACHE_CLR|CACHE_INV, 0); \
+		cache_wbinv_range(vma->vm_start, vma->vm_end); \
 	}  while (0)
 
 #define tlb_end_vma(tlb, vma) \
 	do { \
 		if (!tlb->fullmm) \
-		cache_op_range(vma->vm_start, vma->vm_end, \
-			INS_CACHE|DATA_CACHE|CACHE_CLR|CACHE_INV, 0); \
+		cache_wbinv_range(vma->vm_start, vma->vm_end); \
 	}  while (0)
 
 #define tlb_flush(tlb) flush_tlb_mm((tlb)->mm)

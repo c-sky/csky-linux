@@ -108,7 +108,7 @@ void __init setup_arch(char **cmdline_p)
 #ifdef CONFIG_HIGHMEM
 	kmap_init();
 #endif
-	cache_op_all(INS_CACHE|DATA_CACHE|CACHE_CLR|CACHE_INV, 0);
+	cache_wbinv_all();
 
 #if defined(CONFIG_VT) && defined(CONFIG_DUMMY_CONSOLE)
 	conswitchp = &dummy_con;

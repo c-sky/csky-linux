@@ -10,15 +10,30 @@
 #include <asm/cachectl.h>
 #include <abi/reg_ops.h>
 
+/* for L1-cache */
+#define INS_CACHE		(1 << 0)
+#define DATA_CACHE		(1 << 1)
+#define CACHE_INV		(1 << 4)
+#define CACHE_CLR		(1 << 5)
+#define CACHE_OMS		(1 << 6)
+#define CACHE_ITS		(1 << 7)
+#define CACHE_LICF		(1 << 31)
+
+/* for L2-cache */
+#define CR22_LEVEL_SHIFT        (1)
+#define CR22_SET_SHIFT		(7)
+#define CR22_WAY_SHIFT          (30)
+#define CR22_WAY_SHIFT_L2	(29)
+
 static DEFINE_SPINLOCK(cache_lock);
 
-#define __cache_op_line(i, value) \
+#define cache_op_line(i, value) \
 	asm volatile( \
 		"mtcr	%0, cr22\n" \
 		"mtcr	%1, cr17\n" \
 		::"r"(i), "r"(value))
 
-#define __cache_op_line_atomic(i, value) \
+#define cache_op_line_atomic(i, value) \
 	asm volatile( \
 		"idly4\n" \
 		"mtcr	%0, cr22\n" \
@@ -26,15 +41,8 @@ static DEFINE_SPINLOCK(cache_lock);
 		"sync\n" \
 		::"r"(i), "r"(value))
 
-void
-cache_op_line(unsigned int i, unsigned int value)
-{
-	__cache_op_line_atomic(i, value | CACHE_CLR | CACHE_OMS);
-}
-
 #define CCR2_L2E (1 << 3)
-void
-cache_op_all(unsigned int value, unsigned int l2)
+static void cache_op_all(unsigned int value, unsigned int l2)
 {
 	asm volatile(
 		"mtcr	%0, cr17\n"
@@ -50,10 +58,7 @@ cache_op_all(unsigned int value, unsigned int l2)
 	}
 }
 
-#define FLUSH_MAX PAGE_SIZE
-
-void
-cache_op_range(
+static void cache_op_range(
 	unsigned int start,
 	unsigned int end,
 	unsigned int value,
@@ -63,7 +68,7 @@ cache_op_range(
 	unsigned int val = value | CACHE_CLR | CACHE_OMS;
 	bool l2_sync;
 
-	if (unlikely((end - start) >= FLUSH_MAX) ||
+	if (unlikely((end - start) >= PAGE_SIZE) ||
 	    unlikely(start < PAGE_OFFSET) ||
 	    unlikely(start >= PAGE_OFFSET + LOWMEM_LIMIT)) {
 		cache_op_all(value, l2);
@@ -77,7 +82,7 @@ cache_op_range(
 
 	spin_lock_irqsave(&cache_lock, flags);
 	for(i = start; i < end; i += L1_CACHE_BYTES) {
-		__cache_op_line(i, val);
+		cache_op_line(i, val);
 		if (l2_sync) {
 			asm volatile(
 				"sync\n");
@@ -91,6 +96,62 @@ cache_op_range(
 	asm volatile("sync\n");
 }
 
+void inline dcache_wb_line(unsigned long start)
+{
+	cache_op_line_atomic(start, DCACHE|CACHE_CLR);
+}
+
+void icache_inv_range(unsigned long start, unsigned long end)
+{
+	cache_op_range(start, end, INS_CACHE|CACHE_INV, 0);
+}
+
+void icache_inv_all(void)
+{
+	cache_op_all(INS_CACHE|CACHE_INV, 0);
+}
+
+void dcache_wb_range(unsigned long start, unsigned long end)
+{
+	cache_op_range(start, end, DATA_CACHE|CACHE_CLR, 0);
+}
+
+void dcache_wbinv_range(unsigned long start, unsigned long end)
+{
+	cache_op_range(start, end, DATA_CACHE|CACHE_CLR|CACHE_INV, 0);
+}
+
+void dcache_inv_range(unsigned long start, unsigned long end)
+{
+	cache_op_range(start, end, DATA_CACHE|CACHE_INV, 0);
+}
+
+void dcache_wbinv_all(void)
+{
+	cache_op_all(DATA_CACHE|CACHE_CLR|CACHE_INV, 0);
+}
+
+void cache_wbinv_range(unsigned long start, unsigned long end)
+{
+	cache_op_range(start, end, INS_CACHE|DATA_CACHE|CACHE_CLR|CACHE_INV, 0);
+}
+
+void cache_wbinv_all(void)
+{
+	cache_op_all(INS_CACHE|DATA_CACHE|CACHE_CLR|CACHE_INV, 0);
+}
+
+void dma_wbinv_range(unsigned long start, unsigned long end)
+{
+	cache_op_range(start, end, DATA_CACHE|CACHE_CLR|CACHE_INV, 1);
+}
+
+void dma_wb_range(unsigned long start, unsigned long end)
+{
+	cache_op_range(start, end, DATA_CACHE|CACHE_INV, 1);
+}
+
+/* >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> */
 SYSCALL_DEFINE3(cacheflush,
 		void __user *, addr,
 		unsigned long, bytes,
@@ -98,16 +159,13 @@ SYSCALL_DEFINE3(cacheflush,
 {
 	switch(cache) {
 	case ICACHE:
-		cache_op_range(0, FLUSH_MAX, INS_CACHE|
-					CACHE_INV, 0);
+		icache_inv_all();
 		break;
 	case DCACHE:
-		cache_op_range(0, FLUSH_MAX, DATA_CACHE|
-					CACHE_CLR|CACHE_INV, 0);
+		dcache_wbinv_all();
 		break;
 	case BCACHE:
-		cache_op_range(0, FLUSH_MAX, DATA_CACHE|INS_CACHE|
-					CACHE_CLR|CACHE_INV, 0);
+		cache_wbinv_all();
 		break;
 	default:
 		return -EINVAL;
@@ -132,10 +190,7 @@ void __update_cache(struct vm_area_struct *vma, unsigned long address,
 
 	if (vma->vm_flags & VM_EXEC ||
 	    pages_do_alias(addr, address & PAGE_MASK))
-		cache_op_all(
-			DATA_CACHE|
-			CACHE_CLR|
-			CACHE_INV, 0);
+		dcache_wbinv_all();
 
 	clear_bit(PG_arch_1, &(page)->flags);
 }

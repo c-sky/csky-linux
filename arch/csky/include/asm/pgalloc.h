@@ -90,8 +90,7 @@ static inline pgd_t *pgd_alloc(struct mm_struct *mm)
                 memcpy(ret + USER_PTRS_PER_PGD, init + USER_PTRS_PER_PGD,
                        (PTRS_PER_PGD - USER_PTRS_PER_PGD) * sizeof(pgd_t));
 #ifdef CONFIG_CPU_NEED_TLBSYNC
-		cache_op_range((unsigned int)ret, (unsigned int)(ret + PTRS_PER_PGD)
-			,DATA_CACHE|CACHE_CLR, 0);
+		dcache_wb_range((unsigned int)ret, (unsigned int)(ret + PTRS_PER_PGD));
 #endif
         }
 

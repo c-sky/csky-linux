@@ -39,8 +39,7 @@ static void *csky_dma_alloc(
 
 	memset((void *)ret, 0, size);
 
-	cache_op_range(ret, ret + size,
-		DATA_CACHE|CACHE_CLR|CACHE_INV, 1);
+	dma_wbinv_range(ret, ret + size);
 
 	*dma_handle = virt_to_phys((void*)ret);
 #ifndef BUGFIX_LC235
@@ -84,21 +83,12 @@ static inline void __dma_sync(
 {
 	switch (direction) {
 	case DMA_TO_DEVICE:
-		cache_op_range(
-			addr, addr+size,
-			DATA_CACHE|
-			CACHE_CLR, 1);
+		dma_wb_range(addr, addr+size);
 		break;
-
 	case DMA_FROM_DEVICE:
 	case DMA_BIDIRECTIONAL:
-		cache_op_range(
-			addr, addr+size,
-			DATA_CACHE|
-			CACHE_CLR|
-			CACHE_INV, 1);
+		dma_wbinv_range(addr, addr+size);
 		break;
-
 	default:
 		BUG();
 	}

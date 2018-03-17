@@ -26,6 +26,6 @@ void flush_dcache_page(struct page *page)
 	 * get faulted into the tlb (and thus flushed) anyways.
 	 */
 	addr = (unsigned long) page_address(page);
-	cache_op_range(addr, addr + PAGE_SIZE, CACHE_INV|CACHE_CLR|DATA_CACHE, 0);
+	dcache_wbinv_range(addr, addr + PAGE_SIZE);
 }
 

@@ -37,7 +37,7 @@ extern void __kunmap_atomic(void *kvaddr);
 extern void *kmap_atomic_pfn(unsigned long pfn);
 extern struct page *kmap_atomic_to_page(void *ptr);
 
-#define flush_cache_kmaps() cache_op_all(INS_CACHE|DATA_CACHE|CACHE_CLR|CACHE_INV, 0)
+#define flush_cache_kmaps() cache_wbinv_all()
 
 extern void kmap_init(void);
 
