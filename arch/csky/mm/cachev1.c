@@ -1,14 +1,5 @@
-#include <linux/kernel.h>
-#include <linux/mm.h>
-#include <linux/fs.h>
-#include <linux/syscalls.h>
 #include <linux/spinlock.h>
-#include <asm/uaccess.h>
-#include <asm/page.h>
 #include <asm/cache.h>
-#include <asm/cacheflush.h>
-#include <asm/cachectl.h>
-#include <abi/reg_ops.h>
 
 /* for L1-cache */
 #define INS_CACHE		(1 << 0)
@@ -98,7 +89,7 @@ static void cache_op_range(
 
 void inline dcache_wb_line(unsigned long start)
 {
-	cache_op_line_atomic(start, DCACHE|CACHE_CLR);
+	cache_op_line_atomic(start, DATA_CACHE|CACHE_CLR);
 }
 
 void icache_inv_range(unsigned long start, unsigned long end)
@@ -149,49 +140,5 @@ void dma_wbinv_range(unsigned long start, unsigned long end)
 void dma_wb_range(unsigned long start, unsigned long end)
 {
 	cache_op_range(start, end, DATA_CACHE|CACHE_INV, 1);
-}
-
-/* >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> */
-SYSCALL_DEFINE3(cacheflush,
-		void __user *, addr,
-		unsigned long, bytes,
-		int, cache)
-{
-	switch(cache) {
-	case ICACHE:
-		icache_inv_all();
-		break;
-	case DCACHE:
-		dcache_wbinv_all();
-		break;
-	case BCACHE:
-		cache_wbinv_all();
-		break;
-	default:
-		return -EINVAL;
-	}
-
-	return 0;
-}
-
-void __update_cache(struct vm_area_struct *vma, unsigned long address,
-	pte_t pte)
-{
-	unsigned long addr;
-	struct page *page;
-	unsigned long pfn;
-
-	pfn = pte_pfn(pte);
-	if (unlikely(!pfn_valid(pfn)))
-		return;
-
-	page = pfn_to_page(pfn);
-	addr = (unsigned long) page_address(page);
-
-	if (vma->vm_flags & VM_EXEC ||
-	    pages_do_alias(addr, address & PAGE_MASK))
-		dcache_wbinv_all();
-
-	clear_bit(PG_arch_1, &(page)->flags);
 }
 
