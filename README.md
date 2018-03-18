@@ -1,11 +1,11 @@
 # Upstream Cover letter :)
-
+```sh
 This patchset adds architecture support to Linux for C-SKY's 32-bit embedded
 CPU cores and the patches are based on linux-4.16-rc5.
 
 There are two ABI versions with several CPU cores in this patchset:
-  ABIv1: ck610 (16-bit instruction, 32-bit data path, MMU)
-  ABIv2: ck807 ck810 (16/32-bit variable length instruction, ...)
+  ABIv1: ck610 (16-bit instruction, 32-bit data path, VIPT Cache ...)
+  ABIv2: ck807 ck810 (16/32-bit variable length instruction, PIPT Cache ...)
 
 More information: http://en.c-sky.com
 
@@ -21,7 +21,7 @@ You can try C-SKY linux in a few steps:
   $ make qemu_csky_ck807_uclibc_bt_defconfig
   $ make
 It will download "linux uclibc-ng gcc binutils qemu busybox" source code and build
-them from source code into vmlinux. How to run, See:
+them into one image. How to run, See:
   https://github.com/c-sky/buildroot/blob/master/board/qemu/csky/readme.txt
 
 I've finished uClibc-ng.org upstream and "gcc glibc binutils qemu ..." upstream is
@@ -32,6 +32,7 @@ It's my first patchset to linux and any feedback is welcome :)
 
 Best Regards
   Guo Ren
+```
 
 # C-SKY Linux Port
 
