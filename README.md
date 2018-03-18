@@ -1,11 +1,11 @@
 # Upstream Cover letter :)
-
+```sh
 This patchset adds architecture support to Linux for C-SKY's 32-bit embedded
 CPU cores and the patches are based on linux-4.16-rc5.
 
 There are two ABI versions with several CPU cores in this patchset:
-  ABIv1: ck610 (16-bit instruction, 32-bit data path, MMU)
-  ABIv2: ck807 ck810 (16/32-bit variable length instruction, ...)
+  ABIv1: ck610 (16-bit instruction, 32-bit data path, VIPT Cache ...)
+  ABIv2: ck807 ck810 (16/32-bit variable length instruction, PIPT Cache ...)
 
 More information: http://en.c-sky.com
 
@@ -31,8 +31,8 @@ on going and the source code is here:
 It's my first patchset to linux and any feedback is welcome :)
 
 Best Regards
-
   Guo Ren
+```
 
 # C-SKY Linux Port
 
