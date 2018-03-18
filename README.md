@@ -21,7 +21,7 @@ You can try C-SKY linux in a few steps:
   $ make qemu_csky_ck807_uclibc_bt_defconfig
   $ make
 It will download "linux uclibc-ng gcc binutils qemu busybox" source code and build
-them from source code into vmlinux. How to run, See:
+them into one image. How to run, See:
   https://github.com/c-sky/buildroot/blob/master/board/qemu/csky/readme.txt
 
 I've finished uClibc-ng.org upstream and "gcc glibc binutils qemu ..." upstream is
