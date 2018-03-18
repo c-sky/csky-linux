@@ -1,9 +1,12 @@
 #include <linux/ptrace.h>
 #include <asm/uaccess.h>
 
-
-#define OS_CONFIG_FCR (IDE_STAT | IXE_STAT | UFE_STAT |\
-		       OFE_STAT | DZE_STAT | IOE_STAT)
+#if 0 /* FIXME: to support fpu exceptions */
+#define CONFIG_FCR (IDE_STAT | IXE_STAT | UFE_STAT |\
+		    OFE_STAT | DZE_STAT | IOE_STAT)
+#else
+#define CONFIG_FCR 0
+#endif
 
 inline unsigned int
 read_pt_regs(unsigned int rx, struct pt_regs *regs)
@@ -41,7 +44,7 @@ void __init init_fpu(void)
 {
 	unsigned long fcr;
 
-	fcr = OS_CONFIG_FCR;
+	fcr = CONFIG_FCR;
 	asm volatile("mtcr %0, cr<1, 2>\n"::"r"(fcr));
 }
 
@@ -54,7 +57,7 @@ inline unsigned int read_fpcr(void)
 
 inline void write_fpcr(unsigned int val)
 {
-	unsigned int result = val | OS_CONFIG_FCR;
+	unsigned int result = val | CONFIG_FCR;
 	asm volatile("mtcr %0, cr<1, 2>\n"::"r"(result));
 }
 
