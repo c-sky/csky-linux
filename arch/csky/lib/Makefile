@@ -1,1 +1,1 @@
-lib-y  := checksum.o memset.o usercopy.o delay.o
+lib-y  := memset.o usercopy.o delay.o
