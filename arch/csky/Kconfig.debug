@@ -1,5 +1,22 @@
 menu "Kernel hacking"
 
+config CSKY_DEBUG_INFO
+	bool "Compile the kernel with debug info, just add -g"
+	depends on !DEBUG_INFO
+	help
+	  DEBUG_INFO and COMPILE_TEST is conflict, so we provide
+	  another way to support -g.
+	  Some drivers eg: DW_MMC need COMPILE_TEST for new cpu
+	  arch :(
+
+config CSKY_BUILTIN_DTB
+	bool "Use kernel builtin dtb"
+	default n
+
+config CSKY_BUILTIN_DTB_NAME
+	string "kernel builtin dtb name"
+	depends on CSKY_BUILTIN_DTB
+
 source "lib/Kconfig.debug"
 
 endmenu

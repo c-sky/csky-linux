@@ -75,11 +75,7 @@ typedef struct page *pgtable_t;
 #define	PAGE_OFFSET	0x80000000
 #define LOWMEM_LIMIT	0x20000000
 
-#ifdef CONFIG_PHYSICAL_BASE_CHANGE
 #define PHYS_OFFSET	CONFIG_SSEG0_BASE
-#else
-#define PHYS_OFFSET     0x0
-#endif
 #define ARCH_PFN_OFFSET	PFN_DOWN(CONFIG_RAM_BASE + PHYS_OFFSET)
 
 #define MASK_SSEG1(x) ((unsigned long)(x) & (~LOWMEM_LIMIT))
