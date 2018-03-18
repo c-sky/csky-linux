@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0
+// Copyright (C) 2018 Hangzhou NationalChip Science & Technology Co.,Ltd.
 #include <linux/kernel.h>
 #include <linux/sched.h>
 #include <linux/param.h>
