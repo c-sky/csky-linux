@@ -14,9 +14,9 @@
 #include <linux/binfmts.h>
 #include <linux/tracehook.h>
 #include <linux/freezer.h>
+#include <linux/uaccess.h>
 
 #include <asm/setup.h>
-#include <asm/uaccess.h>
 #include <asm/pgtable.h>
 #include <asm/traps.h>
 #include <asm/ucontext.h>

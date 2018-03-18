@@ -1,4 +1,4 @@
-#include <asm/uaccess.h>
+#include <linux/uaccess.h>
 
 static inline int setup_vdso_page(unsigned short *ptr)
 {

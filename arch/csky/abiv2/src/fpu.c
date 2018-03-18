@@ -1,5 +1,5 @@
 #include <linux/ptrace.h>
-#include <asm/uaccess.h>
+#include <linux/uaccess.h>
 
 #if 0 /* FIXME: to support fpu exceptions */
 #define CONFIG_FCR (IDE_STAT | IXE_STAT | UFE_STAT |\

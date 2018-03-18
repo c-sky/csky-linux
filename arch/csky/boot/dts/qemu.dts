@@ -1,8 +1,8 @@
 /dts-v1/;
 
 / {
-	model = "C-SKY Qemu";
-	compatible = "csky,qemu";
+	model = "qemu.csky";
+	compatible = "csky";
 	#address-cells = <1>;
 	#size-cells = <1>;
 

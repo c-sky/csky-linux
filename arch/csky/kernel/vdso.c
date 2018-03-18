@@ -7,9 +7,9 @@
 #include <linux/elf.h>
 #include <linux/vmalloc.h>
 #include <linux/unistd.h>
+#include <linux/uaccess.h>
 
 #include <asm/vdso.h>
-#include <asm/uaccess.h>
 #include <asm/cacheflush.h>
 
 static struct page *vdso_page;

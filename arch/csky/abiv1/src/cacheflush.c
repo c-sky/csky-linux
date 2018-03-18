@@ -3,7 +3,6 @@
 #include <linux/fs.h>
 #include <linux/syscalls.h>
 #include <linux/spinlock.h>
-#include <asm/uaccess.h>
 #include <asm/page.h>
 #include <asm/cache.h>
 #include <asm/cacheflush.h>

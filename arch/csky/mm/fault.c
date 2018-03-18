@@ -14,10 +14,10 @@
 #include <linux/vt_kern.h>
 #include <linux/kernel.h>
 #include <linux/extable.h>
+#include <linux/uaccess.h>
 
 #include <asm/hardirq.h>
 #include <asm/mmu_context.h>
-#include <asm/uaccess.h>
 #include <asm/traps.h>
 #include <asm/page.h>
 

@@ -10,9 +10,9 @@
 #include <linux/ptrace.h>
 #include <linux/kallsyms.h>
 #include <linux/rtc.h>
+#include <linux/uaccess.h>
 
 #include <asm/setup.h>
-#include <asm/uaccess.h>
 #include <asm/traps.h>
 #include <asm/pgalloc.h>
 #include <asm/siginfo.h>
