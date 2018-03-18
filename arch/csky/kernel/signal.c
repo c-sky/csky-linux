@@ -270,10 +270,10 @@ static void do_signal(struct pt_regs *regs, int syscall)
 	 */
 	if (syscall) {
 		continue_addr = regs->pc;
-#if defined(__CSKYABIV1__)
-		restart_addr = continue_addr - 2;
-#else
+#if defined(__CSKYABIV2__)
 		restart_addr = continue_addr - 4;
+#else
+		restart_addr = continue_addr - 2;
 #endif
 		retval = regs->a0;
 
@@ -345,12 +345,12 @@ no_signal:
 		 */
 		if (retval == -ERESTART_RESTARTBLOCK
 				&& regs->pc == continue_addr) {
-#if defined(__CSKYABIV1__)
-			regs->regs[9] = __NR_restart_syscall;
-			regs->pc -= 2;
-#else
+#if defined(__CSKYABIV2__)
 			regs->regs[3] = __NR_restart_syscall;
 			regs->pc -= 4;
+#else
+			regs->regs[9] = __NR_restart_syscall;
+			regs->pc -= 2;
 #endif
 		}
 

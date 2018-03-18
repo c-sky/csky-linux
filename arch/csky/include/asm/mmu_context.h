@@ -30,9 +30,9 @@
 #define ASID_VERSION_MASK	0xffffff00
 #define ASID_FIRST_VERSION	0x100
 
-static inline void enter_lazy_tlb(struct mm_struct *mm, struct task_struct *tsk)
-{
-}
+#define destroy_context(mm)		do{}while(0)
+#define enter_lazy_tlb(mm,tsk)		do{}while(0)
+#define deactivate_mm(tsk,mm)		do{}while(0)
 
 /*
  *  All unused by hardware upper bits will be considered
@@ -89,14 +89,6 @@ static inline void switch_mm(struct mm_struct *prev, struct mm_struct *next,
 }
 
 /*
- * Destroy context related info for an mm_struct that is about
- * to be put to rest.
- */
-static inline void destroy_context(struct mm_struct *mm)
-{
-}
-
-/*
  * After we have set current->mm to a new value, this activates
  * the context for the new mm so we see the new mappings.
  */
@@ -120,7 +112,6 @@ activate_mm(struct mm_struct *prev, struct mm_struct *next)
 
 	local_irq_restore(flags);
 }
-#define deactivate_mm(tsk,mm)	do {} while (0)
 
 /*
  * If mm is currently active_mm, we can't really drop it. Instead,

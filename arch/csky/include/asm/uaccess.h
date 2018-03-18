@@ -16,18 +16,11 @@
 #define VERIFY_READ	0
 #define VERIFY_WRITE	1
 
-/* We let the MMU do all checking */
 static inline int access_ok(int type, const void * addr, unsigned long size)
 {
     return (((unsigned long)addr < current_thread_info()->addr_limit.seg) &&
               ((unsigned long)(addr + size) < current_thread_info()->addr_limit.seg));
 }
-/*
-static inline int access_ok(int type, const void * addr, unsigned long size)
-{
-   return 1;
-}
-*/
 
 static inline int verify_area(int type, const void * addr, unsigned long size)
 {
@@ -402,9 +395,6 @@ long strnlen_user(const char *src, long n);
 
 #define strlen_user(str) strnlen_user(str, 32767)
 
-/*
- * Zero Userspace
- */
 struct exception_table_entry
 {
 	unsigned long insn;

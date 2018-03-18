@@ -30,7 +30,7 @@ struct  pt_regs {
 /*
  * Switch stack for switch_to after push pt_regs.
  *
- * ABI_CSKYV2: r4 ~ r11, r15, r16 ~ r17, r26 ~ r30;
+ * ABI_CSKYV2: r4 ~ r11, r15 ~ r17, r26 ~ r30;
  * ABI_CSKYV1: r8 ~ r14, r15;
  */
 struct  switch_stack {
@@ -39,12 +39,15 @@ struct  switch_stack {
         unsigned long   r5;
         unsigned long   r6;
         unsigned long   r7;
-#endif
-        unsigned long   r8;
+	unsigned long   r8;
         unsigned long   r9;
         unsigned long   r10;
         unsigned long   r11;
-#if defined(__CSKYABIV1__)
+#else
+	unsigned long   r8;
+        unsigned long   r9;
+        unsigned long   r10;
+        unsigned long   r11;
         unsigned long   r12;
         unsigned long   r13;
         unsigned long   r14;

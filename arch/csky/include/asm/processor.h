@@ -87,8 +87,6 @@ struct thread_struct {
  * pass the data segment into user programs if it exists,
  * it can't hurt anything as far as I can tell
  */
-#define PS_USE_MODE  0x7fffffff
-
 #define start_thread(_regs, _pc, _usp)					\
 do {									\
 	set_fs(USER_DS); /* reads from user space */			\
@@ -96,7 +94,7 @@ do {									\
 	(_regs)->regs[1] = 0; /* ABIV1 is R7, uClibc_main rtdl arg */	\
 	(_regs)->regs[2] = 0;						\
 	(_regs)->regs[3] = 0; /* ABIV2 is R7, use it? */		\
-	(_regs)->sr &= PS_USE_MODE;					\
+	(_regs)->sr &= ~PS_S;						\
 	wrusp(_usp);							\
 } while(0)
 
