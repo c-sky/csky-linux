@@ -10,9 +10,9 @@ There are two ABI versions with several CPU cores in this patchset:
 More information: http://en.c-sky.com
 
 I'm from Hangzhou,China C-SKY Microsystems and responsible for C-SKY Linux
-port.
-My development repo is github.com/c-sky/csky-linux and use buildroot to build
-the CI-test enviornment (LTP, Lmbench, uclibc-ng-test ... are tested):
+port. My development repo is github.com/c-sky/csky-linux and use buildroot
+as our CI-test enviornment. "LTP, Lmbench, uclibc-ng-test ..." will be tested
+for every commit. See here for more details:
   https://gitlab.com/c-sky/buildroot/pipelines
 
 You can try C-SKY linux in a few steps:
@@ -24,8 +24,8 @@ It will download "linux uclibc-ng gcc binutils qemu busybox" source code and bui
 them from source code into vmlinux. How to run, See:
   https://github.com/c-sky/buildroot/blob/master/board/qemu/csky/readme.txt
 
-uClibc-ng.org upstream is finished, and "gcc glibc binutils qemu ..." upstream is
-on going and the source code is on:
+I've finished uClibc-ng.org upstream and "gcc glibc binutils qemu ..." upstream is
+on going and the source code is here:
   https://github.com/c-sky
 
 It's my first patchset to linux and any feedback is welcome :)
