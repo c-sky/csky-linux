@@ -132,7 +132,7 @@ asmlinkage __visible void __init csky_start(
 	/*
 	 * Setup page-table and enable TLB-hardrefill
 	 */
-	local_flush_tlb_all();
+	flush_tlb_all();
 	pgd_init((unsigned long *)swapper_pg_dir);
 	TLBMISS_HANDLER_SETUP_PGD(swapper_pg_dir);
 

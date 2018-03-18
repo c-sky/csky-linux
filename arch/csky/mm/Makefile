@@ -3,6 +3,7 @@ obj-y +=			cachev2.o
 else
 obj-y +=			cachev1.o
 endif
+
 obj-y +=			dma-mapping.o
 obj-y +=			fault.o
 obj-$(CONFIG_HIGHMEM) +=	highmem.o

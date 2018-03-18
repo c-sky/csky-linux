@@ -17,6 +17,11 @@ asmlinkage void ret_from_fork(void);
 asmlinkage void ret_from_kernel_thread(void);
 
 /*
+ * Some archs flush debug and FPU info here
+ */
+void flush_thread(void){}
+
+/*
  * Return saved PC from a blocked thread
  */
 unsigned long thread_saved_pc(struct task_struct *tsk)
@@ -24,13 +29,6 @@ unsigned long thread_saved_pc(struct task_struct *tsk)
 	struct switch_stack *sw = (struct switch_stack *)tsk->thread.ksp;
 
 	return sw->r15;
-}
-
-/*
- * Some archs flush debug and FPU info here
- */
-void flush_thread(void)
-{
 }
 
 int copy_thread(unsigned long clone_flags,

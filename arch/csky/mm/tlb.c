@@ -10,12 +10,12 @@
 
 #define CSKY_TLB_SIZE CONFIG_CPU_TLB_SIZE
 
-void local_flush_tlb_all(void)
+void flush_tlb_all(void)
 {
 	tlb_invalid_all();
 }
 
-void local_flush_tlb_mm(struct mm_struct *mm)
+void flush_tlb_mm(struct mm_struct *mm)
 {
 	int cpu = smp_processor_id();
 
@@ -30,7 +30,7 @@ do { \
 	write_mmu_entryhi(oldpid); \
 } while(0)
 
-void local_flush_tlb_range(struct vm_area_struct *vma, unsigned long start,
+void flush_tlb_range(struct vm_area_struct *vma, unsigned long start,
 			   unsigned long end)
 {
 	struct mm_struct *mm = vma->vm_mm;
@@ -76,7 +76,7 @@ void local_flush_tlb_range(struct vm_area_struct *vma, unsigned long start,
 	}
 }
 
-void local_flush_tlb_kernel_range(unsigned long start, unsigned long end)
+void flush_tlb_kernel_range(unsigned long start, unsigned long end)
 {
         unsigned long size, flags;
 
@@ -107,12 +107,12 @@ void local_flush_tlb_kernel_range(unsigned long start, unsigned long end)
 		}
 #endif
 	} else
-		local_flush_tlb_all();
+		flush_tlb_all();
 
         local_irq_restore(flags);
 }
 
-void local_flush_tlb_page(struct vm_area_struct *vma, unsigned long page)
+void flush_tlb_page(struct vm_area_struct *vma, unsigned long page)
 {
 	int cpu = smp_processor_id();
 
@@ -145,7 +145,7 @@ void local_flush_tlb_page(struct vm_area_struct *vma, unsigned long page)
  * Remove one kernel space TLB entry.  This entry is assumed to be marked
  * global so we don't do the ASID thing.
  */
-void local_flush_tlb_one(unsigned long page)
+void flush_tlb_one(unsigned long page)
 {
 	page &= (PAGE_MASK << 1);
 
@@ -170,7 +170,7 @@ void local_flush_tlb_one(unsigned long page)
 #endif
 }
 
-EXPORT_SYMBOL(local_flush_tlb_one);
+EXPORT_SYMBOL(flush_tlb_one);
 
 /* show current 32 jtlbs */
 void show_jtlb_table(void)

@@ -18,7 +18,7 @@ void *kmap(struct page *page)
 	if (!PageHighMem(page))
 		return page_address(page);
 	addr = kmap_high(page);
-        local_flush_tlb_one((unsigned long)addr);
+        flush_tlb_one((unsigned long)addr);
 
 	return addr;
 }
@@ -59,7 +59,7 @@ void *kmap_atomic(struct page *page)
 	BUG_ON(!pte_none(*(kmap_pte - idx)));
 #endif
 	set_pte(kmap_pte-idx, mk_pte(page, PAGE_KERNEL));
-	local_flush_tlb_one((unsigned long)vaddr);
+	flush_tlb_one((unsigned long)vaddr);
 
 	return (void*) vaddr;
 }
@@ -86,7 +86,7 @@ void __kunmap_atomic(void *kvaddr)
 	 * this pte without first remap it
 	 */
 	pte_clear(&init_mm, vaddr, kmap_pte-idx);
-	local_flush_tlb_one(vaddr);
+	flush_tlb_one(vaddr);
 #endif
 
 	kmap_atomic_idx_pop();
@@ -109,7 +109,7 @@ void *kmap_atomic_pfn(unsigned long pfn)
 	idx = type + KM_TYPE_NR*smp_processor_id();
 	vaddr = __fix_to_virt(FIX_KMAP_BEGIN + idx);
 	set_pte(kmap_pte-idx, pfn_pte(pfn, PAGE_KERNEL));
-	local_flush_tlb_one(vaddr);
+	flush_tlb_one(vaddr);
 
 	return (void*) vaddr;
 }

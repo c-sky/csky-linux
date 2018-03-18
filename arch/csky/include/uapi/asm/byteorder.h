@@ -6,7 +6,7 @@
 #elif defined(__cskyLE__)
 #include <linux/byteorder/little_endian.h>
 #else
-# error "csky, but neither __cskyBE__, nor __cskyLE__???"
+# error "There is no __cskyBE__, __cskyLE__"
 #endif
 
 #endif /* __ASM_CSKY_BYTEORDER_H */
