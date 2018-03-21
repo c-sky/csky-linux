@@ -1,8 +1,8 @@
-obj-y +=	src/bswapdi.o
-obj-y +=	src/bswapsi.o
-obj-y +=	src/cacheflush.o
-obj-y +=	src/memcpy.o
-obj-y +=	src/mmap.o
+obj-y +=	bswapdi.o
+obj-y +=	bswapsi.o
+obj-y +=	cacheflush.o
+obj-y +=	memcpy.o
+obj-y +=	mmap.o
 
-obj-$(CONFIG_CPU_NEED_SOFTALIGN) +=	src/alignment.o
+obj-$(CONFIG_CPU_NEED_SOFTALIGN) +=	alignment.o
 
