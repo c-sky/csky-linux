@@ -106,6 +106,8 @@ static inline void save_fp_to_thread(unsigned long  * fpregs,
 	unsigned long flg;
 	unsigned long tmp1, tmp2, tmp3, tmp4;
 
+	tmp1 = tmp2 = tmp3 = tmp4 = 0;
+
 	local_save_flags(flg);
 
 	asm volatile(

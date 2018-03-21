@@ -23,7 +23,7 @@ static inline void pmd_populate(struct mm_struct *mm, pmd_t *pmd,
 
 extern void pgd_init(unsigned long *p);
 
-#ifdef COMPAT_KERNEL_4_9
+#ifdef CSKY_DEBUG_WITH_KERNEL_4_9
 #define __GFP_RETRY_MAYFAIL __GFP_REPEAT
 #endif
 

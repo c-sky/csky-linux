@@ -371,7 +371,7 @@ do{                                                             \
 unsigned long raw_copy_from_user(void *to, const void *from, unsigned long n);
 unsigned long raw_copy_to_user(void *to, const void *from, unsigned long n);
 
-#ifdef COMPAT_KERNEL_4_9
+#ifdef CSKY_DEBUG_WITH_KERNEL_4_9
 #define __copy_from_user(to, from, n) raw_copy_from_user(to, from, n)
 #define __copy_to_user(to, from, n) raw_copy_to_user(to, from, n)
 

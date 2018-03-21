@@ -5,7 +5,7 @@
 
 extern struct dma_map_ops csky_dma_map_ops;
 
-#ifdef COMPAT_KERNEL_4_9
+#ifdef CSKY_DEBUG_WITH_KERNEL_4_9
 static inline struct dma_map_ops *get_dma_ops(struct device *dev)
 #else
 static inline struct dma_map_ops *get_arch_dma_ops(struct bus_type *bus)

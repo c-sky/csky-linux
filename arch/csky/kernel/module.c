@@ -18,54 +18,6 @@
 #define SET_JSR32_R25(addr)         *(uint16_t *)(addr) = 0xE8F9; \
 							  *((uint16_t *)(addr) + 1) = 0x0000;
 
-int apply_relocate(Elf_Shdr *sechdrs, const char *strtab, unsigned int symindex,
-		unsigned int relsec, struct module *me)
-{
-	unsigned int i;
-	Elf32_Rel *rel = (void *)sechdrs[relsec].sh_addr;
-	Elf32_Sym *sym;
-	uint32_t *location;
-	short * temp;
-
-	for (i = 0; i < sechdrs[relsec].sh_size / sizeof(*rel); i++) {
-		/* This is where to make the change */
-		location = (void *)sechdrs[sechdrs[relsec].sh_info].sh_addr
-			+ rel[i].r_offset;
-		/* This is the symbol it is referring to.  Note that all
-		   undefined symbols have been resolved.  */
-		sym = (Elf32_Sym *)sechdrs[symindex].sh_addr
-			+ ELF32_R_SYM(rel[i].r_info);
-		switch (ELF32_R_TYPE(rel[i].r_info)) {
-		case R_CSKY_NONE:
-		case R_CSKY_PCRELJSR_IMM11BY2:
-		case R_CSKY_PCRELJSR_IMM26BY2:
-			/* ignore */
-			break;
-		case R_CSKY_32:
-			/* We add the value into the location given */
-			*location += sym->st_value;
-			break;
-		case R_CSKY_PC32:
-			/* Add the value, subtract its postition */
-			*location += sym->st_value - (uint32_t)location;
-			break;
-		case R_CSKY_ADDR_HI16:
-			temp = ((short  *)location) + 1;
-			*temp = (short)((sym->st_value) >> 16);
-			break;
-		case R_CSKY_ADDR_LO16:
-			temp = ((short  *)location) + 1;
-			*temp = (short)((sym->st_value) & 0xffff);
-			break;
-		default:
-			printk(KERN_ERR "module %s: Unknown relocation: %u\n",
-					me->name, ELF32_R_TYPE(rel[i].r_info));
-			return -ENOEXEC;
-		}
-	}
-	return 0;
-}
-
 int apply_relocate_add(Elf32_Shdr *sechdrs, const char *strtab,
 		unsigned int symindex, unsigned int relsec, struct module *me)
 {

@@ -4,7 +4,7 @@
 
 static inline int setup_vdso_page(unsigned short *ptr)
 {
-	int err;
+	int err = 0;
 
 	/* movi r1, 127 */
 	err |= __put_user(0x6000 + (127 << 4)+1, ptr+0);

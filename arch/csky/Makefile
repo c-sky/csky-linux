@@ -25,17 +25,16 @@ CPUTYPE = ck860$(FPUEXT)
 CSKYABI	= abiv2
 endif
 
-ifeq ($(VERSION)_$(PATCHLEVEL), 4_9)
-COMPAT_KERNEL_4_9 = -DCOMPAT_KERNEL_4_9
+ifneq ($(CSKYABI),)
+KBUILD_CFLAGS += -mcpu=$(CPUTYPE)
+KBUILD_CFLAGS += -DCSKYCPU_DEF_NAME=\"$(CPUTYPE)\"
 endif
 
-KBUILD_CFLAGS +=	-ffreestanding \
-			-fno-tree-dse \
-			-pipe \
-			-Wno-uninitialized \
-			$(COMPAT_KERNEL_4_9) \
-			-mcpu=$(CPUTYPE) \
-			-DCSKYCPU_DEF_NAME=\"$(CPUTYPE)\"
+ifeq ($(VERSION)_$(PATCHLEVEL), 4_9)
+KBUILD_CFLAGS += -DCSKY_DEBUG_WITH_KERNEL_4_9
+endif
+
+KBUILD_CFLAGS += -pipe
 
 ifeq ($(CONFIG_CSKY_DEBUG_INFO),y)
 KBUILD_CFLAGS += -g
@@ -62,8 +61,6 @@ libs-y += arch/csky/lib/ \
 ifdef CONFIG_CSKY_BUILTIN_DTB
 core-y				+= arch/csky/boot/dts/
 endif
-
-drivers-$(CONFIG_OPROFILE)	+= arch/csky/oprofile/
 
 all: zImage
 

@@ -6,7 +6,7 @@
 void __init time_init(void)
 {
 	of_clk_init(NULL);
-#ifdef COMPAT_KERNEL_4_9
+#ifdef CSKY_DEBUG_WITH_KERNEL_4_9
 	clocksource_probe();
 #else
 	timer_probe();

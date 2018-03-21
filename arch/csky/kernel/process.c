@@ -3,7 +3,7 @@
 #include <linux/module.h>
 #include <linux/version.h>
 #include <linux/sched.h>
-#ifndef COMPAT_KERNEL_4_9
+#ifndef CSKY_DEBUG_WITH_KERNEL_4_9
 #include <linux/sched/task_stack.h>
 #include <linux/sched/debug.h>
 #endif
