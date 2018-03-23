@@ -23,6 +23,7 @@ generic-y += siginfo.h
 generic-y += socket.h
 generic-y += sockios.h
 generic-y += statfs.h
+generic-y += stat.h
 generic-y += setup.h
 generic-y += swab.h
 generic-y += termbits.h
