@@ -74,10 +74,8 @@ __SYSCALL(__NR_fadvise64_64, sys_csky_fadvise64_64)
 #define __NR_setuid32		__NR_setuid
 #define __NR_setgid32		__NR_setgid
 #define __NR_getresgid32	__NR_getresgid
-#define __NR_chown32		__NR_chown
 #define __NR_setfsuid32		__NR_setfsuid
 #define __NR_setfsgid32		__NR_setfsgid
-#define __NR_lchown32		__NR_lchown
 #define __NR_fchown32		__NR_fchown
 #define __NR_geteuid32		__NR_geteuid
 #define __NR_getegid32		__NR_getegid
