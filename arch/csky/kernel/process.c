@@ -10,8 +10,10 @@
 #include <linux/delay.h>
 #include <linux/kallsyms.h>
 #include <linux/uaccess.h>
-#include <asm/elf.h>
 #include <linux/ptrace.h>
+
+#include <asm/elf.h>
+#include <asm/reg_ops.h>
 
 struct cpuinfo_csky cpu_data[NR_CPUS];
 
@@ -44,7 +46,7 @@ int copy_thread(unsigned long clone_flags,
 
 	preempt_disable();
 
-	asm volatile("mfcr %0, psr\n":"=r"(reg_psr));
+	reg_psr = mfcr(psr);
 
 #ifdef CONFIG_CPU_HAS_FPU
 	save_fp_to_thread(p->thread.fp, &p->thread.fcr, &p->thread.fsr,

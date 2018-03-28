@@ -7,7 +7,6 @@
 
 #include <asm/types.h>
 #include <asm/page.h>
-#include <abi/regdef.h>
 #include <asm/processor.h>
 
 struct thread_info {

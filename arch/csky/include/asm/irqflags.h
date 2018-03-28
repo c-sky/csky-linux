@@ -2,14 +2,13 @@
 // Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
 #ifndef __ASM_CSKY_IRQFLAGS_H
 #define __ASM_CSKY_IRQFLAGS_H
+#include <asm/reg_ops.h>
 
 static inline unsigned long arch_local_irq_save(void)
 {
 	unsigned long flags;
-	asm volatile(
-		"mfcr	%0, psr	\n"
-		"psrclr	ie	\n"
-		:"=r"(flags));
+	flags = mfcr(psr);
+	asm volatile("psrclr ie\n");
 	return flags;
 }
 #define arch_local_irq_save arch_local_irq_save
@@ -28,19 +27,13 @@ static inline void arch_local_irq_disable(void)
 
 static inline unsigned long arch_local_save_flags(void)
 {
-	unsigned long flags;
-	asm volatile("mfcr %0, psr\n":"=r"(flags));
-	return flags;
+	return mfcr(psr);
 }
 #define arch_local_save_flags arch_local_save_flags
 
 static inline void arch_local_irq_restore(unsigned long flags)
 {
-	asm volatile(
-		"mtcr 	%0, psr \n"
-		::"r" (flags)
-		:"memory"
-		);
+	mtcr(psr, flags);
 }
 #define arch_local_irq_restore arch_local_irq_restore
 

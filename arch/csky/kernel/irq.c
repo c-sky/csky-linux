@@ -20,11 +20,9 @@ void csky_do_IRQ(int irq, struct pt_regs *regs)
 
 asmlinkage void csky_do_auto_IRQ(struct pt_regs *regs)
 {
-	unsigned long irq, psr;
+	unsigned long irq;
 
-	asm volatile("mfcr %0, psr":"=r"(psr));
-
-	irq = (psr >> 16) & 0xff;
+	irq = (mfcr(psr) >> 16) & 0xff;
 
 	if (irq == 10)
 		irq = csky_get_auto_irqno();

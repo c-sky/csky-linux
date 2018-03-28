@@ -15,6 +15,7 @@
 
 #include <asm/siginfo.h>
 #include <asm/unaligned.h>
+#include <asm/reg_ops.h>
 
 extern void die_if_kernel(char *, struct pt_regs *, long);
 
@@ -205,7 +206,7 @@ get_regs_value(unsigned int rx, struct pt_regs *regs)
 
 	if(rx == 0){
 		if(user_mode(regs)){
-			asm volatile("mfcr %0, ss1\n":"=r"(value));
+			value = mfcr(ss1);
 		}else{
 			value = sizeof(struct pt_regs) + ((unsigned int)regs);
 		}

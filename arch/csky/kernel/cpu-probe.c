@@ -3,8 +3,9 @@
 #include <linux/of.h>
 #include <linux/init.h>
 #include <linux/seq_file.h>
-#include <abi/reg_ops.h>
 #include <linux/memblock.h>
+
+#include <asm/reg_ops.h>
 
 static __init void setup_cpu_msa(void)
 {
@@ -27,8 +28,14 @@ __init void cpu_dt_probe(void)
 static int c_show(struct seq_file *m, void *v)
 {
 	seq_printf(m, "C-SKY CPU : %s\n", CSKYCPU_DEF_NAME);
-	seq_printf(m, "revision  : 0x%08x\n", mfcr_cpuidrr());
-	seq_printf(m, "ccr reg   : 0x%08x\n", mfcr_ccr());
+
+	/* Read 4 times to get all the cpuid info */
+	seq_printf(m, "cpuid 0   : 0x%08x\n", mfcr(cr13));
+	seq_printf(m, "cpuid 1   : 0x%08x\n", mfcr(cr13));
+	seq_printf(m, "cpuid 2   : 0x%08x\n", mfcr(cr13));
+	seq_printf(m, "cpuid 4   : 0x%08x\n", mfcr(cr13));
+
+	seq_printf(m, "ccr reg   : 0x%08x\n", mfcr(cr18));
 	seq_printf(m, "ccr2 reg  : 0x%08x\n", mfcr_ccr2());
 	seq_printf(m, "hint reg  : 0x%08x\n", mfcr_hint());
 	seq_printf(m, "msa0 reg  : 0x%08x\n", mfcr_msa0());

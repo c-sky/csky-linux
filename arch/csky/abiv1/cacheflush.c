@@ -9,7 +9,7 @@
 #include <asm/cache.h>
 #include <asm/cacheflush.h>
 #include <asm/cachectl.h>
-#include <abi/reg_ops.h>
+#include <asm/reg_ops.h>
 
 void flush_dcache_page(struct page *page)
 {

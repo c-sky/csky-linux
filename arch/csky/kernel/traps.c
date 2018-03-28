@@ -41,9 +41,7 @@ void __init pre_trap_init(void)
 {
 	int i;
 
-	asm volatile(
-		"mtcr %0, vbr\n"
-		::"r"(vec_base));
+	mtcr(vbr, vec_base);
 
 	for(i=1;i<128;i++) VEC_INIT(i, csky_trap);
 }
@@ -105,9 +103,7 @@ asmlinkage void trap_c(struct pt_regs *regs)
 	unsigned long vector;
 	siginfo_t info;
 
-	asm volatile("mfcr %0, psr":"=r"(vector));
-
-	vector = (vector >> 16) & 0xff;
+	vector = (mfcr(psr) >> 16) & 0xff;
 
 	switch (vector) {
 		case VEC_ZERODIV:

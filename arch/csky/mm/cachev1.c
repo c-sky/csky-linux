@@ -2,6 +2,7 @@
 // Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
 #include <linux/spinlock.h>
 #include <asm/cache.h>
+#include <asm/reg_ops.h>
 
 /* for L1-cache */
 #define INS_CACHE		(1 << 0)
@@ -37,17 +38,12 @@ static DEFINE_SPINLOCK(cache_lock);
 #define CCR2_L2E (1 << 3)
 static void cache_op_all(unsigned int value, unsigned int l2)
 {
-	asm volatile(
-		"mtcr	%0, cr17\n"
-		::"r"(value | CACHE_CLR));
-
+	mtcr(cr17, value | CACHE_CLR);
 	asm volatile("sync\n");
 
 	if (l2 && (mfcr_ccr2() & CCR2_L2E)) {
-		asm volatile(
-			"mtcr	%0, cr24\n"
-			"sync\n"
-			::"r"(value));
+		mtcr(cr24, value | CACHE_CLR);
+		asm volatile("sync\n");
 	}
 }
 
@@ -77,11 +73,8 @@ static void cache_op_range(
 	for(i = start; i < end; i += L1_CACHE_BYTES) {
 		cache_op_line(i, val);
 		if (l2_sync) {
-			asm volatile(
-				"sync\n");
-			asm volatile(
-				"mtcr	%0, cr24\n"
-				::"r"(val));
+			asm volatile("sync\n");
+			mtcr(cr24, val);
 		}
 	}
 	spin_unlock_irqrestore(&cache_lock, flags);
