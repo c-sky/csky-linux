@@ -18,7 +18,6 @@
 #define PTE_INDX_MSK    0xffc
 #define PTE_INDX_SHIFT  10
 #define _PGDIR_SHIFT    22
-#define THREADSIZE_MASK_BIT 13
 
 .macro tlbop_begin name, val0, val1, val2
 ENTRY(csky_\name)
@@ -139,7 +138,7 @@ ENTRY(csky_systemcall)
 	bf      ret_from_exception
 
 	mov     r9, sp				 /* Get task pointer */
-	bmaski  r10, THREADSIZE_MASK_BIT
+	bmaski  r10, THREAD_SHIFT
 	andn    r9, r10                      /* Get thread_info */
 	ldw     r8, (r9, TINFO_FLAGS)       /* Get thread_info.flags value */
 	btsti   r8, TIF_SYSCALL_TRACE       /* Check if TIF_SYSCALL_TRACE set */
@@ -201,7 +200,7 @@ ENTRY(ret_from_kernel_thread)
 ENTRY(ret_from_fork)
 	jbsr     schedule_tail
 	mov      r9, sp				 /* Get task pointer */
-	bmaski   r10, THREADSIZE_MASK_BIT
+	bmaski   r10, THREAD_SHIFT
 	andn     r9, r10                     /* Get thread_info */
 	ldw      r8, (r9, TINFO_FLAGS)       /* Get thread_info.flags value */
 	movi     r11_sig, 1                  /* is a syscall */
@@ -222,7 +221,7 @@ ret_from_exception:
 	 * Get task_needreshed in task_struct
 	 */
 	mov     r9, sp     					 /* Get current stack  pointer */
-	bmaski  r10, THREADSIZE_MASK_BIT
+	bmaski  r10, THREAD_SHIFT
 	andn    r9, r10                      /* Get task_struct */
 
 resume_userspace:
@@ -282,7 +281,7 @@ ENTRY(csky_get_tls)
 	mtcr	a0, epc
 
 	/* get current task thread_info with kernel 8K stack */
-	bmaski   a0, (PAGE_SHIFT + 1)
+	bmaski   a0, THREAD_SHIFT
 	not      a0
 	subi     sp, 1
 	and      a0, sp
@@ -301,7 +300,7 @@ ENTRY(csky_irq)
 
 #ifdef CONFIG_PREEMPT
 	mov     r9, sp                       /* Get current stack  pointer */
-	bmaski  r10, THREADSIZE_MASK_BIT
+	bmaski  r10, THREAD_SHIFT
 	andn    r9, r10                      /* Get thread_info */
 
 	/*

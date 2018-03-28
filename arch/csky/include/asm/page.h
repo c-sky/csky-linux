@@ -12,6 +12,7 @@
 #define PAGE_SIZE	(_AC(1, UL) << PAGE_SHIFT)
 #define PAGE_MASK	(~(PAGE_SIZE - 1))
 #define THREAD_SIZE	(PAGE_SIZE * 2)
+#define THREAD_SHIFT	(PAGE_SHIFT + 1)
 
 /*
  * NOTE: virtual isn't really correct, actually it should be the offset into the
