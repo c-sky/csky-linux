@@ -13,7 +13,7 @@
 #include <linux/ptrace.h>
 
 #include <asm/elf.h>
-#include <asm/reg_ops.h>
+#include <abi/reg_ops.h>
 
 struct cpuinfo_csky cpu_data[NR_CPUS];
 
@@ -46,7 +46,7 @@ int copy_thread(unsigned long clone_flags,
 
 	preempt_disable();
 
-	reg_psr = mfcr(psr);
+	reg_psr = mfcr("psr");
 
 #ifdef CONFIG_CPU_HAS_FPU
 	save_fp_to_thread(p->thread.fp, &p->thread.fcr, &p->thread.fsr,

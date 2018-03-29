@@ -13,14 +13,19 @@
 #include <linux/sched.h>
 #include <abi/ckmmu.h>
 
-/*
- * For the fast tlb miss handlers, we currently keep a per cpu array
- * of pointers to the current pgd for each processor. Also, the proc.
- * id is stuffed into the context register. This should be changed to
- * use the processor id via current->processor, where current is stored
- * in watch hi/lo. The context register should be used to contiguously
- * map the page tables.
- */
+/* misc */
+static inline void tlbmiss_handler_setup_pgd(unsigned long pgd)
+{
+	pgd &= ~(1<<31);
+	pgd += PHYS_OFFSET;
+	pgd |= 1;
+	setup_pgd(pgd);
+}
+
+static inline unsigned long tlb_get_pgd(void)
+{
+	return ((get_pgd()|(1<<31)) - PHYS_OFFSET) & ~1;
+}
 #define TLBMISS_HANDLER_SETUP_PGD(pgd) tlbmiss_handler_setup_pgd((unsigned long)pgd)
 
 #define cpu_context(cpu, mm)	((mm)->context.asid[cpu])

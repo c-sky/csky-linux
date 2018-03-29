@@ -22,7 +22,7 @@ asmlinkage void csky_do_auto_IRQ(struct pt_regs *regs)
 {
 	unsigned long irq;
 
-	irq = (mfcr(psr) >> 16) & 0xff;
+	irq = (mfcr("psr") >> 16) & 0xff;
 
 	if (irq == 10)
 		irq = csky_get_auto_irqno();

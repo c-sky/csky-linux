@@ -2,59 +2,56 @@
 // Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
 #ifndef __ABI_REG_OPS_H
 #define __ABI_REG_OPS_H
+#include <asm/reg_ops.h>
+
+#define cprcr(reg)					\
+({							\
+	unsigned int tmp;				\
+	asm volatile("cprcr %0, "reg"\n":"=b"(tmp));	\
+	tmp;						\
+})
+
+#define cpwcr(reg, val)					\
+({							\
+	asm volatile("cpwcr %0, "reg"\n"::"b"(val));	\
+})
 
 static inline unsigned int mfcr_hint(void)
 {
-	unsigned int ret;
-	asm volatile(
-		"mfcr %0, cr30\n"
-		:"=r"(ret));
-	return ret;
+	return mfcr("cr30");
 }
 
 static inline unsigned int mfcr_msa0(void)
 {
-	unsigned int ret;
-	asm volatile(
-		"cprcr %0, cpcr30\n"
-		:"=r"(ret));
-	return ret;
+	return cprcr("cpcr30");
 }
 
 static inline void mtcr_msa0(unsigned int value)
 {
-	asm volatile(
-		"cpwcr %0, cpcr30\n"
-		::"r"(value));
+	cpwcr("cpcr30", value);
 }
 
 static inline unsigned int mfcr_msa1(void)
 {
-	unsigned int ret;
-	asm volatile(
-		"cprcr %0, cpcr31\n"
-		:"=r"(ret));
-	return ret;
+	return cprcr("cpcr31");
 }
 
 static inline void mtcr_msa1(unsigned int value)
 {
-	asm volatile(
-		"cpwcr %0, cpcr31\n"
-		::"r"(value));
+	cpwcr("cpcr31", value);
 }
 
 static inline unsigned int mfcr_ccr2(void){return 0;}
 
 /* read/write user stack pointer */
-static inline unsigned long rdusp(void) {
-	register unsigned long usp;
-	asm volatile("mfcr %0, ss1\n":"=r"(usp));
-	return usp;
+static inline unsigned long rdusp(void)
+{
+	return mfcr("ss1");
 }
 
-static inline void wrusp(unsigned long usp) {
-	asm volatile("mtcr %0, ss1\n"::"r"(usp));
+static inline void wrusp(unsigned long usp)
+{
+	mtcr("ss1", usp);
 }
 
 #endif /* __ABI_REG_OPS_H */

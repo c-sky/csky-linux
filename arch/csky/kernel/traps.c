@@ -41,7 +41,7 @@ void __init pre_trap_init(void)
 {
 	int i;
 
-	mtcr(vbr, vec_base);
+	mtcr("vbr", vec_base);
 
 	for(i=1;i<128;i++) VEC_INIT(i, csky_trap);
 }
@@ -103,7 +103,7 @@ asmlinkage void trap_c(struct pt_regs *regs)
 	unsigned long vector;
 	siginfo_t info;
 
-	vector = (mfcr(psr) >> 16) & 0xff;
+	vector = (mfcr("psr") >> 16) & 0xff;
 
 	switch (vector) {
 		case VEC_ZERODIV:

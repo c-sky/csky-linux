@@ -1,14 +1,13 @@
 // SPDX-License-Identifier: GPL-2.0
 // Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
 #include <linux/init.h>
-#include <linux/sched.h>
 #include <linux/mm.h>
-
-#include <asm/setup.h>
-#include <asm/mmu_context.h>
 #include <linux/module.h>
+#include <linux/sched.h>
+
+#include <asm/mmu_context.h>
 #include <asm/pgtable.h>
-#include <abi/ckmmu.h>
+#include <asm/setup.h>
 
 #define CSKY_TLB_SIZE CONFIG_CPU_TLB_SIZE
 

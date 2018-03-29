@@ -15,6 +15,7 @@
 #include <asm/current.h>
 #include <asm/cache.h>
 #include <abi/reg_ops.h>
+#include <abi/regdef.h>
 #ifdef CONFIG_CPU_HAS_FPU
 #include <abi/fpu.h>
 #endif
