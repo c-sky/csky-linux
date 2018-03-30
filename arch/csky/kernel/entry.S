@@ -28,6 +28,7 @@ ENTRY(csky_\name)
 	RD_MEH	a3
 #ifdef CONFIG_CPU_HAS_TLBI
 	tlbi.va	a3
+	sync.is
 #else
 	bgeni	a2, 31
 	WR_MCIR	a2

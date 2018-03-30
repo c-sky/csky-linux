@@ -19,31 +19,25 @@
 #define CR22_WAY_SHIFT          (30)
 #define CR22_WAY_SHIFT_L2	(29)
 
+#define SYNC asm volatile("sync\n")
+
 static DEFINE_SPINLOCK(cache_lock);
 
-#define cache_op_line(i, value) \
-	asm volatile( \
-		"mtcr	%0, cr22\n" \
-		"mtcr	%1, cr17\n" \
-		::"r"(i), "r"(value))
-
-#define cache_op_line_atomic(i, value) \
-	asm volatile( \
-		"idly4\n" \
-		"mtcr	%0, cr22\n" \
-		"mtcr	%1, cr17\n" \
-		"sync\n" \
-		::"r"(i), "r"(value))
+static inline void cache_op_line(unsigned long i, unsigned int val)
+{
+	mtcr("cr22", i);
+	mtcr("cr17", val);
+}
 
 #define CCR2_L2E (1 << 3)
 static void cache_op_all(unsigned int value, unsigned int l2)
 {
 	mtcr("cr17", value | CACHE_CLR);
-	asm volatile("sync\n");
+	SYNC;
 
 	if (l2 && (mfcr_ccr2() & CCR2_L2E)) {
 		mtcr("cr24", value | CACHE_CLR);
-		asm volatile("sync\n");
+		SYNC;
 	}
 }
 
@@ -73,18 +67,20 @@ static void cache_op_range(
 	for(i = start; i < end; i += L1_CACHE_BYTES) {
 		cache_op_line(i, val);
 		if (l2_sync) {
-			asm volatile("sync\n");
+			SYNC;
 			mtcr("cr24", val);
 		}
 	}
 	spin_unlock_irqrestore(&cache_lock, flags);
 
-	asm volatile("sync\n");
+	SYNC;
 }
 
-void inline dcache_wb_line(unsigned long start)
+void dcache_wb_line(unsigned long start)
 {
-	cache_op_line_atomic(start, DATA_CACHE|CACHE_CLR);
+	asm volatile("idly4\n");
+	cache_op_line(start, DATA_CACHE|CACHE_CLR);
+	SYNC;
 }
 
 void icache_inv_range(unsigned long start, unsigned long end)

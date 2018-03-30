@@ -8,13 +8,13 @@
 #define tlb_start_vma(tlb, vma) \
 	do { \
 		if (!tlb->fullmm) \
-		cache_wbinv_range(vma->vm_start, vma->vm_end); \
+		cache_wbinv_all(); \
 	}  while (0)
 
 #define tlb_end_vma(tlb, vma) \
 	do { \
 		if (!tlb->fullmm) \
-		cache_wbinv_range(vma->vm_start, vma->vm_end); \
+		cache_wbinv_all(); \
 	}  while (0)
 
 #define tlb_flush(tlb) flush_tlb_mm((tlb)->mm)
