@@ -32,10 +32,10 @@ static inline unsigned long tlb_get_pgd(void)
 #define cpu_asid(cpu, mm)	(cpu_context((cpu), (mm)) & ASID_MASK)
 #define asid_cache(cpu)		(cpu_data[cpu].asid_cache)
 
+#define ASID_FIRST_VERSION	(1 << CONFIG_CPU_ASID_BITS)
 #define ASID_INC		0x1
-#define ASID_MASK		0xff
-#define ASID_VERSION_MASK	0xffffff00
-#define ASID_FIRST_VERSION	0x100
+#define ASID_MASK		(ASID_FIRST_VERSION - 1)
+#define ASID_VERSION_MASK	~ASID_MASK
 
 #define destroy_context(mm)		do{}while(0)
 #define enter_lazy_tlb(mm,tsk)		do{}while(0)
@@ -82,7 +82,7 @@ static inline void switch_mm(struct mm_struct *prev, struct mm_struct *next,
 	/* Check if our ASID is of an older version and thus invalid */
 	if ((cpu_context(cpu, next) ^ asid_cache(cpu)) & ASID_VERSION_MASK)
 		get_new_mmu_context(next, cpu);
-	write_mmu_entryhi(cpu_context(cpu, next));
+	write_mmu_entryhi(cpu_asid(cpu, next));
 	TLBMISS_HANDLER_SETUP_PGD(next->pgd);
 
 	/*
@@ -110,7 +110,7 @@ activate_mm(struct mm_struct *prev, struct mm_struct *next)
 	/* Unconditionally get a new ASID.  */
 	get_new_mmu_context(next, cpu);
 
-	write_mmu_entryhi(cpu_context(cpu, next));
+	write_mmu_entryhi(cpu_asid(cpu, next));
 	TLBMISS_HANDLER_SETUP_PGD(next->pgd);
 
 	/* mark mmu ownership change */
