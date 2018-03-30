@@ -7,6 +7,7 @@
 static inline unsigned long arch_local_irq_save(void)
 {
 	unsigned long flags;
+
 	flags = mfcr("psr");
 	asm volatile("psrclr ie\n");
 	return flags;

@@ -30,6 +30,7 @@
 
 #define VEC_PRFL	29
 #define VEC_FPE		30
+#define VEC_IRQ_BASE	32
 
 extern void * vec_base[];
 #define VEC_INIT(i, func) vec_base[i] = (void *)func
