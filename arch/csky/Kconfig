@@ -53,9 +53,6 @@ config GENERIC_CALIBRATE_DELAY
 	bool
 	default y
 
-config HIGHMEM
-	bool
-
 config HZ
 	int
 	default 100
@@ -107,18 +104,15 @@ config CPU_CK610
 
 config CPU_CK810
         bool "CSKY CPU ck810"
-	select HIGHMEM
 	select CPU_HAS_HILO
 	select CPU_NEED_TLBSYNC
 
 config CPU_CK807
         bool "CSKY CPU ck807"
-	select HIGHMEM
 	select CPU_HAS_HILO
 
 config CPU_CK860
         bool "CSKY CPU ck860"
-	select HIGHMEM
 	select CPU_HAS_TLBI
 	select CPU_HAS_CACHEV2
 endchoice
@@ -138,6 +132,11 @@ config L1_CACHE_SHIFT
 	default "4"	if(CPU_CK610)
 	default "5"	if(CPU_CK807 || CPU_CK810)
 	default "6"	if(CPU_CK860)
+
+config HIGHMEM
+	bool "High Memory Support"
+	depends on !CPU_CK610
+	default y
 
 menuconfig CPU_HAS_FPU
 	bool "CPU has FPU coprocessor"
