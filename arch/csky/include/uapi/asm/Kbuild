@@ -20,6 +20,7 @@ generic-y += posix_types.h
 generic-y += resource.h
 generic-y += sembuf.h
 generic-y += siginfo.h
+generic-y += signal.h
 generic-y += socket.h
 generic-y += sockios.h
 generic-y += statfs.h
