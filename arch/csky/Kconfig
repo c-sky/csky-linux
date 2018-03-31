@@ -36,23 +36,18 @@ config CSKY
 
 config CPU_HAS_CACHEV2
 	bool
-	default n
 
 config CPU_HAS_HILO
 	bool
-	default n
 
 config CPU_HAS_TLBI
 	bool
-	default n
 
 config CPU_NEED_TLBSYNC
 	bool
-	default n
 
 config CPU_NEED_SOFTALIGN
 	bool
-	default n
 
 config GENERIC_CALIBRATE_DELAY
 	bool
@@ -60,7 +55,6 @@ config GENERIC_CALIBRATE_DELAY
 
 config HIGHMEM
 	bool
-	default n
 
 config HZ
 	int
@@ -148,7 +142,6 @@ config L1_CACHE_SHIFT
 menuconfig CPU_HAS_FPU
 	bool "CPU has FPU coprocessor"
 	depends on CPU_CK807 || CPU_CK810 || CPU_CK860
-	default n
 	help
 	  Floating-Point Coprocessor (FPC) is a coprocessor of CK serial processor.
 	  The function of FPC is to provide low-cost high-speed float point computation,
