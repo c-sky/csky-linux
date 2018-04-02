@@ -5,6 +5,6 @@
 
 #include <asm-generic/irq.h>
 
-extern unsigned int (*csky_get_auto_irqno) (void);
+extern void (*csky_do_IRQ_handler)(struct pt_regs *regs);
 
 #endif /* __ASM_CSKY_IRQ_H */

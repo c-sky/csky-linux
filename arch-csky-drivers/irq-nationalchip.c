@@ -11,6 +11,7 @@
 #include <linux/interrupt.h>
 #include <asm/irq.h>
 #include <asm/io.h>
+#include <asm/traps.h>
 
 #define NC_VA_INTC_NINT31_00		(void *)(intc_reg + 0x00)
 #define NC_VA_INTC_NINT63_32		(void *)(intc_reg + 0x04)
@@ -35,13 +36,13 @@ static void nc_irq_mask(struct irq_data *d)
 	irq = d->irq;
 
 	if (irq < 32) {
-		mask = __raw_readl(NC_VA_INTC_NMASK31_00);
+		mask = readl_relaxed(NC_VA_INTC_NMASK31_00);
 		mask |= 1 << irq;
-		__raw_writel(mask, NC_VA_INTC_NMASK31_00);
+		writel_relaxed(mask, NC_VA_INTC_NMASK31_00);
 	} else {
-		mask = __raw_readl(NC_VA_INTC_NMASK63_32);
+		mask = readl_relaxed(NC_VA_INTC_NMASK63_32);
 		mask |= 1 << (irq - 32);
-		__raw_writel(mask, NC_VA_INTC_NMASK63_32);
+		writel_relaxed(mask, NC_VA_INTC_NMASK63_32);
 	}
 }
 
@@ -52,13 +53,13 @@ static void nc_irq_unmask(struct irq_data *d)
 	irq = d->irq;
 
 	if (irq < 32) {
-		mask = __raw_readl(NC_VA_INTC_NMASK31_00);
+		mask = readl_relaxed(NC_VA_INTC_NMASK31_00);
 		mask &= ~( 1 << irq);
-		__raw_writel(mask, NC_VA_INTC_NMASK31_00);
+		writel_relaxed(mask, NC_VA_INTC_NMASK31_00);
 	} else {
-		mask = __raw_readl( NC_VA_INTC_NMASK63_32);
+		mask = readl_relaxed( NC_VA_INTC_NMASK63_32);
 		mask &= ~(1 << (irq - 32));
-		__raw_writel(mask, NC_VA_INTC_NMASK63_32);
+		writel_relaxed(mask, NC_VA_INTC_NMASK63_32);
 	}
 }
 
@@ -70,10 +71,10 @@ static void nc_irq_en(struct irq_data *d)
 
 	if (irq < 32) {
 		mask = 1 << irq;
-		__raw_writel(mask, NC_VA_INTC_NENSET31_00);
+		writel_relaxed(mask, NC_VA_INTC_NENSET31_00);
 	} else {
 		mask = 1 << (irq - 32);
-		__raw_writel(mask, NC_VA_INTC_NENSET63_32);
+		writel_relaxed(mask, NC_VA_INTC_NENSET63_32);
 	}
 
 	nc_irq_unmask(d);
@@ -87,10 +88,10 @@ static void nc_irq_dis(struct irq_data *d)
 
 	if (irq < 32) {
 		mask = 1 << irq;
-		__raw_writel(mask, NC_VA_INTC_NENCLR31_00);
+		writel_relaxed(mask, NC_VA_INTC_NENCLR31_00);
 	} else {
 		mask = 1 << (irq - 32);
-		__raw_writel(mask, NC_VA_INTC_NENCLR63_32);
+		writel_relaxed(mask, NC_VA_INTC_NENCLR63_32);
 	}
 
 	nc_irq_mask(d);
@@ -130,12 +131,12 @@ inline int ff1_64(unsigned int hi, unsigned int lo)
 	return result;
 }
 
-unsigned int nc_get_irqno(void)
+static unsigned int nc_get_irqno(void)
 {
 	unsigned int nint64hi, nint64lo, irq_no;
 
-	nint64lo = __raw_readl(NC_VA_INTC_NINT31_00);
-	nint64hi = __raw_readl(NC_VA_INTC_NINT63_32);
+	nint64lo = readl_relaxed(NC_VA_INTC_NINT31_00);
+	nint64hi = readl_relaxed(NC_VA_INTC_NINT63_32);
 	irq_no = ff1_64(nint64hi, nint64lo);
 
 	return irq_no;
@@ -149,6 +150,12 @@ static int irq_map(struct irq_domain *h, unsigned int virq,
 	return 0;
 }
 
+static struct irq_domain *root_domain;
+static void nc_irq_handler(struct pt_regs *regs)
+{
+	handle_domain_irq(root_domain, nc_get_irqno(), regs);
+}
+
 static const struct irq_domain_ops nc_irq_ops = {
 	.map	= irq_map,
 	.xlate	= irq_domain_xlate_onecell,
@@ -157,33 +164,31 @@ static const struct irq_domain_ops nc_irq_ops = {
 static int __init
 intc_init(struct device_node *intc, struct device_node *parent)
 {
-	struct irq_domain *root_domain;
 	unsigned int i;
 
 	if (parent)
 		panic("DeviceTree incore intc not a root irq controller\n");
 
-	csky_get_auto_irqno = nc_get_irqno;
-
 	intc_reg = (unsigned int) of_iomap(intc, 0);
 	if (!intc_reg)
 		panic("Nationalchip Intc Reg: %x.\n", intc_reg);
 
-	__raw_writel(0xffffffff, NC_VA_INTC_NENCLR31_00);
-	__raw_writel(0xffffffff, NC_VA_INTC_NENCLR63_32);
-	__raw_writel(0xffffffff, NC_VA_INTC_NMASK31_00);
-	__raw_writel(0xffffffff, NC_VA_INTC_NMASK63_32);
+	csky_do_IRQ_handler = nc_irq_handler;
+
+	writel_relaxed(0xffffffff, NC_VA_INTC_NENCLR31_00);
+	writel_relaxed(0xffffffff, NC_VA_INTC_NENCLR63_32);
+	writel_relaxed(0xffffffff, NC_VA_INTC_NMASK31_00);
+	writel_relaxed(0xffffffff, NC_VA_INTC_NMASK63_32);
 
 	/*
 	 * nationalchip irq ctrl has 64 sources.
 	 */
 	#define INTC_IRQS 64
 	for (i=0; i<INTC_IRQS; i=i+4)
-		__raw_writel(i|((i+1)<<8)|((i+2)<<16)|((i+3)<<24),
+		writel_relaxed(i|((i+1)<<8)|((i+2)<<16)|((i+3)<<24),
 				NC_VA_INTC_SOURCE + i);
 
-	root_domain = irq_domain_add_legacy(intc, INTC_IRQS, 0, 0,
-			&nc_irq_ops, NULL);
+	root_domain = irq_domain_add_linear(intc, INTC_IRQS, &nc_irq_ops, NULL);
 	if (!root_domain)
 		panic("root irq domain not avail\n");
 

@@ -313,8 +313,8 @@ ENTRY(csky_irq)
 	stw      r8, (r9, TINFO_PREEMPT)
 #endif
 
-	mov      a0, sp                      /* arg[0] is stack pointer */
-	jbsr     csky_do_auto_IRQ          /* Call handler */
+	mov      a0, sp
+	jbsr     csky_do_IRQ
 
 #ifdef CONFIG_PREEMPT
 	subi     r8, 1
