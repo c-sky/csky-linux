@@ -17,7 +17,7 @@ static __init void setup_cpu_msa(void)
 	}
 
 	mtcr_msa0(PHYS_OFFSET | 0xe);
-	mtcr_msa1(PHYS_OFFSET | 0x6);
+	mtcr_msa1(PHYS_OFFSET | 0x26);
 }
 
 __init void cpu_dt_probe(void)
