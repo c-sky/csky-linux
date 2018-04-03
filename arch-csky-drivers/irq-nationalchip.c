@@ -173,7 +173,7 @@ intc_init(struct device_node *intc, struct device_node *parent)
 	if (!intc_reg)
 		panic("Nationalchip Intc Reg: %x.\n", intc_reg);
 
-	csky_do_IRQ_handler = nc_irq_handler;
+	set_handle_irq(nc_irq_handler);
 
 	writel_relaxed(0xffffffff, NC_VA_INTC_NENCLR31_00);
 	writel_relaxed(0xffffffff, NC_VA_INTC_NENCLR63_32);

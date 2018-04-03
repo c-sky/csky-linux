@@ -106,7 +106,7 @@ intc_init(struct device_node *np, struct device_node *parent)
 	if (!intc_reg)
 		panic("%s, of_iomap err.\n", __func__);
 
-	csky_do_IRQ_handler = ck_irq_handler;
+	set_handle_irq(ck_irq_handler);
 
 	writel_relaxed(0, CK_VA_INTC_NEN31_00);
 	writel_relaxed(0, CK_VA_INTC_NEN63_32);

@@ -6,7 +6,15 @@
 #include <linux/irqchip.h>
 #include <asm/traps.h>
 
-void (*csky_do_IRQ_handler)(struct pt_regs *regs) = NULL;
+static void (*handle_arch_irq)(struct pt_regs *regs) = NULL;
+
+void __init set_handle_irq(void (*handle_irq)(struct pt_regs *))
+{
+	if (handle_arch_irq)
+		return;
+
+	handle_arch_irq = handle_irq;
+}
 
 void __init init_IRQ(void)
 {
@@ -15,5 +23,5 @@ void __init init_IRQ(void)
 
 asmlinkage void __irq_entry csky_do_IRQ(struct pt_regs *regs)
 {
-	csky_do_IRQ_handler(regs);
+	handle_arch_irq(regs);
 }
