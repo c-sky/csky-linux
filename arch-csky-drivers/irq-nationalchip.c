@@ -38,11 +38,11 @@ static void nc_irq_handler(struct pt_regs *regs)
 	do {
 		status = readl_relaxed(reg_base + INTC_NINT31_00);
 		if (status) {
-			irq = __fls(status);
+			irq = __ffs(status);
 		} else {
 			status = readl_relaxed(reg_base + INTC_NINT63_32);
 			if (status)
-				irq = __fls(status) + 32;
+				irq = __ffs(status) + 32;
 			else
 				return;
 		}
