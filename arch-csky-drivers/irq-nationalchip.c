@@ -13,186 +13,116 @@
 #include <asm/io.h>
 #include <asm/traps.h>
 
-#define NC_VA_INTC_NINT31_00		(void *)(intc_reg + 0x00)
-#define NC_VA_INTC_NINT63_32		(void *)(intc_reg + 0x04)
-#define NC_VA_INTC_NPEND31_00		(void *)(intc_reg + 0x10)
-#define NC_VA_INTC_NPEND63_32		(void *)(intc_reg + 0x14)
-#define NC_VA_INTC_NENSET31_00		(void *)(intc_reg + 0x20)
-#define NC_VA_INTC_NENSET63_32		(void *)(intc_reg + 0x24)
-#define NC_VA_INTC_NENCLR31_00		(void *)(intc_reg + 0x30)
-#define NC_VA_INTC_NENCLR63_32		(void *)(intc_reg + 0x34)
-#define NC_VA_INTC_NEN31_00		(void *)(intc_reg + 0x40)
-#define NC_VA_INTC_NEN63_32		(void *)(intc_reg + 0x44)
-#define NC_VA_INTC_NMASK31_00		(void *)(intc_reg + 0x50)
-#define NC_VA_INTC_NMASK63_32		(void *)(intc_reg + 0x54)
-#define NC_VA_INTC_SOURCE		(void *)(intc_reg + 0x60)
+static void __iomem *reg_base;
 
-static unsigned int intc_reg;
+#define INTC_NINT31_00		0x00
+#define INTC_NINT63_32		0x04
+#define INTC_NEN31_00		0x40
+#define INTC_NEN63_32		0x44
+#define INTC_NENSET31_00	0x20
+#define INTC_NENSET63_32	0x24
+#define INTC_NENCLR31_00	0x30
+#define INTC_NENCLR63_32	0x34
+#define INTC_NMASK31_00		0x50
+#define INTC_NMASK63_32		0x54
+#define INTC_SOURCE		0x60
 
-static void nc_irq_mask(struct irq_data *d)
-{
-	unsigned int mask, irq;
-
-	irq = d->irq;
-
-	if (irq < 32) {
-		mask = readl_relaxed(NC_VA_INTC_NMASK31_00);
-		mask |= 1 << irq;
-		writel_relaxed(mask, NC_VA_INTC_NMASK31_00);
-	} else {
-		mask = readl_relaxed(NC_VA_INTC_NMASK63_32);
-		mask |= 1 << (irq - 32);
-		writel_relaxed(mask, NC_VA_INTC_NMASK63_32);
-	}
-}
-
-static void nc_irq_unmask(struct irq_data *d)
-{
-	unsigned int mask, irq;
-
-	irq = d->irq;
-
-	if (irq < 32) {
-		mask = readl_relaxed(NC_VA_INTC_NMASK31_00);
-		mask &= ~( 1 << irq);
-		writel_relaxed(mask, NC_VA_INTC_NMASK31_00);
-	} else {
-		mask = readl_relaxed( NC_VA_INTC_NMASK63_32);
-		mask &= ~(1 << (irq - 32));
-		writel_relaxed(mask, NC_VA_INTC_NMASK63_32);
-	}
-}
-
-static void nc_irq_en(struct irq_data *d)
-{
-	unsigned int mask, irq;
-
-	irq = d->irq;
-
-	if (irq < 32) {
-		mask = 1 << irq;
-		writel_relaxed(mask, NC_VA_INTC_NENSET31_00);
-	} else {
-		mask = 1 << (irq - 32);
-		writel_relaxed(mask, NC_VA_INTC_NENSET63_32);
-	}
-
-	nc_irq_unmask(d);
-}
-
-static void nc_irq_dis(struct irq_data *d)
-{
-	unsigned int mask, irq;
-
-	irq = d->irq;
-
-	if (irq < 32) {
-		mask = 1 << irq;
-		writel_relaxed(mask, NC_VA_INTC_NENCLR31_00);
-	} else {
-		mask = 1 << (irq - 32);
-		writel_relaxed(mask, NC_VA_INTC_NENCLR63_32);
-	}
-
-	nc_irq_mask(d);
-}
-
-struct irq_chip nc_irq_chip = {
-	.name =		"nationalchip_intc_v1",
-	.irq_mask =	nc_irq_mask,
-	.irq_unmask =	nc_irq_unmask,
-	.irq_enable =	nc_irq_en,
-	.irq_disable =	nc_irq_dis,
-};
-
-inline int ff1_64(unsigned int hi, unsigned int lo)
-{
-	int result;
-	asm volatile(
-		"ff1 %0\n"
-		:"=r"(hi)
-		:"r"(hi)
-		:
-	);
-
-	asm volatile(
-		"ff1 %0\n"
-		:"=r"(lo)
-		:"r"(lo)
-		:
-	);
-	if( lo != 32 )
-		result = 31-lo;
-	else if( hi != 32 ) result = 31-hi + 32;
-	else {
-		printk("nc_get_irqno error hi:%x, lo:%x.\n", hi, lo);
-		result = NR_IRQS;
-	}
-	return result;
-}
-
-static unsigned int nc_get_irqno(void)
-{
-	unsigned int nint64hi, nint64lo, irq_no;
-
-	nint64lo = readl_relaxed(NC_VA_INTC_NINT31_00);
-	nint64hi = readl_relaxed(NC_VA_INTC_NINT63_32);
-	irq_no = ff1_64(nint64hi, nint64lo);
-
-	return irq_no;
-}
-
-static int irq_map(struct irq_domain *h, unsigned int virq,
-				irq_hw_number_t hw_irq_num)
-{
-	irq_set_chip_and_handler(virq, &nc_irq_chip, handle_level_irq);
-
-	return 0;
-}
+#define INTC_IRQS		64
 
 static struct irq_domain *root_domain;
+
 static void nc_irq_handler(struct pt_regs *regs)
 {
-	handle_domain_irq(root_domain, nc_get_irqno(), regs);
+	u32 status, irq;
+
+	do {
+		status = readl_relaxed(reg_base + INTC_NINT31_00);
+		if (status) {
+			irq = __fls(status);
+		} else {
+			status = readl_relaxed(reg_base + INTC_NINT63_32);
+			if (status)
+				irq = __fls(status) + 32;
+			else
+				return;
+		}
+		handle_domain_irq(root_domain, irq, regs);
+	} while(1);
 }
 
-static const struct irq_domain_ops nc_irq_ops = {
-	.map	= irq_map,
-	.xlate	= irq_domain_xlate_onecell,
-};
-
-static int __init
-intc_init(struct device_node *intc, struct device_node *parent)
+static void __init nc_set_gc(void __iomem *reg_base, u32 reg_off,
+			     u32 en_reg, u32 dis_reg)
 {
-	unsigned int i;
+	struct irq_chip_generic *gc;
 
-	if (parent)
-		panic("DeviceTree incore intc not a root irq controller\n");
+	gc = irq_get_domain_generic_chip(root_domain, reg_off);
+	gc->reg_base = reg_base;
+	gc->chip_types[0].regs.enable = en_reg;
+	gc->chip_types[0].regs.disable = dis_reg;
+	gc->chip_types[0].chip.irq_mask = irq_gc_mask_disable_reg;
+	gc->chip_types[0].chip.irq_unmask = irq_gc_unmask_enable_reg;
+}
 
-	intc_reg = (unsigned int) of_iomap(intc, 0);
-	if (!intc_reg)
-		panic("Nationalchip Intc Reg: %x.\n", intc_reg);
-
-	set_handle_irq(nc_irq_handler);
-
-	writel_relaxed(0xffffffff, NC_VA_INTC_NENCLR31_00);
-	writel_relaxed(0xffffffff, NC_VA_INTC_NENCLR63_32);
-	writel_relaxed(0xffffffff, NC_VA_INTC_NMASK31_00);
-	writel_relaxed(0xffffffff, NC_VA_INTC_NMASK63_32);
+#define expand_byte_to_word(i) (i|(i<<8)|(i<<16)|(i<<24))
+static inline void setup_irq_channel(void __iomem *reg_base)
+{
+	int i;
 
 	/*
-	 * nationalchip irq ctrl has 64 sources.
+	 * There are 64 irq nums and irq-channels and one byte per channel.
+	 * Setup every channel with the same hwirq num.
 	 */
-	#define INTC_IRQS 64
-	for (i=0; i<INTC_IRQS; i=i+4)
-		writel_relaxed(i|((i+1)<<8)|((i+2)<<16)|((i+3)<<24),
-				NC_VA_INTC_SOURCE + i);
+	for (i = 0; i < INTC_IRQS; i += 4) {
+		writel_relaxed(expand_byte_to_word(i) + 0x03020100,
+			       reg_base + INTC_SOURCE + i);
+	}
+}
 
-	root_domain = irq_domain_add_linear(intc, INTC_IRQS, &nc_irq_ops, NULL);
-	if (!root_domain)
-		panic("root irq domain not avail\n");
+static int __init
+intc_init(struct device_node *node, struct device_node *parent)
+{
+	u32 clr = IRQ_NOREQUEST | IRQ_NOPROBE | IRQ_NOAUTOEN;
+	int ret;
 
-	irq_set_default_host(root_domain);
+	if (parent) {
+		pr_err("Nationalchip gx6605s Intc not a root irq controller\n");
+		return -EINVAL;
+	}
+
+	reg_base = of_iomap(node, 0);
+	if (!reg_base) {
+		pr_err("Nationalchip gx6605s Intc unable to map: %p.\n", node);
+		return -EINVAL;
+	}
+
+	/* Initial enable reg to disable all interrupts */
+	writel_relaxed(0x0, reg_base + INTC_NEN31_00);
+	writel_relaxed(0x0, reg_base + INTC_NEN63_32);
+
+	/* Initial mask reg with all unmasked, becasue we only use enalbe reg */
+	writel_relaxed(0x0, reg_base + INTC_NMASK31_00);
+	writel_relaxed(0x0, reg_base + INTC_NMASK63_32);
+
+	setup_irq_channel(reg_base);
+
+	root_domain = irq_domain_add_linear(node, INTC_IRQS, &irq_generic_chip_ops, NULL);
+	if (!root_domain) {
+		pr_err("Nationalchip gx6605s Intc irq_domain_add failed.\n");
+		return -ENOMEM;
+	}
+
+	ret = irq_alloc_domain_generic_chips(root_domain, 32, 1,
+					     "gx6605s_irq", handle_level_irq,
+					     clr, 0, 0);
+	if (ret) {
+		pr_err("Nationalchip gx6605s Intc irq_alloc_gc failed.\n");
+		return -ENOMEM;
+	}
+
+	nc_set_gc(reg_base, 0,  INTC_NENSET31_00, INTC_NENCLR31_00);
+	nc_set_gc(reg_base, 32, INTC_NENSET63_32, INTC_NENCLR63_32);
+
+	set_handle_irq(nc_irq_handler);
 
 	return 0;
 }
