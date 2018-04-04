@@ -13,117 +13,96 @@
 #include <asm/io.h>
 #include <asm/traps.h>
 
-static unsigned int intc_reg;
+static void __iomem *reg_base;
 
-#define CK_VA_INTC_ICR		(void *)(intc_reg + 0x00)	/* Interrupt control register(High 16bits) */
-#define CK_VA_INTC_ISR		(void *)(intc_reg + 0x00)	/* Interrupt status register(Low 16bits) */
-#define CK_VA_INTC_NEN31_00	(void *)(intc_reg + 0x10)	/* Normal interrupt enable register Low */
-#define	CK_VA_INTC_NEN63_32	(void *)(intc_reg + 0x28)	/* Normal interrupt enable register High */
-#define CK_VA_INTC_IFR31_00	(void *)(intc_reg + 0x08)	/* Normal interrupt force register Low */
-#define CK_VA_INTC_IFR63_32	(void *)(intc_reg + 0x20)	/* Normal interrupt force register High */
-#define	CK_VA_INTC_SOURCE	(void *)(intc_reg + 0x40)	/* Proiority Level Select Registers 0 */
+#define INTC_ICR	0x00
+#define INTC_ISR	0x00
+#define INTC_NEN31_00	0x10
+#define INTC_NEN63_32	0x28
+#define INTC_IFR31_00	0x08
+#define INTC_IFR63_32	0x20
+#define INTC_SOURCE	0x40
 
-static void ck_irq_mask(struct irq_data *d)
+#define INTC_IRQS	64
+
+static struct irq_domain *root_domain;
+
+static void __init ck_set_gc(void __iomem *reg_base, u32 irq_base,
+			     u32 mask_reg)
 {
-	unsigned int temp, irq;
+	struct irq_chip_generic *gc;
 
-	irq = d->irq;
-
-	if (irq < 32) {
-		temp = readl_relaxed(CK_VA_INTC_NEN31_00);
-		temp &= ~(1 << irq);
-		writel_relaxed(temp, CK_VA_INTC_NEN31_00);
-	} else {
-		temp = readl_relaxed(CK_VA_INTC_NEN63_32);
-		temp &= ~(1 << (irq -32));
-		writel_relaxed(temp, CK_VA_INTC_NEN63_32);
-	}
+	gc = irq_get_domain_generic_chip(root_domain, irq_base);
+	gc->reg_base = reg_base;
+	gc->chip_types[0].regs.mask = mask_reg;
+	gc->chip_types[0].chip.irq_mask = irq_gc_mask_clr_bit;
+	gc->chip_types[0].chip.irq_unmask = irq_gc_mask_set_bit;
 }
-
-static void ck_irq_unmask(struct irq_data *d)
-{
-	unsigned int temp, irq;
-
-	irq = d->irq;
-
-	/* we need set IFR to pull-down the irq line */
-	if (irq < 32) {
-		temp = readl_relaxed(CK_VA_INTC_IFR31_00);
-		temp &= ~(1 << irq);
-		writel_relaxed(temp, CK_VA_INTC_IFR31_00);
-	} else {
-		temp = readl_relaxed(CK_VA_INTC_IFR63_32);
-		temp &= ~(1 << (irq -32));
-		writel_relaxed(temp, CK_VA_INTC_IFR63_32);
-	}
-
-	/* unmask the irq with enable bit */
-	if (irq < 32) {
-		temp = readl_relaxed(CK_VA_INTC_NEN31_00);
-		temp |= 1 << irq;
-		writel_relaxed(temp, CK_VA_INTC_NEN31_00);
-	} else {
-		temp = readl_relaxed(CK_VA_INTC_NEN63_32);
-		temp |= 1 << (irq -32);
-		writel_relaxed(temp, CK_VA_INTC_NEN63_32);
-	}
-}
-
-static struct irq_chip ck_irq_chip = {
-	.name		= "csky_intc_v1",
-	.irq_mask	= ck_irq_mask,
-	.irq_unmask	= ck_irq_unmask,
-};
-
-static int ck_irq_map(struct irq_domain *h, unsigned int virq,
-				irq_hw_number_t hw_irq_num)
-{
-	irq_set_chip_and_handler(virq, &ck_irq_chip, handle_level_irq);
-	return 0;
-}
-
-static const struct irq_domain_ops ck_irq_ops = {
-	.map	= ck_irq_map,
-	.xlate	= irq_domain_xlate_onecell,
-};
 
 static struct irq_domain *root_domain;
 static void ck_irq_handler(struct pt_regs *regs)
 {
-	irq_hw_number_t irq = readl_relaxed(CK_VA_INTC_ISR) & 0x3f;
+	irq_hw_number_t irq = readl_relaxed(reg_base + INTC_ISR) & 0x3f;
 	handle_domain_irq(root_domain, irq, regs);
 }
 
-static int __init
-intc_init(struct device_node *np, struct device_node *parent)
+#define expand_byte_to_word(i) (i|(i<<8)|(i<<16)|(i<<24))
+static inline void setup_irq_channel(void __iomem *reg_base)
 {
 	int i;
 
-	if (parent)
-		panic("pic not a root intc\n");
+	/*
+	 * There are 64 irq nums and irq-channels and one byte per channel.
+	 * Setup every channel with the same hwirq num.
+	 */
+	for (i = 0; i < INTC_IRQS; i += 4) {
+		writel_relaxed(expand_byte_to_word(i) + 0x00010203,
+			       reg_base + INTC_SOURCE + i);
+	}
+}
 
-	intc_reg = (unsigned int)of_iomap(np, 0);
-	if (!intc_reg)
-		panic("%s, of_iomap err.\n", __func__);
+static int __init
+intc_init(struct device_node *node, struct device_node *parent)
+{
+	u32 clr = IRQ_NOREQUEST | IRQ_NOPROBE | IRQ_NOAUTOEN;
+	int ret;
+
+	if (parent) {
+		pr_err("C-SKY Intc not a root irq controller\n");
+		return -EINVAL;
+	}
+
+	reg_base = of_iomap(node, 0);
+	if (!reg_base) {
+		pr_err("C-SKY Intc unable to map: %p.\n", node);
+		return -EINVAL;
+	}
+
+	writel_relaxed(0, reg_base + INTC_NEN31_00);
+	writel_relaxed(0, reg_base + INTC_NEN63_32);
+
+	writel_relaxed(0xc0000000, reg_base + INTC_ICR);
+
+	setup_irq_channel(reg_base);
+
+	root_domain = irq_domain_add_linear(node, INTC_IRQS, &irq_generic_chip_ops, NULL);
+	if (!root_domain) {
+		pr_err("C-SKY Intc irq_domain_add failed.\n");
+		return -ENOMEM;
+	}
+
+	ret = irq_alloc_domain_generic_chips(root_domain, 32, 1,
+					     "csky_intc_v1", handle_level_irq,
+					     clr, 0, 0);
+	if (ret) {
+		pr_err("C-SKY Intc irq_alloc_gc failed.\n");
+		return -ENOMEM;
+	}
+
+	ck_set_gc(reg_base, 0,  INTC_NEN31_00);
+	ck_set_gc(reg_base, 32, INTC_NEN63_32);
 
 	set_handle_irq(ck_irq_handler);
-
-	writel_relaxed(0, CK_VA_INTC_NEN31_00);
-	writel_relaxed(0, CK_VA_INTC_NEN63_32);
-
-	writel_relaxed(0xc0000000, CK_VA_INTC_ICR);
-
-	/*
-	 * csky irq ctrl has 64 sources.
-	 */
-	#define INTC_IRQS 64
-	for (i=0; i<INTC_IRQS; i=i+4)
-		writel_relaxed((i+3)|((i+2)<<8)|((i+1)<<16)|(i<<24),
-				CK_VA_INTC_SOURCE + i);
-
-	root_domain = irq_domain_add_linear(np, INTC_IRQS, &ck_irq_ops, NULL);
-	if (!root_domain)
-		panic("root irq domain not available\n");
 
 	return 0;
 }

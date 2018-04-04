@@ -50,12 +50,12 @@ static void nc_irq_handler(struct pt_regs *regs)
 	} while(1);
 }
 
-static void __init nc_set_gc(void __iomem *reg_base, u32 reg_off,
+static void __init nc_set_gc(void __iomem *reg_base, u32 irq_base,
 			     u32 en_reg, u32 dis_reg)
 {
 	struct irq_chip_generic *gc;
 
-	gc = irq_get_domain_generic_chip(root_domain, reg_off);
+	gc = irq_get_domain_generic_chip(root_domain, irq_base);
 	gc->reg_base = reg_base;
 	gc->chip_types[0].regs.enable = en_reg;
 	gc->chip_types[0].regs.disable = dis_reg;
