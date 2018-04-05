@@ -32,7 +32,7 @@ struct thread_info {
 
 #define THREAD_SIZE_ORDER (THREAD_SHIFT - PAGE_SHIFT)
 
-#ifdef CSKY_DEBUG_WITH_KERNEL_4_9
+#if defined(CSKY_DEBUG_WITH_KERNEL_4_9) || defined(CSKY_DEBUG_WITH_KERNEL_4_15)
 #define init_thread_info	(init_thread_union.thread_info)
 #define init_stack		(init_thread_union.stack)
 #endif
