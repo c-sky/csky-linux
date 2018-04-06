@@ -18,11 +18,18 @@ jiffies = jiffies_64 + 4;
 SECTIONS
 {
 	. = PAGE_OFFSET + CONFIG_RAM_BASE;
-	_text = .;
-	HEAD_TEXT_SECTION
 
-	_stext = .;
+	__init_begin = .;
+	HEAD_TEXT_SECTION
+	INIT_TEXT_SECTION(PAGE_SIZE)
+	INIT_DATA_SECTION(PAGE_SIZE)
+	PERCPU_SECTION(L1_CACHE_BYTES)
+	. = ALIGN(PAGE_SIZE);
+	__init_end = .;
+
 	.text : AT(ADDR(.text) - LOAD_OFFSET) {
+		_text = .;
+		_stext = .;
 		IRQENTRY_TEXT
 		SOFTIRQENTRY_TEXT
 		TEXT_TEXT
@@ -37,14 +44,7 @@ SECTIONS
 
 	/* __init_begin __init_end must be page aligned for free_initmem */
 	. = ALIGN(PAGE_SIZE);
-	__init_begin = .;
 
-	INIT_TEXT_SECTION(PAGE_SIZE)
-	INIT_DATA_SECTION(PAGE_SIZE)
-	PERCPU_SECTION(L1_CACHE_BYTES)
-
-	. = ALIGN(PAGE_SIZE);
-	__init_end = .;
 
 	_sdata = .;
 	RO_DATA_SECTION(PAGE_SIZE)

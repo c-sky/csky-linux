@@ -5,6 +5,7 @@
 #include <asm/page.h>
 #include <abi/regdef.h>
 
+__HEAD
 ENTRY(_start)
 	/* set super user mode */
 	lrw	a3, DEFAULT_PSR_VALUE
