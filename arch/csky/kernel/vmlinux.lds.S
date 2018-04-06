@@ -19,6 +19,7 @@ SECTIONS
 {
 	. = PAGE_OFFSET + CONFIG_RAM_BASE;
 
+	_stext = .;
 	__init_begin = .;
 	HEAD_TEXT_SECTION
 	INIT_TEXT_SECTION(PAGE_SIZE)
@@ -29,7 +30,6 @@ SECTIONS
 
 	.text : AT(ADDR(.text) - LOAD_OFFSET) {
 		_text = .;
-		_stext = .;
 		IRQENTRY_TEXT
 		SOFTIRQENTRY_TEXT
 		TEXT_TEXT
