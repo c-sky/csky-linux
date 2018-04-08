@@ -34,6 +34,7 @@ config CSKY
 	select OF_RESERVED_MEM
 	select PERF_USE_VMALLOC
 	select RTC_LIB
+	select TIMER_OF
 	select USB_ARCH_HAS_EHCI
 	select USB_ARCH_HAS_OHCI
 
