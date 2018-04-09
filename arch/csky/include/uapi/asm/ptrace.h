@@ -10,7 +10,7 @@
 
 /* this struct defines the way the registers are stored on the
    stack during a system call. */
-struct  pt_regs {
+struct pt_regs {
 	unsigned long    pc;
 	long             orig_a0;
 	unsigned long    sr;
@@ -27,6 +27,8 @@ struct  pt_regs {
 	long             rhi;
 	long             rlo;
 #endif
+	unsigned long    usp;
+	unsigned long    pad; /* make pt_regs 8 bytes aligned */
 };
 
 /*
@@ -84,7 +86,9 @@ struct  switch_stack {
 #define arch_has_single_step() (1)
 #define current_pt_regs() \
 	(struct pt_regs *)((char *)current_thread_info() + THREAD_SIZE) - 1
+
 #define current_user_stack_pointer() rdusp()
+#define user_stack_pointer(regs) ((regs)->usp)
 
 #define user_mode(regs) (!((regs)->sr & PS_S))
 #define instruction_pointer(regs) ((regs)->pc)

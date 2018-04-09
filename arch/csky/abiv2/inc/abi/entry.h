@@ -27,7 +27,7 @@
 .endm
 
 .macro SAVE_ALL
-	subi    sp,  144
+	subi    sp, 152
 	stw     a0, (sp, 4)
 	stw     a0, (sp, 12)
 	stw     a1, (sp, 16)
@@ -48,17 +48,20 @@
 	stm     r16-r31,(sp)
 #ifdef CONFIG_CPU_HAS_HILO
 	mfhi    r22
-	mflo    r23
 	stw     r22, (sp, 64)
-        stw     r23, (sp, 68)
+	mflo    r22
+	stw     r22, (sp, 68)
 #endif
-	subi    sp,  72
+	mfcr	r22, cr<14, 1>
+	stw	r22, (sp, 72)
 
+	subi    sp,  72
 	mfcr    r22, epsr
 	stw     r22, (sp, 8)
 	mfcr    r22, epc
 	stw     r22, (sp)
 .endm
+
 .macro SAVE_ALL_TRAP
 	SAVE_ALL
 	INCTRAP	r22
@@ -74,9 +77,9 @@
 	addi    sp, 12
 #ifdef CONFIG_CPU_HAS_HILO
 	ldw     a0, (sp, 124)
-	ldw     a1, (sp, 128)
 	mthi    a0
-	mtlo    a1
+	ldw     a0, (sp, 128)
+	mtlo    a0
 #endif
 	ldw     a0, (sp, 0)
 	ldw     a1, (sp, 4)
@@ -95,7 +98,7 @@
 	ldw     r15, (sp, 56)
 	addi    sp, 60
 	ldm     r16-r31,(sp)
-	addi    sp,  72
+	addi    sp,  80
 1:
 	rte
 .endm

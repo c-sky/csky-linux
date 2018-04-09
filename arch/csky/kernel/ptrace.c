@@ -1,26 +1,25 @@
 // SPDX-License-Identifier: GPL-2.0
 // Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-#include <linux/kernel.h>
-#include <linux/sched.h>
-#include <linux/mm.h>
-#include <linux/smp.h>
+#include <linux/elf.h>
 #include <linux/errno.h>
+#include <linux/kernel.h>
+#include <linux/mm.h>
 #include <linux/ptrace.h>
-#include <linux/user.h>
+#include <linux/regset.h>
+#include <linux/sched.h>
+#include <linux/sched/task_stack.h>
 #include <linux/signal.h>
+#include <linux/smp.h>
 #include <linux/uaccess.h>
+#include <linux/user.h>
 
+#include <asm/thread_info.h>
 #include <asm/page.h>
 #include <asm/pgtable.h>
 #include <asm/processor.h>
 #include <asm/asm-offsets.h>
 
 #include <abi/regdef.h>
-
-/*
- * does not yet catch signals sent when the child dies.
- * in exit.c or in signal.c.
- */
 
 /* sets the trace bits. */
 #define TRACE_MODE_SI      1 << 14
@@ -29,9 +28,13 @@
 #define TRACE_MODE_MASK    ~(0x3 << 14)
 
 /*
- * PT_xxx is the stack offset at which the register is  saved.
+ * Translate table used by gdbserver, convert pt_regs into user_regs_struct
+ *
+ * PT_xxx is the stack offset at which the register is saved.
  * Notice that usp has no stack-slot and needs to be treated
  * specially (see get_reg/put_reg below).
+ *
+ * FIXME: let gdbserver use pt_regs directly, and add sp into pt_regs.
  */
 static int regoff[] = PTRACE_REGOFF_ABI;
 
@@ -51,9 +54,6 @@ static long get_reg(struct task_struct *task, int regno)
 	return *addr;
 }
 
-/*
- * Write contents of register REGNO in task TASK.
- */
 static int put_reg(struct task_struct *task, int regno,
 		unsigned long data)
 {
@@ -125,29 +125,62 @@ int ptrace_setfpregs(struct task_struct *child, void __user *data)
 	return 0;
 }
 
-/*
- * Called by kernel/ptrace.c when detaching..
- *
- * Make sure the single step bit is not set.
- */
+enum csky_regset {
+	REGSET_GPR,
+};
+
+static int gpr_get(struct task_struct *target,
+		   const struct user_regset *regset,
+		   unsigned int pos, unsigned int count,
+		   void *kbuf, void __user *ubuf)
+{
+	struct pt_regs *regs;
+
+	regs = task_pt_regs(target);
+	return user_regset_copyout(&pos, &count, &kbuf, &ubuf, regs, 0, -1);
+}
+
+static int gpr_set(struct task_struct *target,
+		    const struct user_regset *regset,
+		    unsigned int pos, unsigned int count,
+		    const void *kbuf, const void __user *ubuf)
+{
+	int ret;
+	struct pt_regs *regs;
+
+	regs = task_pt_regs(target);
+	ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf, &regs, 0, -1);
+	return ret;
+}
+
+static const struct user_regset csky_regsets[] = {
+	[REGSET_GPR] = {
+		.core_note_type = NT_PRSTATUS,
+		.n = ELF_NGREG,
+		.size = sizeof(elf_greg_t),
+		.align = sizeof(elf_greg_t),
+		.get = &gpr_get,
+		.set = &gpr_set,
+	},
+};
+
+static const struct user_regset_view user_csky_view = {
+	.name = "csky",
+	.e_machine = ELF_ARCH,
+	.regsets = csky_regsets,
+	.n = ARRAY_SIZE(csky_regsets),
+};
+
+const struct user_regset_view *task_user_regset_view(struct task_struct *task)
+{
+	return &user_csky_view;
+}
+
 void ptrace_disable(struct task_struct *child)
 {
 	singlestep_disable(child);
 }
 
-/*
- * Handle the requests of ptrace system call.
- *
- * INPUT:
- * child   - process being traced.
- * request - request type.
- * addr    - address of data that this request to read from or write to.
- * data    - address of data that this request to read to or write from.
- *
- * RETURN:
- * 0       - success
- * others  - fail
- */
 long arch_ptrace(struct task_struct *child, long request, unsigned long addr,
 		unsigned long data)
 {
@@ -155,38 +188,10 @@ long arch_ptrace(struct task_struct *child, long request, unsigned long addr,
 	int i;
 
 	switch (request) {
-		/* read the word at location addr in the USER area. */
-	case PTRACE_PEEKUSR:
-		if (addr & 3)
-			goto out_eio;
-		addr >>= 2;     /* temporary hack. */
-
-		if (addr >= 0 && addr <= CSKY_GREG_NUM) {
-			tmp = get_reg(child, addr);
-		}else if(addr >= CSKY_FREG_NUM_LO && addr < CSKY_FREG_NUM_HI) {
-			tmp = child->thread.fp[addr - CSKY_FREG_NUM_LO];
-		}else if(addr >= CSKY_FREG_NUM_HI && addr < CSKY_FCR_NUM) {
-			tmp = (&(child->thread.fcr))[addr - CSKY_FREG_NUM_HI];
-		} else
-			break;
-		ret = put_user(tmp,(long unsigned int *) data);
-		break;
-
-	case PTRACE_POKEUSR:  /* write the word at location addr in the USER area */
-		if (addr & 3)
-			goto out_eio;
-		addr >>= 2;     /* temporary hack. */
-
-		if (addr >= 0 && addr <= CSKY_GREG_NUM) {
-			if (put_reg(child, addr, data)) /*** should protect 'psr'? ***/
-				goto out_eio;
-		}else if(addr >= CSKY_FREG_NUM_LO && addr < CSKY_FREG_NUM_HI) {
-			child->thread.fp[addr - CSKY_FREG_NUM_LO] = data;
-		}else if(addr >= CSKY_FREG_NUM_HI && addr <= CSKY_FCR_NUM) {
-			(&(child->thread.fcr))[addr - CSKY_FREG_NUM_HI] = data;
-		}else
-			goto out_eio;
-		break;
+	/*
+	 * FIXME: remove the PTRACE_GETREGS/SETREGS
+	 * Let gdbserver use PTRACE_GETREGSET/SETREGSET
+	 */
 	case PTRACE_GETREGS:    /* Get all gp regs from the child. */
 		for (i = 0; i <= CSKY_GREG_NUM; i++) {
 			tmp = get_reg(child, i);
@@ -224,8 +229,6 @@ long arch_ptrace(struct task_struct *child, long request, unsigned long addr,
 	}
 
 	return ret;
-out_eio:
-	return -EIO;
 }
 
 /*

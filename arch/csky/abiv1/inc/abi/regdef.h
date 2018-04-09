@@ -6,6 +6,8 @@
 #define syscallid	r1
 #define r11_sig		r11
 
+#define regs_syscallid(regs) regs->regs[9]
+
 #define DEFAULT_PSR_VALUE	0x8f000000
 
 #define PTRACE_REGOFF_ABI \

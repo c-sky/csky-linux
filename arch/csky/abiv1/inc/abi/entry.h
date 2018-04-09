@@ -68,6 +68,7 @@
 	bt      1f
 	USPTOKSP
 1:
+	subi    sp, 8
 	subi    sp, 32
 	subi    sp, 32
 	stw     r13,	(sp, 0)
@@ -87,6 +88,11 @@
 	stw     r14,	(sp, 52)
 	stw     r1,	(sp, 56)
 	stw     r15,	(sp, 60)
+
+	addi	sp,	32
+	mfcr	r13,	ss0
+	stw	r13,	(sp, 32)
+	subi	sp,	32
 
 	subi    sp,	8
 	stw     a0,	(sp, 4)
@@ -126,6 +132,7 @@
 	ldw     r15, (sp, 56)
 	addi    sp, 32
 	addi    sp, 28
+	addi    sp, 8
 
 	bt      1f
 	KSPTOUSP
