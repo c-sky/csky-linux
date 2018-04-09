@@ -2,7 +2,6 @@ config CSKY
 	bool
 	default y
 	select ARCH_USE_BUILTIN_BSWAP
-	select ARCH_WANT_IPC_PARSE_VERSION
 	select COMMON_CLK
 	select CLKSRC_MMIO
 	select CLKSRC_OF
