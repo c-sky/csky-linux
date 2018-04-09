@@ -90,7 +90,7 @@
 	stw     r15,	(sp, 60)
 
 	addi	sp,	32
-	mfcr	r13,	ss0
+	mfcr	r13,	ss1
 	stw	r13,	(sp, 32)
 	subi	sp,	32
 
@@ -129,6 +129,9 @@
 	ldw     r13, (sp, 44)
 	ldw     r14, (sp, 48)
 	ldw     r1, (sp, 52)
+
+	ldw	r15, (sp, 60)
+	mtcr	r15, ss1
 	ldw     r15, (sp, 56)
 	addi    sp, 32
 	addi    sp, 28

@@ -45,13 +45,11 @@ static long get_reg(struct task_struct *task, int regno)
 {
 	unsigned long *addr;
 
-	if (regno == REGNO_USP)
-		addr = &task->thread.usp;
-	else if ((regno < sizeof(regoff)/sizeof(regoff[0])) && (regoff[regno] != -1))
+	if ((regno < sizeof(regoff)/sizeof(regoff[0])) && (regoff[regno] != -1)) {
 		addr = (unsigned long *)(task->thread.esp0 + regoff[regno]);
-	else
+		return *addr;
+	} else
 		return 0;
-	return *addr;
 }
 
 static int put_reg(struct task_struct *task, int regno,
@@ -59,14 +57,12 @@ static int put_reg(struct task_struct *task, int regno,
 {
 	unsigned long *addr;
 
-	if (regno == REGNO_USP)
-		addr = &task->thread.usp;
-	else if ((regno < sizeof(regoff) / sizeof(regoff[0])) && (regoff[regno] != -1))
+	if ((regno < sizeof(regoff) / sizeof(regoff[0])) && (regoff[regno] != -1)) {
 		addr = (unsigned long *) (task->thread.esp0 + regoff[regno]);
-	else
+		*addr = data;
+		return 0;
+	} else
 		return -1;
-	*addr = data;
-	return 0;
 }
 /*
  * Make sure the single step bit is not set.

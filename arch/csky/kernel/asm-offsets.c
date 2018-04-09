@@ -18,7 +18,6 @@ int main(void)
 
 	/* offsets into the thread struct */
 	DEFINE(THREAD_KSP,        offsetof(struct thread_struct, ksp));
-	DEFINE(THREAD_USP,        offsetof(struct thread_struct, usp));
 	DEFINE(THREAD_SR,         offsetof(struct thread_struct, sr));
 	DEFINE(THREAD_ESP0,       offsetof(struct thread_struct, esp0));
 	DEFINE(THREAD_FESR,       offsetof(struct thread_struct, fesr));
@@ -75,6 +74,7 @@ int main(void)
 	DEFINE(PT_RHI,            offsetof(struct pt_regs, rhi));
 	DEFINE(PT_RLO,            offsetof(struct pt_regs, rlo));
 #endif
+	DEFINE(PT_USP,            offsetof(struct pt_regs, usp));
 	/* offsets into the irq_cpustat_t struct */
 	DEFINE(CPUSTAT_SOFTIRQ_PENDING, offsetof(irq_cpustat_t, __softirq_pending));
 

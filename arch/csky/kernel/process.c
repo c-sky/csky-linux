@@ -82,10 +82,7 @@ int copy_thread(unsigned long clone_flags,
 	/* Return 0 for subprocess when return from fork(),vfork(),clone() */
 	childregs->a0 = 0;
 
-	if (usp != 0)
-		p->thread.usp = usp;
-	else
-		p->thread.usp = rdusp();
+	if (usp != 0) childregs->usp = usp;
 
 	if (clone_flags & CLONE_SETTLS) {
 		task_thread_info(p)->tp_value = (current_pt_regs())->regs[0];
@@ -114,9 +111,9 @@ int dump_task_regs(struct task_struct *tsk, elf_gregset_t *pr_regs)
 
 	/* Now fix usp in pr_regs, usp is in pr_regs[2] */
 #if defined(__CSKYABIV2__)
-	(*pr_regs)[16] = tsk->thread.usp;
+	(*pr_regs)[16] = regs->usp;
 #else
-	(*pr_regs)[2] = tsk->thread.usp;
+	(*pr_regs)[2] = regs->usp;
 #endif
 
 	return 1;

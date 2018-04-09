@@ -45,7 +45,6 @@ restore_sigframe(struct pt_regs *regs, struct sigcontext *usc, int *pr2)
 {
 	int err = 0;
 	int i = 0;
-	unsigned long usp;
 
 	/* Always make any pending restarted system calls return -EINTR */
 	current_thread_info()->task->restart_block.fn = do_no_restart_syscall;
@@ -69,8 +68,7 @@ restore_sigframe(struct pt_regs *regs, struct sigcontext *usc, int *pr2)
 #endif
 	err |= __get_user(regs->sr, &usc->sc_sr);
 	err |= __get_user(regs->pc, &usc->sc_pc);
-	err |= __get_user(usp, &usc->sc_usp);
-	wrusp(usp);
+	err |= __get_user(regs->usp, &usc->sc_usp);
 
 #ifdef CONFIG_CPU_HAS_FPU
 	err |= restore_fpu_state(usc);
@@ -82,11 +80,10 @@ restore_sigframe(struct pt_regs *regs, struct sigcontext *usc, int *pr2)
 asmlinkage int
 do_rt_sigreturn(void)
 {
-	unsigned long usp = rdusp();
-	struct rt_sigframe *frame = (struct rt_sigframe *)usp;
 	sigset_t set;
 	int a0;
 	struct pt_regs *regs = current_pt_regs();
+	struct rt_sigframe *frame = (struct rt_sigframe *)(regs->usp);
 
 	if (verify_area(VERIFY_READ, frame, sizeof(*frame)))
 		goto badframe;
@@ -120,7 +117,7 @@ static inline int setup_sigframe(struct sigcontext *sc, struct pt_regs *regs,
 	int i = 0;
 
 	err |= __put_user(mask, &sc->sc_mask);
-	err |= __put_user(rdusp(), &sc->sc_usp);
+	err |= __put_user(regs->usp, &sc->sc_usp);
 	err |= __put_user(regs->a0, &sc->sc_a0);
 	err |= __put_user(regs->a1, &sc->sc_a1);
 	err |= __put_user(regs->a2, &sc->sc_a2);
@@ -154,7 +151,7 @@ get_sigframe(struct k_sigaction *ka, struct pt_regs *regs, size_t frame_size)
 	unsigned long usp;
 
 	/* Default to using normal stack.  */
-	usp = rdusp();
+	usp = regs->usp;
 
 	/* This is the X/Open sanctioned signal stack switching.  */
 	if ((ka->sa.sa_flags & SA_ONSTACK) && !sas_ss_flags(usp)) {
@@ -186,7 +183,7 @@ static int setup_rt_frame (int sig, struct k_sigaction *ka, siginfo_t *info,
 	err |= __put_user(0, &frame->uc.uc_link);
 	err |= __put_user((void *)current->sas_ss_sp,
 			&frame->uc.uc_stack.ss_sp);
-	err |= __put_user(sas_ss_flags(rdusp()),
+	err |= __put_user(sas_ss_flags(regs->usp),
 			&frame->uc.uc_stack.ss_flags);
 	err |= __put_user(current->sas_ss_size, &frame->uc.uc_stack.ss_size);
 	err |= setup_sigframe(&frame->uc.uc_mcontext, regs, 0);
@@ -196,7 +193,7 @@ static int setup_rt_frame (int sig, struct k_sigaction *ka, siginfo_t *info,
 		goto give_sigsegv;
 
 	/* Set up registers for signal handler */
-	wrusp ((unsigned long) frame);
+	regs->usp = (unsigned long) frame;
 	regs->pc = (unsigned long) ka->sa.sa_handler;
 	regs->r15 = (unsigned long)vdso->rt_signal_retcode;
 

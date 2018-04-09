@@ -43,16 +43,5 @@ static inline void mtcr_msa1(unsigned int value)
 
 static inline unsigned int mfcr_ccr2(void){return 0;}
 
-/* read/write user stack pointer */
-static inline unsigned long rdusp(void)
-{
-	return mfcr("ss1");
-}
-
-static inline void wrusp(unsigned long usp)
-{
-	mtcr("ss1", usp);
-}
-
 #endif /* __ABI_REG_OPS_H */
 

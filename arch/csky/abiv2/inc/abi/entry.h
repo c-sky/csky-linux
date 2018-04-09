@@ -81,6 +81,9 @@
 	ldw     a0, (sp, 128)
 	mtlo    a0
 #endif
+	ldw	a0, (sp, 132)
+	mtcr	a0, cr<14, 1>
+
 	ldw     a0, (sp, 0)
 	ldw     a1, (sp, 4)
 	ldw     a2, (sp, 8)

@@ -34,16 +34,5 @@ static inline void mtcr_msa1(unsigned int value)
 	mtcr("cr<31, 15>", value);
 }
 
-/* read/write user stack pointer */
-static inline unsigned long rdusp(void)
-{
-	return mfcr("cr<14, 1>");
-}
-
-static inline void wrusp(unsigned long usp)
-{
-	mtcr("cr<14, 1>", usp);
-}
-
 #endif /* __ABI_REG_OPS_H */
 

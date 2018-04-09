@@ -53,7 +53,6 @@ extern struct cpuinfo_csky cpu_data[];
 
 struct thread_struct {
 	unsigned long  ksp;       /* kernel stack pointer */
-	unsigned long  usp;       /* user stack pointer */
 	unsigned long  sr;        /* saved status register */
 	unsigned long  esp0;      /* points to SR of stack frame */
 	/* FPU regs */
@@ -97,7 +96,7 @@ do {									\
 	(_regs)->regs[2] = 0;						\
 	(_regs)->regs[3] = 0; /* ABIV2 is R7, use it? */		\
 	(_regs)->sr &= ~PS_S;						\
-	wrusp(_usp);							\
+	(_regs)->usp = (_usp);						\
 } while(0)
 
 /* Forward declaration, a strange C thing */
@@ -121,16 +120,8 @@ extern unsigned long thread_saved_pc(struct task_struct *tsk);
 
 unsigned long get_wchan(struct task_struct *p);
 
-#define	KSTK_EIP(tsk)							\
-({									\
-	unsigned long eip = 0;						\
-	if ((tsk)->thread.esp0 > PAGE_SIZE &&				\
-	     MAP_NR((tsk)->thread.esp0) < max_mapnr)			\
-		eip = ((struct pt_regs *) (tsk)->thread.esp0)->pc;	\
-		eip;							\
-})
-
-#define	KSTK_ESP(tsk) ((tsk) == current ? rdusp() : (tsk)->thread.usp)
+#define KSTK_EIP(tsk)		(task_pt_regs(tsk)->pc)
+#define KSTK_ESP(tsk)		(task_pt_regs(tsk)->usp)
 
 #define task_pt_regs(p) \
 	((struct pt_regs *)(THREAD_SIZE + task_stack_page(p)) - 1)

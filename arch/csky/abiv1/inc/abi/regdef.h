@@ -12,7 +12,7 @@
 
 #define PTRACE_REGOFF_ABI \
 { \
-	-1,       PT_REGS9,  PT_A0,    PT_A1,\
+	PT_USP,   PT_REGS9,  PT_A0,    PT_A1,\
 	PT_A2,    PT_A3,     PT_REGS0, PT_REGS1,\
 	PT_REGS2, PT_REGS3,  PT_REGS4, PT_REGS5,\
 	PT_REGS6, PT_REGS7,  PT_REGS8, PT_R15,\

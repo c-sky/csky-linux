@@ -86,7 +86,7 @@ typedef struct user_cskyfp_struct elf_fpregset_t;
         pr_reg[13] = regs->regs[7];             \
         pr_reg[14] = regs->regs[8];             \
         pr_reg[15] = regs->regs[9];             \
-        pr_reg[16] = rdusp();		        \
+        pr_reg[16] = regs->usp;			\
         pr_reg[17] = regs->r15;                 \
         pr_reg[18] = regs->exregs[0];           \
         pr_reg[19] = regs->exregs[1];           \
@@ -108,7 +108,7 @@ typedef struct user_cskyfp_struct elf_fpregset_t;
      #define ELF_CORE_COPY_REGS(pr_reg, regs)   \
         pr_reg[0] = regs->pc;                   \
         pr_reg[1] = regs->regs[9];              \
-        pr_reg[2] = rdusp();                    \
+        pr_reg[2] = regs->usp;			\
         pr_reg[3] = regs->sr;                   \
         pr_reg[4] = regs->a0;                   \
         pr_reg[5] = regs->a1;                   \

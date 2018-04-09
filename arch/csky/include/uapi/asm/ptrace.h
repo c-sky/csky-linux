@@ -87,7 +87,6 @@ struct  switch_stack {
 #define current_pt_regs() \
 	(struct pt_regs *)((char *)current_thread_info() + THREAD_SIZE) - 1
 
-#define current_user_stack_pointer() rdusp()
 #define user_stack_pointer(regs) ((regs)->usp)
 
 #define user_mode(regs) (!((regs)->sr & PS_S))
