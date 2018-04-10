@@ -102,7 +102,6 @@
 	addi    sp, 60
 	ldm     r16-r31,(sp)
 	addi    sp,  80
-1:
 	rte
 .endm
 

@@ -13,6 +13,10 @@
 #include <asm/io.h>
 #include <asm/traps.h>
 
+#ifdef CONFIG_CSKY_VECIRQ_LEGENCY
+#include <asm/reg_ops.h>
+#endif
+
 static void __iomem *reg_base;
 
 #define INTC_ICR	0x00
@@ -24,6 +28,10 @@ static void __iomem *reg_base;
 #define INTC_SOURCE	0x40
 
 #define INTC_IRQS	64
+
+#define INTC_ICR_AVE	BIT(31)
+
+#define VEC_IRQ_BASE	32
 
 static struct irq_domain *root_domain;
 
@@ -42,7 +50,11 @@ static void __init ck_set_gc(void __iomem *reg_base, u32 irq_base,
 static struct irq_domain *root_domain;
 static void ck_irq_handler(struct pt_regs *regs)
 {
+#ifdef CONFIG_CSKY_VECIRQ_LEGENCY
+	irq_hw_number_t irq = ((mfcr("psr") >> 16) & 0xff) - VEC_IRQ_BASE;
+#else
 	irq_hw_number_t irq = readl_relaxed(reg_base + INTC_ISR) & 0x3f;
+#endif
 	handle_domain_irq(root_domain, irq, regs);
 }
 
@@ -81,7 +93,9 @@ intc_init(struct device_node *node, struct device_node *parent)
 	writel_relaxed(0, reg_base + INTC_NEN31_00);
 	writel_relaxed(0, reg_base + INTC_NEN63_32);
 
-	writel_relaxed(0xc0000000, reg_base + INTC_ICR);
+#ifndef CONFIG_CSKY_VECIRQ_LEGENCY
+	writel_relaxed(INTC_ICR_AVE, reg_base + INTC_ICR);
+#endif
 
 	setup_irq_channel(reg_base);
 

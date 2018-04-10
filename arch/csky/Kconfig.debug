@@ -1,5 +1,6 @@
 menu "Kernel hacking"
 
+menu "C-SKY Debug Options"
 config CSKY_DEBUG_INFO
 	bool "Compile the kernel with debug info, just add -g"
 	depends on !DEBUG_INFO
@@ -9,12 +10,19 @@ config CSKY_DEBUG_INFO
 	  Some drivers eg: DW_MMC need COMPILE_TEST for new cpu
 	  arch :(
 
+config CSKY_VECIRQ_LEGENCY
+	bool "Use legency IRQ vector for interrupt, it's for SOC bugfix."
+	help
+	  It's a deprecated method for arch/csky. Don't use it, unless your
+	  SOC has bug.
+
 config CSKY_BUILTIN_DTB
 	bool "Use kernel builtin dtb"
 
 config CSKY_BUILTIN_DTB_NAME
 	string "kernel builtin dtb name"
 	depends on CSKY_BUILTIN_DTB
+endmenu
 
 source "lib/Kconfig.debug"
 

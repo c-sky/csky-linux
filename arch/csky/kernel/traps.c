@@ -48,11 +48,14 @@ void __init pre_trap_init(void)
 
 void __init trap_init (void)
 {
+#ifdef CONFIG_CSKY_VECIRQ_LEGENCY
 	int i;
 
 	/* setup irq */
 	for(i=32;i<128;i++)
 		  VEC_INIT(i, csky_irq);
+#endif
+
 	VEC_INIT(VEC_AUTOVEC, csky_irq);
 
 	/* setup trap0 trap2 trap3 */
