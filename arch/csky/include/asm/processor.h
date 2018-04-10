@@ -124,7 +124,7 @@ unsigned long get_wchan(struct task_struct *p);
 #define KSTK_ESP(tsk)		(task_pt_regs(tsk)->usp)
 
 #define task_pt_regs(p) \
-	((struct pt_regs *)(THREAD_SIZE + task_stack_page(p)) - 1)
+	((struct pt_regs *)(THREAD_SIZE + p->stack) - 1)
 
 #define cpu_relax() barrier()
 
