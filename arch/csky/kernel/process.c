@@ -95,7 +95,7 @@ int copy_thread(unsigned long clone_flags,
 }
 
 /* Fill in the fpu structure for a core dump.  */
-int dump_fpu (struct pt_regs *regs, struct user_cskyfp_struct *fpu)
+int dump_fpu (struct pt_regs *regs, struct user_fp *fpu)
 {
 	memcpy(fpu, &current->thread.fcr, sizeof(*fpu));
 	return 1;
@@ -108,13 +108,6 @@ int dump_task_regs(struct task_struct *tsk, elf_gregset_t *pr_regs)
 
 	/* NOTE: usp is error value. */
 	ELF_CORE_COPY_REGS ((*pr_regs), regs)
-
-	/* Now fix usp in pr_regs, usp is in pr_regs[2] */
-#if defined(__CSKYABIV2__)
-	(*pr_regs)[16] = regs->usp;
-#else
-	(*pr_regs)[2] = regs->usp;
-#endif
 
 	return 1;
 }

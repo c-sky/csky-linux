@@ -46,14 +46,6 @@
 	mfcr	sp, ss1
 .endm
 
-.macro GET_USP rx
-	mfcr	\rx, ss1
-.endm
-
-.macro SET_USP rx
-	mtcr	\rx, ss1
-.endm
-
 .macro INCTRAP	rx
 	addi	\rx, 2
 .endm

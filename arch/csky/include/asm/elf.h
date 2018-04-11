@@ -8,7 +8,6 @@
  */
 
 #include <asm/ptrace.h>
-#include <asm/user.h>
 #include <abi/regdef.h>
 
 #define ELF_ARCH 39
@@ -33,12 +32,11 @@
 
 typedef unsigned long elf_greg_t;
 
+typedef struct user_fp elf_fpregset_t;
 
 #define ELF_NGREG (sizeof(struct pt_regs) / sizeof(elf_greg_t))
 
 typedef elf_greg_t elf_gregset_t[ELF_NGREG];
-
-typedef struct user_cskyfp_struct elf_fpregset_t;
 
 /*
  * This is used to ensure we don't load something for the wrong architecture.

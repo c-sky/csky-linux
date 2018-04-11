@@ -31,6 +31,13 @@ struct pt_regs {
 	unsigned long    pad; /* make pt_regs 8 bytes aligned */
 };
 
+struct user_fp {
+	unsigned long  fcr;         /* fpu control reg */
+	unsigned long  fsr;         /* fpu status reg, nothing in CPU_CSKYV2 */
+	unsigned long  fesr;        /* fpu exception status reg */
+	unsigned long  fp[32];      /* fpu general regs */
+};
+
 /*
  * Switch stack for switch_to after push pt_regs.
  *
@@ -67,17 +74,6 @@ struct  switch_stack {
         unsigned long   r30;
 #endif
 };
-
-#define PTRACE_GETREGS            12
-#define PTRACE_SETREGS            13
-#define PTRACE_GETFPREGS          14
-#define PTRACE_SETFPREGS          15
-#define PTRACE_GET_THREAD_AREA    25
-
-#define CSKY_GREG_NUM             35
-#define CSKY_FREG_NUM_HI          72
-#define CSKY_FREG_NUM_LO          40
-#define CSKY_FCR_NUM              74
 
 #ifdef __KERNEL__
 

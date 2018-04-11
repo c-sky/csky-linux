@@ -23,62 +23,26 @@
 /* sets the trace bits. */
 #define TRACE_MODE_SI      1 << 14
 #define TRACE_MODE_RUN     0
-#define TRACE_MODE_JMP     0x3 << 14
 #define TRACE_MODE_MASK    ~(0x3 << 14)
 
 /*
- * Translate table used by gdbserver, convert pt_regs into user_regs_struct
- *
- * PT_xxx is the stack offset at which the register is saved.
- * Notice that usp has no stack-slot and needs to be treated
- * specially (see get_reg/put_reg below).
- *
- * FIXME: let gdbserver use pt_regs directly, and add sp into pt_regs.
- */
-static int regoff[] = PTRACE_REGOFF_ABI;
-
-/*
- * Get contents of register REGNO in task TASK.
- */
-static long get_reg(struct task_struct *task, int regno)
-{
-	unsigned long *addr;
-
-	if ((regno < sizeof(regoff)/sizeof(regoff[0])) && (regoff[regno] != -1)) {
-		addr = (unsigned long *)(task->thread.esp0 + regoff[regno]);
-		return *addr;
-	} else
-		return 0;
-}
-
-static int put_reg(struct task_struct *task, int regno,
-		unsigned long data)
-{
-	unsigned long *addr;
-
-	if ((regno < sizeof(regoff) / sizeof(regoff[0])) && (regoff[regno] != -1)) {
-		addr = (unsigned long *) (task->thread.esp0 + regoff[regno]);
-		*addr = data;
-		return 0;
-	} else
-		return -1;
-}
-/*
  * Make sure the single step bit is not set.
  */
-static void singlestep_disable(struct task_struct *child)
+static void singlestep_disable(struct task_struct *tsk)
 {
-	unsigned long tmp;
-	tmp = (get_reg(child, REGNO_SR) & TRACE_MODE_MASK) | TRACE_MODE_RUN;
-	put_reg(child, REGNO_SR, tmp);
+	struct pt_regs *regs;
+
+	regs = task_pt_regs(tsk);
+	regs->sr = (regs->sr & TRACE_MODE_MASK) | TRACE_MODE_RUN;
 }
 
 
-static void singlestep_enable(struct task_struct *child)
+static void singlestep_enable(struct task_struct *tsk)
 {
-	unsigned long tmp;
-	tmp = (get_reg(child, REGNO_SR) & TRACE_MODE_MASK) | TRACE_MODE_SI;
-	put_reg(child, REGNO_SR, tmp);
+	struct pt_regs *regs;
+
+	regs = task_pt_regs(tsk);
+	regs->sr = (regs->sr & TRACE_MODE_MASK) | TRACE_MODE_SI;
 }
 
 /*
@@ -96,32 +60,9 @@ void user_disable_single_step(struct task_struct *child)
 	singlestep_disable(child);
 }
 
-int ptrace_getfpregs(struct task_struct *child, void __user *data)
-{
-
-	if (!access_ok(VERIFY_WRITE, data, sizeof(struct user_cskyfp_struct)))
-		return -EIO;
-
-	if(raw_copy_to_user(data, &child->thread.fcr,
-				sizeof(struct user_cskyfp_struct)))
-		return -EFAULT;
-
-	return 0;
-}
-
-int ptrace_setfpregs(struct task_struct *child, void __user *data)
-{
-	if (!access_ok(VERIFY_READ, data, sizeof(struct user_cskyfp_struct)))
-		return -EIO;
-
-	if(raw_copy_from_user(&child->thread.fcr, data,
-				sizeof(struct user_cskyfp_struct)))
-		return -EFAULT;
-	return 0;
-}
-
 enum csky_regset {
 	REGSET_GPR,
+	REGSET_FPR,
 };
 
 static int gpr_get(struct task_struct *target,
@@ -148,14 +89,46 @@ static int gpr_set(struct task_struct *target,
 	return ret;
 }
 
+static int fpr_get(struct task_struct *target,
+		   const struct user_regset *regset,
+		   unsigned int pos, unsigned int count,
+		   void *kbuf, void __user *ubuf)
+{
+	struct user_fp *regs;
+
+	regs = (struct user_fp *)&target->thread.fcr;
+	return user_regset_copyout(&pos, &count, &kbuf, &ubuf, regs, 0, -1);
+}
+
+static int fpr_set(struct task_struct *target,
+		    const struct user_regset *regset,
+		    unsigned int pos, unsigned int count,
+		    const void *kbuf, const void __user *ubuf)
+{
+	int ret;
+	struct user_fp *regs;
+
+	regs = (struct user_fp *)&target->thread.fcr;
+	ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf, &regs, 0, -1);
+	return ret;
+}
+
 static const struct user_regset csky_regsets[] = {
 	[REGSET_GPR] = {
 		.core_note_type = NT_PRSTATUS,
 		.n = ELF_NGREG,
-		.size = sizeof(elf_greg_t),
-		.align = sizeof(elf_greg_t),
+		.size = sizeof(u32),
+		.align = sizeof(u32),
 		.get = &gpr_get,
 		.set = &gpr_set,
+	},
+	[REGSET_FPR] = {
+		.core_note_type = NT_PRFPREG,
+		.n = sizeof(struct user_fp) / sizeof(u32),
+		.size = sizeof(u32),
+		.align = sizeof(u32),
+		.get = &fpr_get,
+		.set = &fpr_set,
 	},
 };
 
@@ -176,48 +149,12 @@ void ptrace_disable(struct task_struct *child)
 	singlestep_disable(child);
 }
 
-long arch_ptrace(struct task_struct *child, long request, unsigned long addr,
-		unsigned long data)
+long arch_ptrace(struct task_struct *child, long request,
+		 unsigned long addr, unsigned long data)
 {
-	unsigned long tmp = 0, ret = 0;
-	int i;
+	long ret = -EIO;
 
 	switch (request) {
-	/*
-	 * FIXME: remove the PTRACE_GETREGS/SETREGS
-	 * Let gdbserver use PTRACE_GETREGSET/SETREGSET
-	 */
-	case PTRACE_GETREGS:    /* Get all gp regs from the child. */
-		for (i = 0; i <= CSKY_GREG_NUM; i++) {
-			tmp = get_reg(child, i);
-			ret = put_user(tmp, (unsigned long *)data);
-			if (ret)
-				break;
-			data += sizeof(long);
-		}
-		break;
-	case PTRACE_SETREGS:    /* Set all gp regs in the child. */
-		for (i = 0; i <= CSKY_GREG_NUM; i++) {
-			ret = get_user(tmp, (unsigned long *)data);
-			if (ret)
-				break;
-			put_reg(child, i, tmp);
-			data += sizeof(long);
-		}
-		break;
-
-	case PTRACE_GETFPREGS:
-		ret = ptrace_getfpregs(child, (void  __user *) data);
-		break;
-
-	case PTRACE_SETFPREGS:
-		ret = ptrace_setfpregs(child, (void __user *) data);
-		break;
-
-	case PTRACE_GET_THREAD_AREA:
-		ret = put_user(task_thread_info(child)->tp_value,
-				(long unsigned int *) data);
-		break;
 	default:
 		ret = ptrace_request(child, request, addr, data);
 		break;
