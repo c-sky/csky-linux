@@ -64,18 +64,6 @@ int save_fpu_state(struct sigcontext *sc, struct pt_regs *regs);
 #define IOE_STAT   0
 #endif
 
-#define FMFS_FPU_REGS(frw, frx, fry, frz) \
-	"fmfs   %0, "#frw" \n" \
-	"fmfs   %1, "#frx" \n" \
-	"fmfs   %2, "#fry" \n" \
-	"fmfs   %3, "#frz" \n"
-
-#define FMTS_FPU_REGS(frw, frx, fry, frz) \
-	"fmts   %0, "#frw" \n" \
-	"fmts   %1, "#frx" \n" \
-	"fmts   %2, "#fry" \n" \
-	"fmts   %3, "#frz" \n"
-
 #define FMFVR_FPU_REGS(vrx, vry) \
 	"fmfvrl %0, "#vrx" \n" \
 	"fmfvrh %1, "#vrx" \n" \
