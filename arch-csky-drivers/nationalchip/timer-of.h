@@ -5,7 +5,7 @@
 #include <linux/clockchips.h>
 
 #define TIMER_OF_DECLARE(name, compat, fn) \
-	OF_DECLARE_1_RET(timer, name, compat, fn)
+	OF_DECLARE_1_RET(clksrc, name, compat, fn)
 
 #define TIMER_OF_BASE	0x1
 #define TIMER_OF_CLOCK	0x2
