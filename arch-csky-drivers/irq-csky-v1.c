@@ -74,7 +74,7 @@ static inline void setup_irq_channel(void __iomem *reg_base)
 }
 
 static int __init
-intc_init(struct device_node *node, struct device_node *parent)
+csky_intc_v1_init(struct device_node *node, struct device_node *parent)
 {
 	u32 clr = IRQ_NOREQUEST | IRQ_NOPROBE | IRQ_NOAUTOEN;
 	int ret;
@@ -120,5 +120,5 @@ intc_init(struct device_node *node, struct device_node *parent)
 
 	return 0;
 }
-IRQCHIP_DECLARE(csky_intc_v1, "csky,intc-v1", intc_init);
+IRQCHIP_DECLARE(csky_intc_v1, "csky,intc-v1", csky_intc_v1_init);
 
