@@ -30,10 +30,10 @@ static int c_show(struct seq_file *m, void *v)
 	seq_printf(m, "C-SKY CPU : %s\n", CSKYCPU_DEF_NAME);
 
 	/* Read 4 times to get all the cpuid info */
-	seq_printf(m, "cpuid 0   : 0x%08x\n", mfcr("cr13"));
-	seq_printf(m, "cpuid 1   : 0x%08x\n", mfcr("cr13"));
-	seq_printf(m, "cpuid 2   : 0x%08x\n", mfcr("cr13"));
-	seq_printf(m, "cpuid 4   : 0x%08x\n", mfcr("cr13"));
+	seq_printf(m, "cpu ver[0]: 0x%08x\n", mfcr("cr13"));
+	seq_printf(m, "cpu ver[1]: 0x%08x\n", mfcr("cr13"));
+	seq_printf(m, "cpu ver[2]: 0x%08x\n", mfcr("cr13"));
+	seq_printf(m, "cpu ver[3]: 0x%08x\n", mfcr("cr13"));
 
 	seq_printf(m, "ccr reg   : 0x%08x\n", mfcr("cr18"));
 	seq_printf(m, "ccr2 reg  : 0x%08x\n", mfcr_ccr2());
