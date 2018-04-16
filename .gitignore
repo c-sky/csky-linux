@@ -40,7 +40,7 @@ Module.symvers
 *.dwo
 *.su
 *.c.[012]*.*
-
+eragon*
 #
 # Top-level generic files
 #
