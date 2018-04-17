@@ -7,13 +7,15 @@
 
 #include "timer-of.h"
 
-#define TIMER_NAME	"csky_timer_v1"
-
 #define PTIM_CTLR	"cr<0, 14>"
 #define PTIM_TSR	"cr<1, 14>"
 #define PTIM_CCVR_HI	"cr<2, 14>"
 #define PTIM_CCVR_LO	"cr<3, 14>"
 #define PTIM_LVR	"cr<6, 14>"
+
+#define BITS_CSKY_TIMER	56
+
+DECLARE_PER_CPU(struct timer_of, csky_to);
 
 static inline u64 get_ccvr(void)
 {
@@ -30,11 +32,11 @@ static inline u64 get_ccvr(void)
 
 static irqreturn_t timer_interrupt(int irq, void *dev)
 {
-	struct clock_event_device *ce = (struct clock_event_device *) dev;
+	struct timer_of *to = this_cpu_ptr(&csky_to);
 
 	mtcr(PTIM_TSR, 0);
 
-	ce->event_handler(ce);
+	to->clkevt.event_handler(&to->clkevt);
 
 	return IRQ_HANDLED;
 }
@@ -53,54 +55,90 @@ static int csky_timer_shutdown(struct clock_event_device *ce)
 	return 0;
 }
 
-static struct timer_of to = {
-	.flags = TIMER_OF_CLOCK,
+static int csky_timer_oneshot(struct clock_event_device *ce)
+{
+	mtcr(PTIM_CTLR, 1);
+
+	return 0;
+}
+
+static int csky_timer_oneshot_stopped(struct clock_event_device *ce)
+{
+	mtcr(PTIM_CTLR, 0);
+
+	return 0;
+}
+
+DEFINE_PER_CPU(struct timer_of, csky_to) = {
+	.flags = TIMER_OF_CLOCK | TIMER_OF_IRQ,
 
 	.clkevt = {
-		.name = TIMER_NAME,
-		.rating = 200,
-		.features = CLOCK_EVT_FEAT_DYNIRQ | CLOCK_EVT_FEAT_ONESHOT,
-		.set_state_shutdown	= csky_timer_shutdown,
-		.set_next_event		= csky_timer_set_next_event,
+		.name = "csky_timer_v1_clkevt",
+		.rating = 400,
+		.features = CLOCK_EVT_FEAT_PERCPU | CLOCK_EVT_FEAT_ONESHOT,
+		.set_state_shutdown		= csky_timer_shutdown,
+		.set_state_oneshot		= csky_timer_oneshot,
+		.set_state_oneshot_stopped	= csky_timer_oneshot_stopped,
+		.set_next_event			= csky_timer_set_next_event,
 		.cpumask = cpu_possible_mask,
+	},
+
+	.of_irq = {
+		.handler = timer_interrupt,
+		.flags = IRQF_TIMER,
+		.percpu = 0,
 	},
 };
 
-static u64 notrace csky_sched_clock_read(void)
+static void csky_clkevt_init(int cpu_id, u32 hz)
+{
+	struct timer_of *to = per_cpu_ptr(&csky_to, cpu_id);
+
+	clockevents_config_and_register(&to->clkevt, hz, 1, ULONG_MAX);
+}
+
+static u64 sched_clock_read(void)
 {
 	return get_ccvr();
 }
 
-static void csky_clkevt_init(void)
-{
-
-	clockevents_config_and_register(&to.clkevt, TIMER_FREQ, 1, ULONG_MAX);
-}
-
-static u64 csky_timer_v2_clksrc_read(struct clocksource *c)
+static u64 clksrc_read(struct clocksource *c)
 {
 	return get_ccvr();
 }
 
-static void csky_clksrc_init(void)
-{
-	clocksource_mmio_init(NULL, "nationalchip", TIMER_FREQ, 400, 64,
-			      csky_timer_v2_clksrc_read);
+DEFINE_PER_CPU(struct clocksource, csky_clocksource) = {
+	.name = "csky_timer_v1_clksrc",
+	.rating = 400,
+	.mask = CLOCKSOURCE_MASK(BITS_CSKY_TIMER),
+	.flags = CLOCK_SOURCE_IS_CONTINUOUS,
+	.read = clksrc_read,
+};
 
-	sched_clock_register(csky_sched_clock_read, 32, TIMER_FREQ);
+static void csky_clksrc_init(int cpu_id, u32 hz)
+{
+	struct clocksource *cs = per_cpu_ptr(&csky_clocksource, cpu_id);
+
+	clocksource_register_hz(cs, hz);
+
+	sched_clock_register(sched_clock_read, BITS_CSKY_TIMER, hz);
 }
 
-static int __init csky_timer_init(struct device_node *np)
+static int __init csky_timer_v1_init(struct device_node *np)
 {
 	int ret;
+	int cpu_id = 0;
+	struct timer_of *to;
 
-	ret = timer_of_init(np, &to);
+	to = per_cpu_ptr(&csky_to, cpu_id);
+
+	ret = timer_of_init(np, to);
 	if (ret)
 		return ret;
 
-	csky_clkevt_init();
+	csky_clkevt_init(cpu_id, timer_of_rate(to));
 
-	csky_clksrc_init();
+	csky_clksrc_init(cpu_id, timer_of_rate(to));
 
 	return 0;
 }

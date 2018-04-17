@@ -31,11 +31,9 @@ static void __iomem *INTCL_base;
 #define INTCL_CENR	0xa4
 #define INTCL_CACR	0xb4
 
-#define INTC_IRQS	128
+#define INTC_IRQS	256
 
 #define INTC_ICR_AVE	BIT(31)
-
-#define COMM_IRQ_START	32
 
 struct csky_irq_v2_data {
 	struct irq_chip		chip;
@@ -50,34 +48,34 @@ static void csky_irq_v2_handler(struct pt_regs *regs)
 {
 	struct irq_domain	*domain;
 	static void __iomem	*reg_base;
-	irq_hw_number_t		irq;
+	irq_hw_number_t		hwirq;
 
-	domain = per_cpu(csky_irq_v2_data, smp_processor_id()).domain;
-	reg_base = per_cpu(csky_irq_v2_data, smp_processor_id()).intcl_reg;
+	domain = this_cpu_ptr(&csky_irq_v2_data)->domain;
+	reg_base = this_cpu_ptr(&csky_irq_v2_data)->intcl_reg;
 
-	irq = readl_relaxed(reg_base + INTCL_RDYIR) - COMM_IRQ_START;
-	handle_domain_irq(domain, irq, regs);
+	hwirq = readl_relaxed(reg_base + INTCL_RDYIR);
+	handle_domain_irq(domain, hwirq, regs);
 }
 
 static void csky_irq_v2_enable(struct irq_data *d)
 {
 	struct csky_irq_v2_data *data = irq_data_get_irq_chip_data(d);
 
-	writel_relaxed(d->hwirq + COMM_IRQ_START, data->intcl_reg + INTCL_SENR);
+	writel_relaxed(d->hwirq, data->intcl_reg + INTCL_SENR);
 }
 
 static void csky_irq_v2_disable(struct irq_data *d)
 {
 	struct csky_irq_v2_data *data = irq_data_get_irq_chip_data(d);
 
-	writel_relaxed(d->hwirq + COMM_IRQ_START, data->intcl_reg + INTCL_CENR);
+	writel_relaxed(d->hwirq, data->intcl_reg + INTCL_CENR);
 }
 
 static void csky_irq_v2_eoi(struct irq_data *d)
 {
 	struct csky_irq_v2_data *data = irq_data_get_irq_chip_data(d);
 
-	writel_relaxed(d->hwirq + COMM_IRQ_START, data->intcl_reg + INTCL_CACR);
+	writel_relaxed(d->hwirq, data->intcl_reg + INTCL_CACR);
 }
 
 static int csky_irqdomain_map(struct irq_domain *d, unsigned int irq,
@@ -119,7 +117,6 @@ csky_intc_v2_init(struct device_node *node, struct device_node *parent)
 		writel_relaxed(BIT(0), INTCG_base + INTCG_ICTLR);
 	}
 
-	writel_relaxed(BIT(0), INTCL_base + INTCL_PICTLR);
 
 	//cpuid = csky_of_processor_cpuid(node->parent);
 	if (cpuid < 0)
@@ -135,6 +132,9 @@ csky_intc_v2_init(struct device_node *node, struct device_node *parent)
 	data->chip.irq_disable = csky_irq_v2_disable;
 	data->domain = irq_domain_add_linear(node, INTC_IRQS,
 					     &csky_irqdomain_ops, data);
+
+	writel_relaxed(BIT(0), data->intcl_reg + INTCL_PICTLR);
+
 	if (!data->domain)
 		return -ENXIO;
 
