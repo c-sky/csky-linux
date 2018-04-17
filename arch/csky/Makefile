@@ -38,7 +38,7 @@ ifeq ($(VERSION)_$(PATCHLEVEL), 4_15)
 KBUILD_CFLAGS += -DCSKY_DEBUG_WITH_KERNEL_4_15
 endif
 
-KBUILD_CFLAGS += -pipe
+KBUILD_CFLAGS += -pipe -mno-stack-size
 
 ifeq ($(CONFIG_CSKY_DEBUG_INFO),y)
 KBUILD_CFLAGS += -g
