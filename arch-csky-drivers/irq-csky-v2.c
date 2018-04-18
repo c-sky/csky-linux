@@ -106,10 +106,8 @@ csky_intc_v2_init(struct device_node *node, struct device_node *parent)
 		return 0;
 
 	if (INTCG_base == NULL) {
-		#if defined(__CSKYABIV2__)
 		INTCG_base = ioremap(mfcr("cr<31, 14>"), INTC_SIZE);
 		if (INTCG_base == NULL)
-		#endif
 			return -EIO;
 
 		INTCL_base = INTCG_base + INTCG_SIZE;
