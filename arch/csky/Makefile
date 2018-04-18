@@ -38,7 +38,10 @@ ifeq ($(VERSION)_$(PATCHLEVEL), 4_15)
 KBUILD_CFLAGS += -DCSKY_DEBUG_WITH_KERNEL_4_15
 endif
 
-KBUILD_CFLAGS += -pipe -mno-stack-size
+KBUILD_CFLAGS += -pipe
+ifeq ($(CSKYABI),abiv2)
+KBUILD_CFLAGS += -mno-stack-size
+endif
 
 ifeq ($(CONFIG_CSKY_DEBUG_INFO),y)
 KBUILD_CFLAGS += -g
