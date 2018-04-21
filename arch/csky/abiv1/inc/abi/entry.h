@@ -6,35 +6,17 @@
 #include <asm/setup.h>
 #include <abi/regdef.h>
 
-/*
- * Stack layout for exception (sp=r0):
- *
- *	 0(sp) - pc
- *	 4(sp) - orig_a0
- *	 8(sp) - sr
- *	 C(sp) - a0/r2
- *	10(sp) - a1/r3
- *	14(sp) - a2/r4
- *	18(sp) - a3/r5
- *	1C(sp) - r6
- *	20(sp) - r7
- *	24(sp) - r8
- *	28(sp) - r9
- *	2C(sp) - r10
- *	30(sp) - r11
- *	34(sp) - r12
- *	38(sp) - r13
- *	3C(sp) - r14
- *	40(sp) - r1
- *	44(sp) - r15
- */
+#define LSAVE_PC	8
+#define LSAVE_PSR	12
+#define LSAVE_A0	24
+#define LSAVE_A1	28
+#define LSAVE_A2	32
+#define LSAVE_A3	36
+#define LSAVE_A4	40
+#define LSAVE_A5	44
 
-#define LSAVE_A0	0xc
-#define LSAVE_A1	0x10
-#define LSAVE_A2	0x14
-#define LSAVE_A3	0x18
-#define LSAVE_A4	0x1C
-#define LSAVE_A5	0x20
+#define EPC_INCREASE	2
+#define EPC_KEEP	0
 
 .macro USPTOKSP
 	mtcr	sp, ss1
@@ -47,87 +29,82 @@
 .endm
 
 .macro INCTRAP	rx
-	addi	\rx, 2
+	addi	\rx, EPC_INCREASE
 .endm
 
-/*
- * SAVE_ALL: save the pt_regs to the stack.
- */
-.macro	SAVE_ALL
+.macro	SAVE_ALL epc_inc
 	mtcr    r13, ss2
 	mfcr    r13, epsr
 	btsti   r13, 31
 	bt      1f
 	USPTOKSP
 1:
-	subi    sp, 8
 	subi    sp, 32
 	subi    sp, 32
-	stw     r13,	(sp, 0)
-	mfcr    r13,	ss2
-	stw     a0,	(sp, 4)
-	stw     a1,	(sp, 8)
-	stw     a2,	(sp, 12)
-	stw     a3,	(sp, 16)
-	stw     r6,	(sp, 20)
-	stw     r7,	(sp, 24)
-	stw     r8,	(sp, 28)
-	stw     r9,	(sp, 32)
-	stw     r10,	(sp, 36)
-	stw     r11,	(sp, 40)
-	stw     r12,	(sp, 44)
-	stw     r13,	(sp, 48)
-	stw     r14,	(sp, 52)
-	stw     r1,	(sp, 56)
-	stw     r15,	(sp, 60)
+	subi    sp, 16
+	stw     r13, (sp, 12)
 
-	addi	sp,	32
-	mfcr	r13,	ss1
-	stw	r13,	(sp, 32)
-	subi	sp,	32
+	stw     lr, (sp, 4)
 
-	subi    sp,	8
-	stw     a0,	(sp, 4)
-	mfcr    r13,	epc
-	stw     r13,	(sp)
-.endm
+	mfcr	lr, epc
+	movi	r13, \epc_inc
+	add	lr, r13
+	stw     lr, (sp, 8)
 
-.macro SAVE_ALL_TRAP
-	SAVE_ALL
-	INCTRAP r13
-	stw     r13,	(sp)
+	mfcr	lr, ss1
+	stw     lr, (sp, 16)
+
+	stw     a0, (sp, 20)
+	stw     a0, (sp, 24)
+	stw     a1, (sp, 28)
+	stw     a2, (sp, 32)
+	stw     a3, (sp, 36)
+
+	addi	sp, 32
+	addi	sp, 8
+	mfcr    r13, ss2
+	stw	r6, (sp)
+	stw	r7, (sp, 4)
+	stw	r8, (sp, 8)
+	stw	r9, (sp, 12)
+	stw	r10, (sp, 16)
+	stw	r11, (sp, 20)
+	stw	r12, (sp, 24)
+	stw	r13, (sp, 28)
+	stw	r14, (sp, 32)
+	stw	r1, (sp, 36)
+	subi	sp, 32
+	subi	sp, 8
 .endm
 
 .macro	RESTORE_ALL
 	psrclr  ie
-	ldw     a0, (sp)
-	mtcr    a0, epc
+	ldw	lr, (sp, 4)
 	ldw     a0, (sp, 8)
+	mtcr    a0, epc
+	ldw     a0, (sp, 12)
 	mtcr    a0, epsr
 	btsti   a0, 31
 
-	addi    sp, 12
-	ldw     a0, (sp, 0)
-	ldw     a1, (sp, 4)
-	ldw     a2, (sp, 8)
-	ldw     a3, (sp, 12)
-	ldw     r6, (sp, 16)
-	ldw     r7, (sp, 20)
-	ldw     r8, (sp, 24)
-	ldw     r9, (sp, 28)
-	ldw     r10, (sp, 32)
-	ldw     r11, (sp, 36)
-	ldw     r12, (sp, 40)
-	ldw     r13, (sp, 44)
-	ldw     r14, (sp, 48)
-	ldw     r1, (sp, 52)
+	ldw     a0, (sp, 24)
+	ldw     a1, (sp, 28)
+	ldw     a2, (sp, 32)
+	ldw     a3, (sp, 36)
 
-	ldw	r15, (sp, 60)
-	mtcr	r15, ss1
-	ldw     r15, (sp, 56)
-	addi    sp, 32
-	addi    sp, 28
-	addi    sp, 8
+	addi	sp, 32
+	addi	sp, 8
+	ldw	r6, (sp)
+	ldw	r7, (sp, 4)
+	ldw	r8, (sp, 8)
+	ldw	r9, (sp, 12)
+	ldw	r10, (sp, 16)
+	ldw	r11, (sp, 20)
+	ldw	r12, (sp, 24)
+	ldw	r13, (sp, 28)
+	ldw	r14, (sp, 32)
+	ldw	r1, (sp, 36)
+	addi	sp, 32
+	addi	sp, 8
 
 	bt      1f
 	KSPTOUSP

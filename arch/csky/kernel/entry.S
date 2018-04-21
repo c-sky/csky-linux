@@ -89,7 +89,7 @@ ENTRY(csky_\name)
 	mfcr    a3, ss2
 	mfcr    r6, ss3
 	mfcr    a2, ss4
-	SAVE_ALL
+	SAVE_ALL EPC_KEEP
 .endm
 .macro tlbop_end is_write
 	RD_MEH	a2
@@ -114,7 +114,7 @@ jbsr csky_cmpxchg_fixup
 tlbop_end 1
 
 ENTRY(csky_systemcall)
-	SAVE_ALL_TRAP
+	SAVE_ALL EPC_INCREASE
 
 	psrset  ee, ie
 
@@ -184,7 +184,7 @@ ENTRY(csky_systemcall)
 	jbsr    syscall_trace
 
 syscall_exit_work:
-	ld       syscallid, (sp, 8)     /* get psr, is user mode? */
+	ld       syscallid, (sp, LSAVE_PSR)
 	btsti    syscallid, 31
 	bt       2f
 
@@ -214,7 +214,7 @@ ENTRY(ret_from_fork)
 	jbsr     ret_from_exception
 
 ret_from_exception:
-	ld       syscallid, (sp,8)     /* get psr, is user mode? */
+	ld       syscallid, (sp, LSAVE_PSR)
 	btsti    syscallid, 31
 	bt       1f
 	/*
@@ -261,7 +261,7 @@ ENTRY(sys_rt_sigreturn)
  */
 
 ENTRY(csky_trap)
-	SAVE_ALL
+	SAVE_ALL EPC_KEEP
 	psrset   ee
 	movi     r11_sig, 0             /* r11 = 0, Not a syscall. */
 	mov      a0, sp                 /* Push Stack pointer arg */
@@ -295,7 +295,7 @@ ENTRY(csky_get_tls)
 	rte
 
 ENTRY(csky_irq)
-	SAVE_ALL
+	SAVE_ALL EPC_KEEP
 	psrset  ee       // enable exception
 	movi    r11_sig, 0                   /* r11 = 0, Not a syscall. */
 
@@ -391,9 +391,8 @@ ENTRY(__switch_to)
 	mtcr     a2, psr
 
 #if  defined(__CSKYABIV2__)
-	/* set TLS register (r31) */
 	addi     r7, a1, TASK_THREAD_INFO
-	ldw      r31, (r7, TINFO_TP_VALUE)
+	ldw      tls, (r7, TINFO_TP_VALUE)
 #endif
 
 	RESTORE_SWITCH_STACK

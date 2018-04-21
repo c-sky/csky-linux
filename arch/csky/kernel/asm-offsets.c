@@ -53,7 +53,7 @@ int main(void)
 	DEFINE(PT_REGS7,          offsetof(struct pt_regs, regs[7]));
 	DEFINE(PT_REGS8,          offsetof(struct pt_regs, regs[8]));
 	DEFINE(PT_REGS9,          offsetof(struct pt_regs, regs[9]));
-	DEFINE(PT_R15,            offsetof(struct pt_regs, r15));
+	DEFINE(PT_R15,            offsetof(struct pt_regs, lr));
 #if defined(__CSKYABIV2__)
 	DEFINE(PT_R16,            offsetof(struct pt_regs, exregs[0]));
 	DEFINE(PT_R17,            offsetof(struct pt_regs, exregs[1]));

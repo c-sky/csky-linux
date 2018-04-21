@@ -213,7 +213,7 @@ get_regs_value(unsigned int rx, struct pt_regs *regs)
 	}else if(rx == 1){
 		value = regs->regs[9];
 	}else if(rx == 15){
-		value = regs->r15;
+		value = regs->lr;
 	}else{
 		value = *((int *)regs + rx + 1);
 	}
@@ -229,7 +229,7 @@ put_regs_value(unsigned int value, unsigned int rx, struct pt_regs *regs){
 	}else if(rx == 1){
 		regs->regs[9] = value;
 	}else if(rx == 15){
-		regs->r15 = value;
+		regs->lr = value;
 	}else{
 		*((int *)regs + rx + 1) = value;
 	}

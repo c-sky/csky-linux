@@ -6,94 +6,88 @@
 #include <asm/setup.h>
 #include <abi/regdef.h>
 
-#define LSAVE_A0       0xc
-#define LSAVE_A1       0x10
-#define LSAVE_A2       0x14
-#define LSAVE_A3       0x18
+#define LSAVE_PC	8
+#define LSAVE_PSR	12
+#define LSAVE_A0	24
+#define LSAVE_A1	28
+#define LSAVE_A2	32
+#define LSAVE_A3	36
+
+#define EPC_INCREASE	4
+#define EPC_KEEP	0
 
 #define KSPTOUSP
 #define USPTOKSP
 
+#define usp cr<14, 1>
+
 .macro INCTRAP	rx
-	addi	\rx, 4
+	addi	\rx, EPC_INCREASE
 .endm
 
-.macro SAVE_ALL
+.macro SAVE_ALL epc_inc
 	subi    sp, 152
-	stw     a0, (sp, 4)
-	stw     a0, (sp, 12)
-	stw     a1, (sp, 16)
-	stw     a2, (sp, 20)
-	stw     a3, (sp, 24)
-	stw     r4, (sp, 28)
-	stw     r5, (sp, 32)
-	stw     r6, (sp, 36)
-	stw     r7, (sp, 40)
-	stw     r8, (sp, 44)
-	stw     r9, (sp, 48)
-	stw     r10, (sp, 52)
-	stw     r11, (sp, 56)
-	stw     r12, (sp, 60)
-	stw     r13, (sp, 64)
-	stw     r15, (sp, 68)
-	addi    sp, 72
-	stm     r16-r31,(sp)
+	stw	tls, (sp, 0)
+	stw	lr, (sp, 4)
+
+	mfcr	lr, epc
+	movi	tls, \epc_inc
+	add	lr, tls
+	stw	lr, (sp, 8)
+
+	mfcr	lr, epsr
+	stw	lr, (sp, 12)
+	mfcr	lr, usp
+	stw	lr, (sp, 16)
+
+	stw     a0, (sp, 20)
+	stw     a0, (sp, 24)
+	stw     a1, (sp, 28)
+	stw     a2, (sp, 32)
+	stw     a3, (sp, 36)
+
+	addi	sp, 40
+	stm	r4-r13, (sp)
+
+	addi    sp, 40
+	stm     r16-r30,(sp)
 #ifdef CONFIG_CPU_HAS_HILO
-	mfhi    r22
-	stw     r22, (sp, 64)
-	mflo    r22
-	stw     r22, (sp, 68)
+	mfhi	lr
+	stw	lr, (sp, 60)
+	mflo	lr
+	stw	lr, (sp, 64)
 #endif
-	mfcr	r22, cr<14, 1>
-	stw	r22, (sp, 72)
-
-	subi    sp,  72
-	mfcr    r22, epsr
-	stw     r22, (sp, 8)
-	mfcr    r22, epc
-	stw     r22, (sp)
-.endm
-
-.macro SAVE_ALL_TRAP
-	SAVE_ALL
-	INCTRAP	r22
-	stw     r22, (sp)
+	subi	sp, 80
 .endm
 
 .macro	RESTORE_ALL
 	psrclr  ie
-	ldw     a0, (sp)
-	mtcr    a0, epc
-	ldw     a0, (sp, 8)
-	mtcr    a0, epsr
-	addi    sp, 12
-#ifdef CONFIG_CPU_HAS_HILO
-	ldw     a0, (sp, 124)
-	mthi    a0
-	ldw     a0, (sp, 128)
-	mtlo    a0
-#endif
-	ldw	a0, (sp, 132)
-	mtcr	a0, cr<14, 1>
+	ldw	tls, (sp, 0)
+	ldw	lr, (sp, 4)
+	ldw	a0, (sp, 8)
+	mtcr	a0, epc
+	ldw	a0, (sp, 12)
+	mtcr	a0, epsr
+	ldw	a0, (sp, 16)
+	mtcr	a0, usp
 
-	ldw     a0, (sp, 0)
-	ldw     a1, (sp, 4)
-	ldw     a2, (sp, 8)
-	ldw     a3, (sp, 12)
-	ldw     r4, (sp, 16)
-	ldw     r5, (sp, 20)
-	ldw     r6, (sp, 24)
-	ldw     r7, (sp, 28)
-	ldw     r8, (sp, 32)
-	ldw     r9, (sp, 36)
-	ldw     r10, (sp, 40)
-	ldw     r11, (sp, 44)
-	ldw     r12, (sp, 48)
-	ldw     r13, (sp, 52)
-	ldw     r15, (sp, 56)
-	addi    sp, 60
-	ldm     r16-r31,(sp)
-	addi    sp,  80
+#ifdef CONFIG_CPU_HAS_HILO
+	ldw	a0, (sp, 140)
+	mthi	a0
+	ldw	a0, (sp, 144)
+	mtlo	a0
+#endif
+
+	ldw     a0, (sp, 24)
+	ldw     a1, (sp, 28)
+	ldw     a2, (sp, 32)
+	ldw     a3, (sp, 36)
+
+	addi	sp, 40
+	ldm	r4-r13, (sp)
+	addi    sp, 40
+	ldm     r16-r30,(sp)
+	addi    sp, 72
 	rte
 .endm
 

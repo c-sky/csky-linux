@@ -230,15 +230,15 @@ void show_regs(struct pt_regs *fp)
 	pr_info("r8: 0x%08lx  r9: 0x%08lx   r10: 0x%08lx   r11: 0x%08lx\n",
 	       fp->regs[4], fp->regs[5], fp->regs[6], fp->regs[7]);
 	pr_info("r12 0x%08lx  r13: 0x%08lx   r15: 0x%08lx\n",
-	       fp->regs[8], fp->regs[9], fp->r15);
+	       fp->regs[8], fp->regs[9], fp->lr);
 	pr_info("r16:0x%08lx   r17: 0x%08lx   r18: 0x%08lx    r19: 0x%08lx\n",
 	       fp->exregs[0], fp->exregs[1], fp->exregs[2], fp->exregs[3]);
 	pr_info("r20 0x%08lx   r21: 0x%08lx   r22: 0x%08lx    r23: 0x%08lx\n",
 	       fp->exregs[4], fp->exregs[5], fp->exregs[6], fp->exregs[7]);
 	pr_info("r24 0x%08lx   r25: 0x%08lx   r26: 0x%08lx    r27: 0x%08lx\n",
 	       fp->exregs[8], fp->exregs[9], fp->exregs[10], fp->exregs[11]);
-	pr_info("r28 0x%08lx   r29: 0x%08lx   r30: 0x%08lx    r31: 0x%08lx\n",
-	       fp->exregs[12], fp->exregs[13], fp->exregs[14], fp->exregs[15]);
+	pr_info("r28 0x%08lx   r29: 0x%08lx   r30: 0x%08lx    tls: 0x%08lx\n",
+	       fp->exregs[12], fp->exregs[13], fp->exregs[14], fp->tls);
 	pr_info("hi 0x%08lx     lo: 0x%08lx \n",
 	       fp->rhi, fp->rlo);
 #else
@@ -247,7 +247,7 @@ void show_regs(struct pt_regs *fp)
 	pr_info("r10: 0x%08lx   r11: 0x%08lx   r12: 0x%08lx   r13: 0x%08lx\n",
 	       fp->regs[4], fp->regs[5], fp->regs[6], fp->regs[7]);
 	pr_info("r14 0x%08lx   r1: 0x%08lx   r15: 0x%08lx\n",
-	       fp->regs[8], fp->regs[9], fp->r15);
+	       fp->regs[8], fp->regs[9], fp->lr);
 #endif
 
 	pr_info("\nCODE:");

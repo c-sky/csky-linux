@@ -57,12 +57,13 @@ restore_sigframe(struct pt_regs *regs, struct sigcontext *usc, int *pr2)
 	for(i = 0; i < 10; i++)
 		err |= __get_user(regs->regs[i], &usc->sc_regs[i]);
 
-	err |= __get_user(regs->r15, &usc->sc_r15);
+	err |= __get_user(regs->lr, &usc->sc_r15);
 #if defined(__CSKYABIV2__)
-	for(i = 0; i < 16; i++)
+	for(i = 0; i < 15; i++)
 	{
 		err |= __get_user(regs->exregs[i], &usc->sc_exregs[i]);
 	}
+	err |= __get_user(regs->tls, &usc->sc_exregs[15]);
 	err |= __get_user(regs->rhi, &usc->sc_rhi);
 	err |= __get_user(regs->rlo, &usc->sc_rlo);
 #endif
@@ -126,12 +127,13 @@ static inline int setup_sigframe(struct sigcontext *sc, struct pt_regs *regs,
 	{
 		err |= __put_user(regs->regs[i], &sc->sc_regs[i]);
 	}
-	err |= __put_user(regs->r15, &sc->sc_r15);
+	err |= __put_user(regs->lr, &sc->sc_r15);
 #if defined(__CSKYABIV2__)
-	for(i = 0; i < 16; i++)
+	for(i = 0; i < 15; i++)
 	{
 		err |= __put_user(regs->exregs[i], &sc->sc_exregs[i]);
 	}
+	err |= __put_user(regs->tls, &sc->sc_exregs[15]);
 	err |= __put_user(regs->rhi, &sc->sc_rhi);
 	err |= __put_user(regs->rlo, &sc->sc_rlo);
 #endif
@@ -195,7 +197,7 @@ static int setup_rt_frame (int sig, struct k_sigaction *ka, siginfo_t *info,
 	/* Set up registers for signal handler */
 	regs->usp = (unsigned long) frame;
 	regs->pc = (unsigned long) ka->sa.sa_handler;
-	regs->r15 = (unsigned long)vdso->rt_signal_retcode;
+	regs->lr = (unsigned long)vdso->rt_signal_retcode;
 
 adjust_stack:
 	regs->a0 = sig; /* first arg is signo */

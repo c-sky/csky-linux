@@ -85,7 +85,7 @@ typedef elf_greg_t elf_gregset_t[ELF_NGREG];
         pr_reg[14] = regs->regs[8];             \
         pr_reg[15] = regs->regs[9];             \
         pr_reg[16] = regs->usp;			\
-        pr_reg[17] = regs->r15;                 \
+        pr_reg[17] = regs->lr;			\
         pr_reg[18] = regs->exregs[0];           \
         pr_reg[19] = regs->exregs[1];           \
         pr_reg[20] = regs->exregs[2];           \
@@ -101,7 +101,7 @@ typedef elf_greg_t elf_gregset_t[ELF_NGREG];
         pr_reg[30] = regs->exregs[12];          \
         pr_reg[31] = regs->exregs[13];          \
         pr_reg[32] = regs->exregs[14];          \
-        pr_reg[33] = regs->exregs[15];
+        pr_reg[33] = regs->tls;
 #else
      #define ELF_CORE_COPY_REGS(pr_reg, regs)   \
         pr_reg[0] = regs->pc;                   \
@@ -121,7 +121,7 @@ typedef elf_greg_t elf_gregset_t[ELF_NGREG];
         pr_reg[14] = regs->regs[6];             \
         pr_reg[15] = regs->regs[7];             \
         pr_reg[16] = regs->regs[8];             \
-        pr_reg[17] = regs->r15;
+        pr_reg[17] = regs->lr;
 #endif
 
 /* Similar, but for a thread other than current. */

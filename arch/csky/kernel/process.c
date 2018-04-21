@@ -86,9 +86,7 @@ int copy_thread(unsigned long clone_flags,
 
 	if (clone_flags & CLONE_SETTLS) {
 		task_thread_info(p)->tp_value = (current_pt_regs())->regs[0];
-#ifdef __CSKYABIV2__
-		childregs->exregs[15] = task_thread_info(p)->tp_value;
-#endif
+		childregs->tls = task_thread_info(p)->tp_value;
 	}
 
 	return 0;

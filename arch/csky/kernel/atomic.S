@@ -48,7 +48,7 @@ ENTRY(csky_cmpxchg_fixup)
 	cmpne	a1, a0
 	bt	1f
 	subi	a1, (2b - 1b)
-	stw	a1, (sp, 0)
+	stw	a1, (sp, LSAVE_PC)
 1:
 	rts
 END(csky_cmpxchg_fixup)
