@@ -96,7 +96,7 @@ static int fpr_get(struct task_struct *target,
 {
 	struct user_fp *regs;
 
-	regs = (struct user_fp *)&target->thread.fcr;
+	regs = (struct user_fp *)&target->thread.user_fp;
 	return user_regset_copyout(&pos, &count, &kbuf, &ubuf, regs, 0, -1);
 }
 
@@ -108,7 +108,7 @@ static int fpr_set(struct task_struct *target,
 	int ret;
 	struct user_fp *regs;
 
-	regs = (struct user_fp *)&target->thread.fcr;
+	regs = (struct user_fp *)&target->thread.user_fp;
 	ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf, &regs, 0, -1);
 	return ret;
 }

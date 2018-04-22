@@ -49,8 +49,7 @@ int copy_thread(unsigned long clone_flags,
 	reg_psr = mfcr("psr");
 
 #ifdef CONFIG_CPU_HAS_FPU
-	save_fp_to_thread(p->thread.fp, &p->thread.fcr, &p->thread.fsr,
-	     &p->thread.fesr);
+	save_to_user_fp(&p->thread.user_fp);
 #endif
 #ifdef CONFIG_CPU_HAS_HILO
 	asm volatile(
@@ -95,7 +94,7 @@ int copy_thread(unsigned long clone_flags,
 /* Fill in the fpu structure for a core dump.  */
 int dump_fpu (struct pt_regs *regs, struct user_fp *fpu)
 {
-	memcpy(fpu, &current->thread.fcr, sizeof(*fpu));
+	memcpy(fpu, &current->thread.user_fp, sizeof(*fpu));
 	return 1;
 }
 EXPORT_SYMBOL(dump_fpu);

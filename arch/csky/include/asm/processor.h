@@ -55,17 +55,9 @@ struct thread_struct {
 	unsigned long  ksp;       /* kernel stack pointer */
 	unsigned long  sr;        /* saved status register */
 	unsigned long  esp0;      /* points to SR of stack frame */
+
 	/* FPU regs */
-	unsigned long  fcr;       /* fpu control reg */
-	unsigned long  fsr;       /* fpu status reg, nothing in CPU_CSKYV2 */
-	unsigned long  fesr;      /* fpu exception status reg */
-	unsigned long  fp[32];    /* fpu general regs.
- 				      In CPU_CSKYV1(FPU): 32 regs of 32 bits
- 				        fp[0] store fr0,
-				        fp[1] store fr1...
- 				      In CPU_CSKYV2(VFP): 16 regs of 64 bits
-				        fp[0] store vr0 low 32 bits,
-				        fp[1] store vr0 high 32 bits... */
+	struct user_fp	user_fp;
 
 	unsigned long  hi;
 	unsigned long  lo;

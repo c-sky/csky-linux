@@ -20,10 +20,9 @@ int main(void)
 	DEFINE(THREAD_KSP,        offsetof(struct thread_struct, ksp));
 	DEFINE(THREAD_SR,         offsetof(struct thread_struct, sr));
 	DEFINE(THREAD_ESP0,       offsetof(struct thread_struct, esp0));
-	DEFINE(THREAD_FESR,       offsetof(struct thread_struct, fesr));
-	DEFINE(THREAD_FSR,        offsetof(struct thread_struct, fsr));
-	DEFINE(THREAD_FCR,        offsetof(struct thread_struct, fcr));
-	DEFINE(THREAD_FPREG,      offsetof(struct thread_struct, fp));
+	DEFINE(THREAD_FESR,       offsetof(struct thread_struct, user_fp.fesr));
+	DEFINE(THREAD_FCR,        offsetof(struct thread_struct, user_fp.fcr));
+	DEFINE(THREAD_FPREG,      offsetof(struct thread_struct, user_fp.vr));
 	DEFINE(THREAD_DSPHI,      offsetof(struct thread_struct, hi));
 	DEFINE(THREAD_DSPLO,      offsetof(struct thread_struct, lo));
 

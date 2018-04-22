@@ -25,11 +25,34 @@
 #include <asm/vdso.h>
 
 #include <abi/regdef.h>
+
 #ifdef CONFIG_CPU_HAS_FPU
 #include <abi/fpu.h>
-#endif
 
-#define _BLOCKABLE (~(sigmask(SIGKILL) | sigmask(SIGSTOP)))
+static int restore_fpu_state(struct sigcontext *sc)
+{
+	int err = 0;
+	struct user_fp user_fp;
+
+	err = copy_from_user(&user_fp, &sc->sc_user_fp, sizeof(user_fp));
+
+	restore_from_user_fp(&user_fp);
+
+	return err;
+}
+
+static int save_fpu_state(struct sigcontext *sc)
+{
+	struct user_fp user_fp;
+
+	save_to_user_fp(&user_fp);
+
+	return copy_to_user(&sc->sc_user_fp, &user_fp, sizeof(user_fp));
+}
+#else
+static inline int restore_fpu_state(struct sigcontext *sc){}
+static inline int save_fpu_state(struct sigcontext *sc){}
+#endif
 
 struct rt_sigframe
 {
@@ -40,40 +63,18 @@ struct rt_sigframe
 	struct ucontext uc;
 };
 
-static inline int
-restore_sigframe(struct pt_regs *regs, struct sigcontext *usc, int *pr2)
+static int
+restore_sigframe(struct pt_regs *regs,
+		 struct sigcontext *sc, int *pr2)
 {
 	int err = 0;
-	int i = 0;
 
 	/* Always make any pending restarted system calls return -EINTR */
 	current_thread_info()->task->restart_block.fn = do_no_restart_syscall;
 
-	/* restore passed registers */
-	err |= __get_user(regs->a0, &usc->sc_a0);
-	err |= __get_user(regs->a1, &usc->sc_a1);
-	err |= __get_user(regs->a2, &usc->sc_a2);
-	err |= __get_user(regs->a3, &usc->sc_a3);
-	for(i = 0; i < 10; i++)
-		err |= __get_user(regs->regs[i], &usc->sc_regs[i]);
+	err |= copy_from_user(regs, &sc->sc_pt_regs, sizeof(struct pt_regs));
 
-	err |= __get_user(regs->lr, &usc->sc_r15);
-#if defined(__CSKYABIV2__)
-	for(i = 0; i < 15; i++)
-	{
-		err |= __get_user(regs->exregs[i], &usc->sc_exregs[i]);
-	}
-	err |= __get_user(regs->tls, &usc->sc_exregs[15]);
-	err |= __get_user(regs->rhi, &usc->sc_rhi);
-	err |= __get_user(regs->rlo, &usc->sc_rlo);
-#endif
-	err |= __get_user(regs->sr, &usc->sc_sr);
-	err |= __get_user(regs->pc, &usc->sc_pc);
-	err |= __get_user(regs->usp, &usc->sc_usp);
-
-#ifdef CONFIG_CPU_HAS_FPU
-	err |= restore_fpu_state(usc);
-#endif
+	err |= restore_fpu_state(sc);
 	*pr2 = regs->a0;
 	return err;
 }
@@ -91,7 +92,7 @@ do_rt_sigreturn(void)
 	if (__copy_from_user(&set, &frame->uc.uc_sigmask, sizeof(set)))
 		goto badframe;
 
-	sigdelsetmask(&set, ~_BLOCKABLE);
+	sigdelsetmask(&set, (sigmask(SIGKILL) | sigmask(SIGSTOP)));
 	spin_lock_irq(&current->sighand->siglock);
 	current->blocked = set;
 	recalc_sigpending( );
@@ -107,42 +108,14 @@ badframe:
 	return 0;
 }
 
-/*
- * Set up a signal frame.
- */
-
-static inline int setup_sigframe(struct sigcontext *sc, struct pt_regs *regs,
-		unsigned long mask)
+static int setup_sigframe(struct sigcontext *sc,
+			  struct pt_regs *regs, unsigned long mask)
 {
 	int err = 0;
-	int i = 0;
 
 	err |= __put_user(mask, &sc->sc_mask);
-	err |= __put_user(regs->usp, &sc->sc_usp);
-	err |= __put_user(regs->a0, &sc->sc_a0);
-	err |= __put_user(regs->a1, &sc->sc_a1);
-	err |= __put_user(regs->a2, &sc->sc_a2);
-	err |= __put_user(regs->a3, &sc->sc_a3);
-	for(i = 0; i < 10; i++)
-	{
-		err |= __put_user(regs->regs[i], &sc->sc_regs[i]);
-	}
-	err |= __put_user(regs->lr, &sc->sc_r15);
-#if defined(__CSKYABIV2__)
-	for(i = 0; i < 15; i++)
-	{
-		err |= __put_user(regs->exregs[i], &sc->sc_exregs[i]);
-	}
-	err |= __put_user(regs->tls, &sc->sc_exregs[15]);
-	err |= __put_user(regs->rhi, &sc->sc_rhi);
-	err |= __put_user(regs->rlo, &sc->sc_rlo);
-#endif
-	err |= __put_user(regs->sr, &sc->sc_sr);
-	err |= __put_user(regs->pc, &sc->sc_pc);
-
-#ifdef CONFIG_CPU_HAS_FPU
-	err |= save_fpu_state(sc, regs);
-#endif
+	err |= copy_to_user(&sc->sc_pt_regs, regs, sizeof(struct pt_regs));
+	err |= save_fpu_state(sc);
 
 	return err;
 }
