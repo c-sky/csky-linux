@@ -85,6 +85,8 @@
 	ldw     a0, (sp, 12)
 	mtcr    a0, epsr
 	btsti   a0, 31
+	ldw     a0, (sp, 16)
+	mtcr	a0, ss1
 
 	ldw     a0, (sp, 24)
 	ldw     a1, (sp, 28)
