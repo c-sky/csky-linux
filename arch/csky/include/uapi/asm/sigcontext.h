@@ -6,7 +6,6 @@
 #include <asm/ptrace.h>
 
 struct sigcontext {
-	unsigned long	sc_mask;
 	struct pt_regs	sc_pt_regs;
 	struct user_fp	sc_user_fp;
 };

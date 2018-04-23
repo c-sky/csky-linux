@@ -50,8 +50,8 @@ static int save_fpu_state(struct sigcontext *sc)
 	return copy_to_user(&sc->sc_user_fp, &user_fp, sizeof(user_fp));
 }
 #else
-static inline int restore_fpu_state(struct sigcontext *sc){}
-static inline int save_fpu_state(struct sigcontext *sc){}
+static inline int restore_fpu_state(struct sigcontext *sc){return 0;}
+static inline int save_fpu_state(struct sigcontext *sc){return 0;}
 #endif
 
 struct rt_sigframe
@@ -108,12 +108,10 @@ badframe:
 	return 0;
 }
 
-static int setup_sigframe(struct sigcontext *sc,
-			  struct pt_regs *regs, unsigned long mask)
+static int setup_sigframe(struct sigcontext *sc, struct pt_regs *regs)
 {
 	int err = 0;
 
-	err |= __put_user(mask, &sc->sc_mask);
 	err |= copy_to_user(&sc->sc_pt_regs, regs, sizeof(struct pt_regs));
 	err |= save_fpu_state(sc);
 
@@ -161,7 +159,7 @@ static int setup_rt_frame (int sig, struct k_sigaction *ka, siginfo_t *info,
 	err |= __put_user(sas_ss_flags(regs->usp),
 			&frame->uc.uc_stack.ss_flags);
 	err |= __put_user(current->sas_ss_size, &frame->uc.uc_stack.ss_size);
-	err |= setup_sigframe(&frame->uc.uc_mcontext, regs, 0);
+	err |= setup_sigframe(&frame->uc.uc_mcontext, regs);
 	err |= copy_to_user (&frame->uc.uc_sigmask, set, sizeof(*set));
 
 	if (err)
