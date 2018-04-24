@@ -95,6 +95,8 @@ csky_intc_v1_init(struct device_node *node, struct device_node *parent)
 
 #ifndef CONFIG_CSKY_VECIRQ_LEGENCY
 	writel_relaxed(INTC_ICR_AVE, reg_base + INTC_ICR);
+#else
+	writel_relaxed(0, reg_base + INTC_ICR);
 #endif
 
 	setup_irq_channel(reg_base);
