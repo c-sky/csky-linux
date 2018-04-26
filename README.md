@@ -1,3 +1,28 @@
+# C-SKY Linux Port
+
+* Directory arch/csky is the C-SKY Linux Porting.
+* Directory arch/arch-csky-drivers is the drivers of interrupt-controller and timer.
+
+# How to use
+* Download the linux-4.9 or linux-4.16 from kernel.org.
+* Copy the arch/csky & arch/arch-csky-drivers to the linux/arch directory.
+```sh
+    cp -raf $(CSKY_ARCH_DIR)/arch/csky $(LINUX_DIR)/arch/
+    cp -raf $(CSKY_ARCH_DIR)/arch-csky-drivers $(LINUX_DIR)/
+    awk '/:= drivers/{print $$0,"arch-csky-drivers/";next}{print $$0}' \
+        $(LINUX_DIR)/Makefile 1<>$(LINUX_DIR)/Makefile
+```
+  ref:https://gitlab.com/c-sky/buildroot/blob/master/linux/linux-ext-csky-arch.mk
+
+* You also can use buildroot to quick start with simple steps:
+
+```sh
+    $ git clone https://gitlab.com/c-sky/buildroot.git
+    $ cd buildroot
+    $ make qemu_csky_ck810_uclibc_bt_defconfig
+    $ make
+```
+
 # Upstream Cover letter :)
 ```sh
 This patchset adds architecture support to Linux for C-SKY's 32-bit embedded
@@ -33,28 +58,3 @@ It's my first patchset to linux and any feedback is welcome :)
 Best Regards
   Guo Ren
 ```
-
-# C-SKY Linux Port
-
-* Directory arch/csky is the C-SKY CPU Linux Port.
-* Directory arch/arch-csky-drivers is the drivers of some intc&timer.
-
-# How to use
-* Copy the arch/csky to the linux/arch directory. It support linux-4.9/4.14/4.15/4.16.
-```sh
-    cp -raf $(CSKY_ARCH_DIR)/arch/csky $(LINUX_DIR)/arch/
-    cp -raf $(CSKY_ARCH_DIR)/arch-csky-drivers $(LINUX_DIR)/
-    awk '/:= drivers/{print $$0,"arch-csky-drivers/";next}{print $$0}' \
-        $(LINUX_DIR)/Makefile 1<>$(LINUX_DIR)/Makefile
-```
-  ref:https://gitlab.com/c-sky/buildroot/blob/master/linux/linux-ext-csky-arch.mk
-
-* You can use buildroot to quick start with simple steps:
-
-```sh
-    $ git clone https://gitlab.com/c-sky/buildroot.git
-    $ cd buildroot
-    $ make qemu_csky_ck810_uclibc_bt_defconfig
-    $ make
-```
-
