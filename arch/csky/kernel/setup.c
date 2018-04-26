@@ -105,6 +105,10 @@ void __init setup_arch(char **cmdline_p)
 
 	cpu_dt_probe();
 
+#ifdef CONFIG_SMP
+	setup_smp();
+#endif
+
 	sparse_init();
 
 #ifdef CONFIG_HIGHMEM
@@ -137,6 +141,10 @@ asmlinkage __visible void __init csky_start(
 	flush_tlb_all();
 	pgd_init((unsigned long *)swapper_pg_dir);
 	TLBMISS_HANDLER_SETUP_PGD(swapper_pg_dir);
+
+#ifdef CONFIG_SMP
+	TLBMISS_HANDLER_SETUP_PGD_KERNEL(swapper_pg_dir);
+#endif
 
 	asid_cache(smp_processor_id()) = ASID_FIRST_VERSION;
 

@@ -68,16 +68,22 @@ static inline void tlb_invalid_indexed(void)
 	mtcr("cr<8, 15>", 0x02000000);
 }
 
-/* misc */
+/* setup hardrefil pgd */
+static inline unsigned long get_pgd(void)
+{
+	return mfcr("cr<29, 15>");
+}
+
 static inline void setup_pgd(unsigned long pgd)
 {
 	mtcr("cr<29, 15>", pgd);
 	mtcr("cr<28, 15>", pgd);
 }
 
-static inline unsigned long get_pgd(void)
+static inline void setup_pgd_kernel(unsigned long pgd)
 {
-	return mfcr("cr<29, 15>");
+	mtcr("cr<28, 15>", pgd);
 }
+
 #endif /* __ASM_CSKY_CKMMUV2_H */
 

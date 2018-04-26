@@ -25,26 +25,41 @@ __init void cpu_dt_probe(void)
 	setup_cpu_msa();
 }
 
-static int c_show(struct seq_file *m, void *v)
+static void percpu_print(void *arg)
 {
-	seq_printf(m, "C-SKY CPU : %s\n", CSKYCPU_DEF_NAME);
+	struct seq_file *m = (struct seq_file *)arg;
+
+	seq_printf(m, "processor       : %d\n", smp_processor_id());
+	seq_printf(m, "C-SKY CPU model : %s\n", CSKYCPU_DEF_NAME);
 
 	/* Read 4 times to get all the cpuid info */
-	seq_printf(m, "cpu ver[0]: 0x%08x\n", mfcr("cr13"));
-	seq_printf(m, "cpu ver[1]: 0x%08x\n", mfcr("cr13"));
-	seq_printf(m, "cpu ver[2]: 0x%08x\n", mfcr("cr13"));
-	seq_printf(m, "cpu ver[3]: 0x%08x\n", mfcr("cr13"));
+	seq_printf(m, "product info[0] : 0x%08x\n", mfcr("cr13"));
+	seq_printf(m, "product info[1] : 0x%08x\n", mfcr("cr13"));
+	seq_printf(m, "product info[2] : 0x%08x\n", mfcr("cr13"));
+	seq_printf(m, "product info[3] : 0x%08x\n", mfcr("cr13"));
 
-	seq_printf(m, "ccr reg   : 0x%08x\n", mfcr("cr18"));
-	seq_printf(m, "ccr2 reg  : 0x%08x\n", mfcr_ccr2());
-	seq_printf(m, "hint reg  : 0x%08x\n", mfcr_hint());
-	seq_printf(m, "msa0 reg  : 0x%08x\n", mfcr_msa0());
-	seq_printf(m, "msa1 reg  : 0x%08x\n", mfcr_msa1());
+	seq_printf(m, "mpid reg        : 0x%08x\n", mfcr("cr30"));
+	seq_printf(m, "ccr reg         : 0x%08x\n", mfcr("cr18"));
+	seq_printf(m, "ccr2 reg        : 0x%08x\n", mfcr_ccr2());
+	seq_printf(m, "hint reg        : 0x%08x\n", mfcr_hint());
+	seq_printf(m, "msa0 reg        : 0x%08x\n", mfcr_msa0());
+	seq_printf(m, "msa1 reg        : 0x%08x\n", mfcr_msa1());
 	seq_printf(m, "\n");
+}
+
+static int c_show(struct seq_file *m, void *v)
+{
+	int cpu;
+
+	for_each_online_cpu(cpu)
+		smp_call_function_single(cpu, percpu_print, m, true);
+
 #ifdef CSKY_ARCH_VERSION
+	seq_printf(m, "\n");
 	seq_printf(m, "arch-version : %s\n", CSKY_ARCH_VERSION);
 	seq_printf(m, "\n");
 #endif
+
 	return 0;
 }
 

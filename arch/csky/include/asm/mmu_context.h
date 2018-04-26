@@ -28,6 +28,19 @@ static inline unsigned long tlb_get_pgd(void)
 }
 #define TLBMISS_HANDLER_SETUP_PGD(pgd) tlbmiss_handler_setup_pgd((unsigned long)pgd)
 
+#ifdef CONFIG_SMP
+/* misc */
+static inline void tlbmiss_handler_setup_pgd_kernel(unsigned long pgd)
+{
+	pgd &= ~(1<<31);
+	pgd += PHYS_OFFSET;
+	pgd |= 1;
+	setup_pgd_kernel(pgd);
+}
+
+#define TLBMISS_HANDLER_SETUP_PGD_KERNEL(pgd) tlbmiss_handler_setup_pgd_kernel((unsigned long)pgd)
+#endif
+
 #define cpu_context(cpu, mm)	((mm)->context.asid[cpu])
 #define cpu_asid(cpu, mm)	(cpu_context((cpu), (mm)) & ASID_MASK)
 #define asid_cache(cpu)		(cpu_data[cpu].asid_cache)

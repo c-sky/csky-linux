@@ -25,18 +25,22 @@ ENTRY(csky_\name)
 	mtcr    r6, ss3
 	mtcr    a2, ss4
 
+	RD_PGDR	r6
 	RD_MEH	a3
 #ifdef CONFIG_CPU_HAS_TLBI
 	tlbi.va	a3
 	sync.is
+
+	btsti	a3, 31
+	bf	1f
+	RD_PGDR_K r6
+1:
 #else
 	bgeni	a2, 31
 	WR_MCIR	a2
 	bgeni	a2, 25
 	WR_MCIR	a2
 #endif
-
-	RD_PGDR	r6
 	bclri   r6, 0
 	lrw	a2, PHYS_OFFSET
 	subu	r6, a2
@@ -110,7 +114,9 @@ tlbop_begin tlbinvalids, _PAGE_WRITE, PAGE_DIRTY_BIT, PAGE_MODIFIED_BIT
 tlbop_end 1
 
 tlbop_begin tlbmodified, _PAGE_WRITE, PAGE_DIRTY_BIT, PAGE_MODIFIED_BIT
+#ifndef CONFIG_CPU_HAS_LDSTEX
 jbsr csky_cmpxchg_fixup
+#endif
 tlbop_end 1
 
 ENTRY(csky_systemcall)

@@ -37,6 +37,9 @@ asmlinkage void csky_tlbinvalidl(void);
 asmlinkage void csky_tlbinvalids(void);
 asmlinkage void csky_tlbmodified(void);
 
+/* Defined in head.S */
+asmlinkage void _start_smp_secondary(void);
+
 void __init pre_trap_init(void)
 {
 	int i;
@@ -71,6 +74,12 @@ void __init trap_init (void)
 
 #ifdef CONFIG_CPU_HAS_FPU
 	init_fpu();
+#endif
+
+#ifdef CONFIG_SMP
+	mtcr("cr<28, 0>", (unsigned int)vec_base & 0x7fffffff);
+
+	VEC_INIT(VEC_RESET, (void *)((unsigned int)_start_smp_secondary & 0x7fffffff));
 #endif
 }
 

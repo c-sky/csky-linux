@@ -15,6 +15,7 @@ config CSKY
 	select GENERIC_IRQ_PROBE
 	select GENERIC_IRQ_SHOW
 	select GENERIC_SCHED_CLOCK
+	select GENERIC_SMP_IDLE_THREAD
 	select HAVE_ARCH_TRACEHOOK
 	select HAVE_GENERIC_DMA_COHERENT
 	select HAVE_KERNEL_GZIP
@@ -47,6 +48,11 @@ config CPU_HAS_HILO
 config CPU_HAS_TLBI
 	bool
 
+config CPU_HAS_LDSTEX
+	bool
+	help
+	  For SMP cpu need "ldex&stex" instrcutions to keep atomic.
+
 config CPU_NEED_TLBSYNC
 	bool
 
@@ -72,10 +78,6 @@ config GENERIC_HWEIGHT
 config MMU
 	bool
 	default y
-
-config NR_CPUS
-	int
-	default "1"
 
 config RWSEM_GENERIC_SPINLOCK
 	bool
@@ -119,6 +121,7 @@ config CPU_CK860
 	bool "CSKY CPU ck860"
 	select CPU_HAS_TLBI
 	select CPU_HAS_CACHEV2
+	select CPU_HAS_LDSTEX
 endchoice
 
 config CPU_TLB_SIZE
@@ -150,6 +153,17 @@ menuconfig CPU_HAS_FPU
 	  The function of FPC is to provide low-cost high-speed float point computation,
 	  which is full compliance with ANSI/IEEE Std 754, IEEE Standard for Binary
 	  Floating-Point Arithmetic.
+
+config SMP
+	bool "Symmetric Multi-Processing (SMP) support for C-SKY"
+	depends on CPU_CK860
+	default n
+
+config NR_CPUS
+	int "Maximum number of CPUs (2-32)"
+	range 2 32
+	depends on SMP
+	default "4"
 
 comment "*****System type*****"
 

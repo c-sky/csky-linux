@@ -11,6 +11,36 @@
  * If *ptr != oldval && return 1,
  * else *ptr = newval return 0.
  */
+#ifdef CONFIG_CPU_HAS_LDSTEX
+ENTRY(csky_cmpxchg)
+	USPTOKSP
+	mfcr	a3, epc
+	INCTRAP	a3
+
+	subi    sp, 8
+	stw     a3, (sp, 0)
+	mfcr    a3, epsr
+	stw     a3, (sp, 4)
+
+	psrset	ee
+1:
+	ldex	a3, (a2)
+	cmpne	a0, a3
+	bt16	2f
+	mov	a3, a1
+	stex	a3, (a2)
+	bez	a3, 1b
+2:
+	mvc	a0
+	ldw	a3, (sp, 0)
+	mtcr	a3, epc
+	ldw     a3, (sp, 4)
+	mtcr	a3, epsr
+	addi	sp, 8
+	KSPTOUSP
+	rte
+END(csky_cmpxchg)
+#else
 ENTRY(csky_cmpxchg)
 	USPTOKSP
 	mfcr	a3, epc
@@ -52,4 +82,5 @@ ENTRY(csky_cmpxchg_fixup)
 1:
 	rts
 END(csky_cmpxchg_fixup)
+#endif
 

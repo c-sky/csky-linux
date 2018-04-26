@@ -131,7 +131,11 @@
 .endm
 
 .macro RD_PGDR  rx
-        mfcr    \rx, cr<29, 15>
+	mfcr    \rx, cr<29, 15>
+.endm
+
+.macro RD_PGDR_K  rx
+	mfcr    \rx, cr<28, 15>
 .endm
 
 .macro WR_MEH	rx

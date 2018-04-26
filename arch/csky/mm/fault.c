@@ -69,6 +69,7 @@ asmlinkage void do_page_fault(struct pt_regs *regs, unsigned long write,
 
         info.si_code = SEGV_MAPERR;
 
+#ifndef CONFIG_CPU_HAS_TLBI
         /*
          * We fault-in kernel-space virtual memory on-demand. The
          * 'reference' page table is init_mm.pgd.
@@ -79,8 +80,46 @@ asmlinkage void do_page_fault(struct pt_regs *regs, unsigned long write,
          * nothing more.
          */
         if (unlikely(address >= VMALLOC_START && address <= VMALLOC_END))
-                goto vmalloc_fault;
+        {
+                /*
+                 * Synchronize this task's top level page-table
+                 * with the 'reference' page table.
+                 *
+                 * Do _not_ use "tsk" here. We might be inside
+                 * an interrupt in the middle of a task switch..
+                 */
+                int offset = __pgd_offset(address);
+                pgd_t *pgd, *pgd_k;
+                pud_t *pud, *pud_k;
+                pmd_t *pmd, *pmd_k;
+                pte_t *pte_k;
 
+                unsigned long pgd_base;
+		pgd_base = tlb_get_pgd();
+                pgd = (pgd_t *)pgd_base + offset;
+                pgd_k = init_mm.pgd + offset;
+
+                if (!pgd_present(*pgd_k))
+                        goto no_context;
+                set_pgd(pgd, *pgd_k);
+
+                pud = (pud_t *)pgd;
+                pud_k = (pud_t *)pgd_k;
+                if (!pud_present(*pud_k))
+                        goto no_context;
+
+                pmd = pmd_offset(pud, address);
+                pmd_k = pmd_offset(pud_k, address);
+                if (!pmd_present(*pmd_k))
+                        goto no_context;
+                set_pmd(pmd, *pmd_k);
+
+                pte_k = pte_offset_kernel(pmd_k, address);
+                if (!pte_present(*pte_k))
+                        goto no_context;
+                return;
+        }
+#endif
         /*
          * If we're in an interrupt or have no user
          * context, we must not take the fault..
@@ -202,45 +241,5 @@ do_sigbus:
         force_sig_info(SIGBUS, &info, tsk);
 
         return;
-vmalloc_fault:
-        {
-                /*
-                 * Synchronize this task's top level page-table
-                 * with the 'reference' page table.
-                 *
-                 * Do _not_ use "tsk" here. We might be inside
-                 * an interrupt in the middle of a task switch..
-                 */
-                int offset = __pgd_offset(address);
-                pgd_t *pgd, *pgd_k;
-                pud_t *pud, *pud_k;
-                pmd_t *pmd, *pmd_k;
-                pte_t *pte_k;
-
-                unsigned long pgd_base;
-		pgd_base = tlb_get_pgd();
-                pgd = (pgd_t *)pgd_base + offset;
-                pgd_k = init_mm.pgd + offset;
-
-                if (!pgd_present(*pgd_k))
-                        goto no_context;
-                set_pgd(pgd, *pgd_k);
-
-                pud = (pud_t *)pgd;
-                pud_k = (pud_t *)pgd_k;
-                if (!pud_present(*pud_k))
-                        goto no_context;
-
-                pmd = pmd_offset(pud, address);
-                pmd_k = pmd_offset(pud_k, address);
-                if (!pmd_present(*pmd_k))
-                        goto no_context;
-                set_pmd(pmd, *pmd_k);
-
-                pte_k = pte_offset_kernel(pmd_k, address);
-                if (!pte_present(*pte_k))
-                        goto no_context;
-                return;
-        }
 }
 

@@ -75,6 +75,7 @@ restore_sigframe(struct pt_regs *regs,
 	err |= copy_from_user(regs, &sc->sc_pt_regs, sizeof(struct pt_regs));
 
 	err |= restore_fpu_state(sc);
+
 	*pr2 = regs->a0;
 	return err;
 }

@@ -13,6 +13,7 @@
 #include <asm/io.h>
 #include <asm/traps.h>
 #include <asm/reg_ops.h>
+#include <asm/smp.h>
 
 static void __iomem *INTCG_base;
 static void __iomem *INTCL_base;
@@ -26,6 +27,7 @@ static void __iomem *INTCL_base;
 #define INTCG_CIDSTR	0x1000
 
 #define INTCL_PICTLR	0x0
+#define INTCL_SIGR	0x60
 #define INTCL_RDYIR	0x6c
 #define INTCL_SENR	0xa0
 #define INTCL_CENR	0xa4
@@ -35,58 +37,60 @@ static void __iomem *INTCL_base;
 
 #define INTC_ICR_AVE	BIT(31)
 
-struct csky_irq_v2_data {
-	struct irq_chip		chip;
-	struct irq_domain	*domain;
-	void __iomem		*intcl_reg;
-	int			cpuid;
-	char			name[20];
-};
-DEFINE_PER_CPU(struct csky_irq_v2_data, csky_irq_v2_data);
+DEFINE_PER_CPU(void __iomem *, intcl_reg);
 
 static void csky_irq_v2_handler(struct pt_regs *regs)
 {
-	struct irq_domain	*domain;
 	static void __iomem	*reg_base;
 	irq_hw_number_t		hwirq;
 
-	domain = this_cpu_ptr(&csky_irq_v2_data)->domain;
-	reg_base = this_cpu_ptr(&csky_irq_v2_data)->intcl_reg;
+	reg_base = *this_cpu_ptr(&intcl_reg);
 
 	hwirq = readl_relaxed(reg_base + INTCL_RDYIR);
-	handle_domain_irq(domain, hwirq, regs);
+	handle_domain_irq(NULL, hwirq, regs);
 }
 
 static void csky_irq_v2_enable(struct irq_data *d)
 {
-	struct csky_irq_v2_data *data = irq_data_get_irq_chip_data(d);
+	static void __iomem	*reg_base;
 
-	writel_relaxed(d->hwirq, data->intcl_reg + INTCL_SENR);
+	reg_base = *this_cpu_ptr(&intcl_reg);
+
+	writel_relaxed(d->hwirq, reg_base + INTCL_SENR);
 }
 
 static void csky_irq_v2_disable(struct irq_data *d)
 {
-	struct csky_irq_v2_data *data = irq_data_get_irq_chip_data(d);
+	static void __iomem	*reg_base;
 
-	writel_relaxed(d->hwirq, data->intcl_reg + INTCL_CENR);
+	reg_base = *this_cpu_ptr(&intcl_reg);
+
+	writel_relaxed(d->hwirq, reg_base + INTCL_CENR);
 }
 
 static void csky_irq_v2_eoi(struct irq_data *d)
 {
-	struct csky_irq_v2_data *data = irq_data_get_irq_chip_data(d);
+	static void __iomem	*reg_base;
+	reg_base = *this_cpu_ptr(&intcl_reg);
 
-	writel_relaxed(d->hwirq, data->intcl_reg + INTCL_CACR);
+	writel_relaxed(d->hwirq, reg_base + INTCL_CACR);
 }
+
+static struct irq_chip csky_irq_chip = {
+	.name           = "C-SKY SMP Intc V2",
+	.irq_eoi	= csky_irq_v2_eoi,
+	.irq_enable	= csky_irq_v2_enable,
+	.irq_disable	= csky_irq_v2_disable,
+};
 
 static int csky_irqdomain_map(struct irq_domain *d, unsigned int irq,
 			      irq_hw_number_t hwirq)
 {
-	struct csky_irq_v2_data *data = d->host_data;
-
-	irq_set_chip_and_handler(irq, &data->chip, handle_fasteoi_irq);
-	irq_set_chip_data(irq, data);
-	irq_set_noprobe(irq);
-	irq_set_affinity(irq, cpumask_of(data->cpuid));
+	if(hwirq < 32) {
+		irq_set_percpu_devid(irq);
+		irq_set_chip_and_handler(irq, &csky_irq_chip, handle_percpu_irq);
+	} else
+		irq_set_chip_and_handler(irq, &csky_irq_chip, handle_fasteoi_irq);
 
 	return 0;
 }
@@ -96,11 +100,26 @@ static const struct irq_domain_ops csky_irqdomain_ops = {
 	.xlate	= irq_domain_xlate_onecell,
 };
 
+#ifdef CONFIG_SMP
+static void csky_irq_v2_send_ipi(const unsigned long *mask, unsigned long irq)
+{
+	static void __iomem	*reg_base;
+
+	reg_base = *this_cpu_ptr(&intcl_reg);
+
+	/*
+	 * INTCL_SIGR[3:0] INTID
+	 * INTCL_SIGR[8:15] CPUMASK
+	 */
+	writel_relaxed((*mask) << 8 | irq, reg_base + INTCL_SIGR);
+}
+#endif
+
 static int __init
 csky_intc_v2_init(struct device_node *node, struct device_node *parent)
 {
-	int cpuid = 0;
-	struct csky_irq_v2_data *data;
+	struct irq_domain *root_domain;
+	int cpu;
 
 	if (parent)
 		return 0;
@@ -115,28 +134,24 @@ csky_intc_v2_init(struct device_node *node, struct device_node *parent)
 		writel_relaxed(BIT(0), INTCG_base + INTCG_ICTLR);
 	}
 
-
-	//cpuid = csky_of_processor_cpuid(node->parent);
-	if (cpuid < 0)
-		return -EIO;
-
-	data = &per_cpu(csky_irq_v2_data, cpuid);
-	snprintf(data->name, sizeof(data->name), "csky,intc-v2,cpu-%d", cpuid);
-	data->cpuid = cpuid;
-	data->intcl_reg = INTCL_base + (INTCL_SIZE * cpuid);
-	data->chip.name = data->name;
-	data->chip.irq_eoi = csky_irq_v2_eoi;
-	data->chip.irq_enable = csky_irq_v2_enable;
-	data->chip.irq_disable = csky_irq_v2_disable;
-	data->domain = irq_domain_add_linear(node, INTC_IRQS,
-					     &csky_irqdomain_ops, data);
-
-	writel_relaxed(BIT(0), data->intcl_reg + INTCL_PICTLR);
-
-	if (!data->domain)
+	root_domain = irq_domain_add_linear(node, INTC_IRQS,
+					&csky_irqdomain_ops, NULL);
+	if (!root_domain)
 		return -ENXIO;
 
+	irq_set_default_host(root_domain);
+
+	/* for every cpu */
+	for_each_present_cpu(cpu) {
+		per_cpu(intcl_reg, cpu) = INTCL_base + (INTCL_SIZE * cpu);
+		writel_relaxed(BIT(0), per_cpu(intcl_reg, cpu) + INTCL_PICTLR);
+	}
+
 	set_handle_irq(&csky_irq_v2_handler);
+
+#ifdef CONFIG_SMP
+	set_send_ipi(&csky_irq_v2_send_ipi);
+#endif
 
 	return 0;
 }

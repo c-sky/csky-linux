@@ -18,6 +18,7 @@ struct thread_info {
 	mm_segment_t		addr_limit;
 	struct restart_block	restart_block;
 	struct pt_regs		*regs;
+	unsigned int		cpu;
 };
 
 #define INIT_THREAD_INFO(tsk)			\
@@ -25,6 +26,7 @@ struct thread_info {
 	.task		= &tsk,			\
 	.preempt_count  = INIT_PREEMPT_COUNT,	\
 	.addr_limit     = KERNEL_DS,		\
+	.cpu		= 0,			\
 	.restart_block = {			\
 		.fn = do_no_restart_syscall,	\
 	},					\

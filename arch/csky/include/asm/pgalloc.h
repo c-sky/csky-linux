@@ -64,7 +64,6 @@ static inline struct page *pte_alloc_one(struct mm_struct *mm,
         return pte;
 }
 
-
 static inline void pte_free_kernel(struct mm_struct *mm, pte_t *pte)
 {
         free_pages((unsigned long)pte, PTE_ORDER);
