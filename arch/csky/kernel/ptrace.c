@@ -82,11 +82,17 @@ static int gpr_set(struct task_struct *target,
 		    const void *kbuf, const void __user *ubuf)
 {
 	int ret;
-	struct pt_regs *regs;
+	struct pt_regs regs;
 
-	regs = task_pt_regs(target);
 	ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf, &regs, 0, -1);
-	return ret;
+	if (ret)
+		return ret;
+
+	regs.sr = task_pt_regs(target)->sr;
+
+	*task_pt_regs(target) = regs;
+
+	return 0;
 }
 
 static int fpr_get(struct task_struct *target,
@@ -109,7 +115,7 @@ static int fpr_set(struct task_struct *target,
 	struct user_fp *regs;
 
 	regs = (struct user_fp *)&target->thread.user_fp;
-	ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf, &regs, 0, -1);
+	ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf, regs, 0, -1);
 	return ret;
 }
 
