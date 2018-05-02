@@ -23,32 +23,7 @@
 #define __ARCH_WANT_SYS_VFORK
 #define __ARCH_WANT_SYS_WAITPID
 
-#undef	__NR_rt_sigreturn
-#undef	__NR_getppid
-
 #include <asm-generic/unistd.h>
-
-/*
- * __NR_rt_sigreturn must be 173
- * Because gcc/config/csky/linux-unwind.h use hard-code 173
- * to parse rt_sigframe.
- * FIXME: Stupid copy from arm :( I'll rewrite the vdso.
- */
-#if __NR_rt_sigreturn != 139
-#error __NR_rt_sigreturn has changed.
-#endif
-
-#if __NR_getppid != 173
-#error __NR_getppid has changed.
-#endif
-
-#undef	__NR_rt_sigreturn
-#define	__NR_rt_sigreturn 173
-__SC_COMP(__NR_rt_sigreturn, sys_rt_sigreturn, compat_sys_rt_sigreturn)
-
-#undef	__NR_getppid
-#define	__NR_getppid 139
-__SYSCALL(__NR_getppid, sys_getppid)
 
 /*
  * other define
