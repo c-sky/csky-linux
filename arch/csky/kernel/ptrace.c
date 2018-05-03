@@ -36,7 +36,6 @@ static void singlestep_disable(struct task_struct *tsk)
 	regs->sr = (regs->sr & TRACE_MODE_MASK) | TRACE_MODE_RUN;
 }
 
-
 static void singlestep_enable(struct task_struct *tsk)
 {
 	struct pt_regs *regs;
@@ -73,6 +72,10 @@ static int gpr_get(struct task_struct *target,
 	struct pt_regs *regs;
 
 	regs = task_pt_regs(target);
+
+	/* Abiv1 regs->tls is fake and we need sync here. */
+	regs->tls = task_thread_info(target)->tp_value;
+
 	return user_regset_copyout(&pos, &count, &kbuf, &ubuf, regs, 0, -1);
 }
 
@@ -90,6 +93,8 @@ static int gpr_set(struct task_struct *target,
 
 	regs.sr = task_pt_regs(target)->sr;
 
+	task_thread_info(target)->tp_value = regs.tls;
+
 	*task_pt_regs(target) = regs;
 
 	return 0;
@@ -103,6 +108,7 @@ static int fpr_get(struct task_struct *target,
 	struct user_fp *regs;
 
 	regs = (struct user_fp *)&target->thread.user_fp;
+
 	return user_regset_copyout(&pos, &count, &kbuf, &ubuf, regs, 0, -1);
 }
 
@@ -115,7 +121,9 @@ static int fpr_set(struct task_struct *target,
 	struct user_fp *regs;
 
 	regs = (struct user_fp *)&target->thread.user_fp;
+
 	ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf, regs, 0, -1);
+
 	return ret;
 }
 
