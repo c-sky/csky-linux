@@ -13,9 +13,9 @@
 
 #define IS_BSR32(hi16, lo16)        (((hi16) & 0xFC00) == 0xE000)
 #define IS_JSRI32(hi16, lo16)       ((hi16) == 0xEAE0)
-#define CHANGE_JSRI_TO_LRW(addr)    *(uint16_t *)(addr) = (*(uint16_t *)(addr) & 0xFF9F) | 0x0019; \
+#define CHANGE_JSRI_TO_LRW(addr)    *(uint16_t *)(addr) = (*(uint16_t *)(addr) & 0xFF9F) | 0x001a; \
 							  *((uint16_t *)(addr) + 1) = *((uint16_t *)(addr) + 1) & 0xFFFF
-#define SET_JSR32_R25(addr)         *(uint16_t *)(addr) = 0xE8F9; \
+#define SET_JSR32_R26(addr)         *(uint16_t *)(addr) = 0xE8Fa; \
 							  *((uint16_t *)(addr) + 1) = 0x0000;
 
 int apply_relocate_add(Elf32_Shdr *sechdrs, const char *strtab,
@@ -57,10 +57,10 @@ int apply_relocate_add(Elf32_Shdr *sechdrs, const char *strtab,
 			if (IS_BSR32(*location_tmp, *(location_tmp + 1)))
 				break;
 			else if (IS_JSRI32(*location_tmp, *(location_tmp + 1))) {
-				/* jsri 0x...  --> lrw r25, 0x... */
+				/* jsri 0x...  --> lrw r26, 0x... */
 				CHANGE_JSRI_TO_LRW(location);
-				/* lsli r0, r0 --> jsr r25 */
-				SET_JSR32_R25(location + 1);
+				/* lsli r0, r0 --> jsr r26 */
+				SET_JSR32_R26(location + 1);
 			}
 #endif
 			break;
