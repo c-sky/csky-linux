@@ -1,19 +1,9 @@
-# C-SKY Linux Port
+# C-SKY Linux Arch Porting
 
-* Directory arch/csky is the C-SKY Linux Porting.
+* Directory arch/csky is the C-SKY Linux Arch Porting.
 * Directory arch/arch-csky-drivers is the drivers of interrupt-controller and timer.
 
 # How to use
-* Download the linux-4.9 or linux-4.16 from kernel.org.
-* Copy the arch/csky & arch/arch-csky-drivers to the linux/arch directory.
-```sh
-    cp -raf $(CSKY_ARCH_DIR)/arch/csky $(LINUX_DIR)/arch/
-    cp -raf $(CSKY_ARCH_DIR)/arch-csky-drivers $(LINUX_DIR)/
-    awk '/:= drivers/{print $$0,"arch-csky-drivers/";next}{print $$0}' \
-        $(LINUX_DIR)/Makefile 1<>$(LINUX_DIR)/Makefile
-```
-  ref:https://gitlab.com/c-sky/buildroot/blob/master/linux/linux-ext-csky-arch.mk
-
 * You also can use buildroot to quick start with simple steps:
 
 ```sh
