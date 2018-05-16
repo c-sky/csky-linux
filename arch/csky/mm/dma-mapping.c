@@ -72,48 +72,34 @@ static inline void __dma_sync(
 
 static int csky_dma_map_sg(
 	struct device *dev,
-	struct scatterlist *sg,
-	int nents,
-	enum dma_data_direction direction,
+	struct scatterlist *sglist,
+	int nelems,
+	enum dma_data_direction dir,
 	unsigned long attrs
 	)
 {
+	struct scatterlist *sg;
 	int i;
 
-	BUG_ON(direction == DMA_NONE);
+	for_each_sg(sglist, sg, nelems, i)
+		sg->dma_address = dma_map_page_attrs(dev, sg_page(sg), sg->offset, sg->length, dir, attrs);
 
-	for (i = 0; i < nents; i++, sg++) {
-		unsigned long addr;
-
-		addr = (unsigned long) sg_virt(sg);
-		if (addr)
-			__dma_sync(addr, sg->length, direction);
-		sg->dma_address = virt_to_phys((void *)addr);
-	}
-
-	return nents;
+	return nelems;
 }
 
-void csky_dma_unmap_sg(
+static void csky_dma_unmap_sg(
 	struct device *dev,
-	struct scatterlist *sg,
-	int nhwentries,
-	enum dma_data_direction direction,
+	struct scatterlist *sglist,
+	int nelems,
+	enum dma_data_direction dir,
 	unsigned long attrs
 	)
 {
-	unsigned long addr;
+	struct scatterlist *sg;
 	int i;
 
-	BUG_ON(direction == DMA_NONE);
-
-	for (i = 0; i < nhwentries; i++, sg++) {
-		if (direction != DMA_TO_DEVICE) {
-			addr = (unsigned long) sg_virt(sg);
-			if (addr)
-				__dma_sync(addr, sg->length, direction);
-		}
-	}
+	for_each_sg(sglist, sg, nelems, i)
+		dma_unmap_page_attrs(dev, sg_dma_address(sg), sg_dma_len(sg), dir, attrs);
 }
 
 static dma_addr_t csky_dma_map_page(
@@ -126,8 +112,6 @@ static dma_addr_t csky_dma_map_page(
 	)
 {
 	unsigned long addr;
-
-	BUG_ON(direction == DMA_NONE);
 
 	addr = (unsigned long) page_address(page) + offset;
 
@@ -146,76 +130,54 @@ static void csky_dma_unmap_page(
 {
 	unsigned long addr;
 
-	BUG_ON(direction == DMA_NONE);
-
 	addr = (unsigned long)phys_to_virt((unsigned long)dma_handle);
 	__dma_sync(addr, size, direction);
 }
 
-static void csky_dma_sync_single_for_cpu(
+static void csky_dma_sync_single_for_all(
 	struct device *dev,
-	dma_addr_t dma_handle,
+	dma_addr_t handle,
 	size_t size,
-	enum dma_data_direction direction
+	enum dma_data_direction dir
 	)
 {
+	unsigned int offset = handle & (PAGE_SIZE - 1);
+	struct page *page = pfn_to_page(__phys_to_pfn(handle));
 	unsigned long addr;
 
-	BUG_ON(direction == DMA_NONE);
+	addr = (unsigned long) page_address(page) + offset;
 
-	addr = (unsigned long)phys_to_virt((unsigned long)dma_handle);
-	__dma_sync(addr, size, direction);
-}
-
-static void csky_dma_sync_single_for_device(
-	struct device *dev,
-	dma_addr_t dma_handle,
-	size_t size,
-	enum dma_data_direction direction
-	)
-{
-	unsigned long addr;
-
-	BUG_ON(direction == DMA_NONE);
-
-	addr = (unsigned long)phys_to_virt((unsigned long)dma_handle);
-	__dma_sync(addr, size, direction);
+	__dma_sync(addr, size, dir);
 }
 
 static void csky_dma_sync_sg_for_cpu(
 	struct device *dev,
-	struct scatterlist *sg,
+	struct scatterlist *sglist,
 	int nelems,
 	enum dma_data_direction direction
 	)
 {
 	int i;
+	struct scatterlist *sg;
 
-	BUG_ON(direction == DMA_NONE);
-
-	/* Make sure that gcc doesn't leave the empty loop body.  */
-	for (i = 0; i < nelems; i++, sg++) {
+	for_each_sg(sglist, sg, nelems, i)
 		__dma_sync((unsigned long)page_address(sg_page(sg)),
 				sg->length, direction);
-	}
 }
 
 static void csky_dma_sync_sg_for_device(
 	struct device *dev,
-	struct scatterlist *sg,
+	struct scatterlist *sglist,
 	int nelems,
 	enum dma_data_direction direction
 	)
 {
 	int i;
+	struct scatterlist *sg;
 
-	BUG_ON(direction == DMA_NONE);
-
-	/* Make sure that gcc doesn't leave the empty loop body.  */
-	for (i = 0; i < nelems; i++, sg++) {
+	for_each_sg(sglist, sg, nelems, i)
 		__dma_sync((unsigned long)page_address(sg_page(sg)),
 				sg->length, direction);
-	}
 }
 
 int csky_dma_mapping_error(struct device *dev, dma_addr_t dma_addr)
@@ -225,7 +187,7 @@ int csky_dma_mapping_error(struct device *dev, dma_addr_t dma_addr)
 
 int csky_dma_supported(struct device *dev, u64 mask)
 {
-	return 1;
+	return DMA_BIT_MASK(32);
 }
 
 struct dma_map_ops csky_dma_map_ops = {
@@ -238,8 +200,8 @@ struct dma_map_ops csky_dma_map_ops = {
 
 	.map_sg			= csky_dma_map_sg,
 	.unmap_sg		= csky_dma_unmap_sg,
-	.sync_single_for_cpu	= csky_dma_sync_single_for_cpu,
-	.sync_single_for_device	= csky_dma_sync_single_for_device,
+	.sync_single_for_cpu	= csky_dma_sync_single_for_all,
+	.sync_single_for_device	= csky_dma_sync_single_for_all,
 	.sync_sg_for_cpu	= csky_dma_sync_sg_for_cpu,
 	.sync_sg_for_device	= csky_dma_sync_sg_for_device,
 
