@@ -70,38 +70,6 @@ static inline void __dma_sync(
 	}
 }
 
-static int csky_dma_map_sg(
-	struct device *dev,
-	struct scatterlist *sglist,
-	int nelems,
-	enum dma_data_direction dir,
-	unsigned long attrs
-	)
-{
-	struct scatterlist *sg;
-	int i;
-
-	for_each_sg(sglist, sg, nelems, i)
-		sg->dma_address = dma_map_page_attrs(dev, sg_page(sg), sg->offset, sg->length, dir, attrs);
-
-	return nelems;
-}
-
-static void csky_dma_unmap_sg(
-	struct device *dev,
-	struct scatterlist *sglist,
-	int nelems,
-	enum dma_data_direction dir,
-	unsigned long attrs
-	)
-{
-	struct scatterlist *sg;
-	int i;
-
-	for_each_sg(sglist, sg, nelems, i)
-		dma_unmap_page_attrs(dev, sg_dma_address(sg), sg_dma_len(sg), dir, attrs);
-}
-
 static dma_addr_t csky_dma_map_page(
 	struct device *dev,
 	struct page *page,
@@ -132,6 +100,38 @@ static void csky_dma_unmap_page(
 
 	addr = (unsigned long)phys_to_virt((unsigned long)dma_handle);
 	__dma_sync(addr, size, direction);
+}
+
+static int csky_dma_map_sg(
+	struct device *dev,
+	struct scatterlist *sglist,
+	int nelems,
+	enum dma_data_direction dir,
+	unsigned long attrs
+	)
+{
+	struct scatterlist *sg;
+	int i;
+
+	for_each_sg(sglist, sg, nelems, i)
+		sg->dma_address = csky_dma_map_page(dev, sg_page(sg), sg->offset, sg->length, dir, attrs);
+
+	return nelems;
+}
+
+static void csky_dma_unmap_sg(
+	struct device *dev,
+	struct scatterlist *sglist,
+	int nelems,
+	enum dma_data_direction dir,
+	unsigned long attrs
+	)
+{
+	struct scatterlist *sg;
+	int i;
+
+	for_each_sg(sglist, sg, nelems, i)
+		csky_dma_unmap_page(dev, sg_dma_address(sg), sg_dma_len(sg), dir, attrs);
 }
 
 static void csky_dma_sync_single_for_all(
