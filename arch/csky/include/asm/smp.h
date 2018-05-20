@@ -1,10 +1,6 @@
 #ifndef __ASM_CSKY_SMP_H
 #define __ASM_CSKY_SMP_H
 
-#ifndef GENERATING_ASM_OFFSETS
-#include <asm/asm-offsets.h>
-#endif
-
 #include <linux/cpumask.h>
 #include <linux/irqreturn.h>
 #include <linux/threads.h>

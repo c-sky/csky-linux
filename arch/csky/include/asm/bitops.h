@@ -3,6 +3,8 @@
 #ifndef __ASM_CSKY_BITOPS_H
 #define __ASM_CSKY_BITOPS_H
 
+#include <linux/compiler.h>
+
 /*
  * asm-generic/bitops/ffs.h
  */

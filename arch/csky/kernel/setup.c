@@ -142,7 +142,7 @@ asmlinkage __visible void __init csky_start(
 	pgd_init((unsigned long *)swapper_pg_dir);
 	TLBMISS_HANDLER_SETUP_PGD(swapper_pg_dir);
 
-#ifdef CONFIG_SMP
+#ifdef CONFIG_CPU_HAS_TLBI
 	TLBMISS_HANDLER_SETUP_PGD_KERNEL(swapper_pg_dir);
 #endif
 
