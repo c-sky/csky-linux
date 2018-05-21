@@ -28,7 +28,7 @@ static inline unsigned long tlb_get_pgd(void)
 }
 #define TLBMISS_HANDLER_SETUP_PGD(pgd) tlbmiss_handler_setup_pgd((unsigned long)pgd)
 
-#ifdef CONFIG_SMP
+#ifdef CONFIG_CPU_HAS_TLBI
 /* misc */
 static inline void tlbmiss_handler_setup_pgd_kernel(unsigned long pgd)
 {
