@@ -77,7 +77,6 @@ static inline unsigned long get_pgd(void)
 static inline void setup_pgd(unsigned long pgd)
 {
 	mtcr("cr<29, 15>", pgd);
-	mtcr("cr<28, 15>", pgd);
 }
 
 static inline void setup_pgd_kernel(unsigned long pgd)
