@@ -18,12 +18,14 @@
 static void __iomem *INTCG_base;
 static void __iomem *INTCL_base;
 
-#define INTC_SIZE	0x10000
+#define COMM_IRQ_BASE	32
+
 #define INTCG_SIZE	0x8000
 #define INTCL_SIZE	0x1000
+#define INTC_SIZE	INTCL_SIZE*nr_cpu_ids + INTCG_SIZE
 
 #define INTCG_ICTLR	0x0
-#define INTCG_CICFGR	0x80
+#define INTCG_CICFGR	0x100
 #define INTCG_CIDSTR	0x1000
 
 #define INTCL_PICTLR	0x0
@@ -71,22 +73,52 @@ static void csky_irq_v2_disable(struct irq_data *d)
 static void csky_irq_v2_eoi(struct irq_data *d)
 {
 	static void __iomem	*reg_base;
+
 	reg_base = *this_cpu_ptr(&intcl_reg);
 
 	writel_relaxed(d->hwirq, reg_base + INTCL_CACR);
 }
+
+#ifdef CONFIG_SMP
+static int csky_irq_set_affinity(struct irq_data *d,
+				 const struct cpumask *mask_val,
+				 bool force)
+{
+	unsigned int cpu;
+
+	if (!force)
+		cpu = cpumask_any_and(mask_val, cpu_online_mask);
+	else
+		cpu = cpumask_first(mask_val);
+
+	if (cpu >= nr_cpu_ids)
+		return -EINVAL;
+
+	/* Enable interrupt destination */
+	cpu |= BIT(31);
+
+	writel_relaxed(cpu, INTCG_base + INTCG_CIDSTR + (4*(d->hwirq - COMM_IRQ_BASE)));
+
+	irq_data_update_effective_affinity(d, cpumask_of(cpu));
+
+	return IRQ_SET_MASK_OK_DONE;
+}
+#endif
 
 static struct irq_chip csky_irq_chip = {
 	.name           = "C-SKY SMP Intc V2",
 	.irq_eoi	= csky_irq_v2_eoi,
 	.irq_enable	= csky_irq_v2_enable,
 	.irq_disable	= csky_irq_v2_disable,
+#ifdef CONFIG_SMP
+	.irq_set_affinity = csky_irq_set_affinity,
+#endif
 };
 
 static int csky_irqdomain_map(struct irq_domain *d, unsigned int irq,
 			      irq_hw_number_t hwirq)
 {
-	if(hwirq < 32) {
+	if(hwirq < COMM_IRQ_BASE) {
 		irq_set_percpu_devid(irq);
 		irq_set_chip_and_handler(irq, &csky_irq_chip, handle_percpu_irq);
 	} else
