@@ -215,7 +215,7 @@ get_regs_value(unsigned int rx, struct pt_regs *regs)
 	}else if(rx == 15){
 		value = regs->lr;
 	}else{
-		value = *((int *)regs + rx + 1);
+		value = *((int *)&(regs->a0) - 2 + rx);
 	}
 
 	return value;
@@ -231,7 +231,7 @@ put_regs_value(unsigned int value, unsigned int rx, struct pt_regs *regs){
 	}else if(rx == 15){
 		regs->lr = value;
 	}else{
-		*((int *)regs + rx + 1) = value;
+		*((int *)&(regs->a0) - 2 + rx) = value;
 	}
 	return 0;
 fault:
