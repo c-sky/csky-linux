@@ -126,7 +126,14 @@ asmlinkage void trap_c(struct pt_regs *regs)
 			info.si_code = TRAP_TRACE;
 			sig = SIGTRAP;
 			break;
-
+		case VEC_ILLEGAL:
+#ifndef CONFIG_CPU_NO_USER_BKPT
+		if (*(uint16_t *)instruction_pointer(regs) != 0x1464)
+#endif
+		{
+			sig = SIGILL;
+			break;
+		}
 		/* gdbserver  breakpoint */
 		case VEC_TRAP1:
 		/* jtagserver breakpoint */
@@ -147,7 +154,7 @@ asmlinkage void trap_c(struct pt_regs *regs)
 			if(fpu_libc_helper(regs)) return;
 #endif
 		default:
-			sig = SIGILL;
+			sig = SIGSEGV;
 			break;
 	}
 	send_sig(sig, current, 0);

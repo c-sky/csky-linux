@@ -59,6 +59,15 @@ config CPU_NEED_TLBSYNC
 config CPU_NEED_SOFTALIGN
 	bool
 
+config CPU_NO_USER_BKPT
+	bool
+	help
+	  For abiv2 we couldn't use "trap 1" as user space bkpt in gdbserver, because
+	  abiv2 is 16/32bit instruction set and "trap 1" is 32bit.
+	  So we need a 16bit instruction as user space bkpt, and it will cause a illegal
+	  instruction exception.
+	  In kernel we parse the *regs->pc to determine wether send SIGTRAP or not.
+
 config GENERIC_CALIBRATE_DELAY
 	bool
 	default y
@@ -107,6 +116,7 @@ config CPU_CK610
 	bool "CSKY CPU ck610"
 	select CPU_NEED_TLBSYNC
 	select CPU_NEED_SOFTALIGN
+	select CPU_NO_USER_BKPT
 
 config CPU_CK810
 	bool "CSKY CPU ck810"
