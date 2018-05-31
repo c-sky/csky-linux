@@ -6,7 +6,7 @@
 #ifndef __ASSEMBLY__
 
 #define nop()	asm volatile ("nop")
-#define mb()	asm volatile ("sync":::"memory")
+#define mb()	asm volatile ("sync.is":::"memory")
 
 #include <asm-generic/barrier.h>
 

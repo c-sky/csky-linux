@@ -21,6 +21,7 @@ static inline void arch_spin_lock(arch_spinlock_t *lock)
 		: "=&r" (tmp)
 		: "r"(p)
 		: "memory");
+	smp_mb();
 }
 
 static inline void arch_spin_unlock(arch_spinlock_t *lock)
@@ -28,6 +29,7 @@ static inline void arch_spin_unlock(arch_spinlock_t *lock)
 	unsigned int *p = &lock->lock;
 	unsigned int tmp;
 
+	smp_mb();
 	asm volatile (
 		"1:	ldex.w		%0, (%1) \n"
 		"	movi		%0, 0    \n"
@@ -54,6 +56,7 @@ static inline int arch_spin_trylock(arch_spinlock_t *lock)
 		: "=&r" (tmp)
 		: "r"(p)
 		: "memory");
+	smp_mb();
 
 	return !tmp;
 }
@@ -73,6 +76,7 @@ static inline void arch_read_lock(arch_rwlock_t *lock)
 		: "=&r" (tmp)
 		: "r"(p)
 		: "memory");
+	smp_mb();
 }
 
 static inline void arch_read_unlock(arch_rwlock_t *lock)
@@ -80,6 +84,7 @@ static inline void arch_read_unlock(arch_rwlock_t *lock)
 	unsigned int *p = &lock->lock;
 	unsigned int tmp;
 
+	smp_mb();
 	asm volatile (
 		"1:	ldex.w		%0, (%1) \n"
 		"	subi		%0, 1    \n"
@@ -106,6 +111,7 @@ static inline int arch_read_trylock(arch_rwlock_t *lock)
 		: "=&r" (tmp)
 		: "r"(p)
 		: "memory");
+	smp_mb();
 
 	return !tmp;
 }
@@ -125,6 +131,7 @@ static inline void arch_write_lock(arch_rwlock_t *lock)
 		: "=&r" (tmp)
 		: "r"(p)
 		: "memory");
+	smp_mb();
 }
 
 static inline void arch_write_unlock(arch_rwlock_t *lock)
@@ -132,6 +139,7 @@ static inline void arch_write_unlock(arch_rwlock_t *lock)
 	unsigned int *p = &lock->lock;
 	unsigned int tmp;
 
+	smp_mb();
 	asm volatile (
 		"1:	ldex.w		%0, (%1) \n"
 		"	movi		%0, 0    \n"
@@ -158,6 +166,7 @@ static inline int arch_write_trylock(arch_rwlock_t *lock)
 		: "=&r" (tmp)
 		: "r"(p)
 		: "memory");
+	smp_mb();
 
 	return !tmp;
 }
