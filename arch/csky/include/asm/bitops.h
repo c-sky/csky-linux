@@ -99,6 +99,7 @@ static inline void set_bit(int nr, volatile unsigned long *addr)
 		: "=&r"(tmp)
 		: "r"(mask), "r"(p)
 		: "memory");
+	smp_mb();
 }
 
 /**
@@ -127,6 +128,7 @@ static inline void clear_bit(int nr, volatile unsigned long *addr)
 		: "=&r"(tmp)
 		: "r"(mask), "r"(p)
 		: "memory");
+	smp_mb();
 }
 
 /**
@@ -154,6 +156,7 @@ static inline void change_bit(int nr, volatile unsigned long *addr)
 		: "=&r"(tmp)
 		: "r"(mask), "r"(p)
 		: "memory");
+	smp_mb();
 }
 
 /**
@@ -185,7 +188,8 @@ static inline int test_and_set_bit(int nr, volatile unsigned long *addr)
 		: "r"(mask), "r"(p)
 		: "memory");
 
-	mb();
+	smp_mb();
+
 	return (old & mask) != 0;
 }
 
@@ -219,7 +223,8 @@ static inline int test_and_clear_bit(int nr, volatile unsigned long *addr)
 		: "r"(mask_not), "r"(p)
 		: "memory");
 
-	mb();
+	smp_mb();
+
 	return (old & mask) != 0;
 }
 
@@ -251,7 +256,8 @@ static inline int test_and_change_bit(int nr, volatile unsigned long *addr)
 		: "r"(mask), "r"(p)
 		: "memory");
 
-	mb();
+	smp_mb();
+
 	return (old & mask) != 0;
 }
 

@@ -31,6 +31,7 @@ ENTRY(csky_cmpxchg)
 	stex	a3, (a2)
 	bez	a3, 1b
 2:
+	sync.is
 	mvc	a0
 	ldw	a3, (sp, 0)
 	mtcr	a3, epc

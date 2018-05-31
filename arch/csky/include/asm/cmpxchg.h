@@ -21,6 +21,7 @@
 			: "=&r" (__ret), "=&r" (tmp)		\
 			: "r" (__new), "r"(__ptr)		\
 			: "memory");				\
+		smp_mb();					\
 		break;						\
 	default:						\
 		BUILD_BUG();					\
@@ -50,6 +51,7 @@
 			: "=&r" (__ret), "=&r" (__tmp)		\
 			: "r" (__new), "r"(__ptr), "r"(__old)	\
 			: "memory");				\
+		smp_mb();					\
 		break;						\
 	default:						\
 		BUILD_BUG();					\
