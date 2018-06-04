@@ -204,6 +204,8 @@ static int stw_c(struct pt_regs *regs, uint32_t rz, uint32_t addr)
 	return 0;
 }
 
+extern int fixup_exception(struct pt_regs *regs);
+
 #define OP_LDH 0xc000
 #define OP_STH 0xd000
 #define OP_LDW 0x8000
@@ -268,6 +270,9 @@ void csky_alignment(struct pt_regs *regs)
 
 bad_area:
 	if (!user_mode(regs)) {
+		if (fixup_exception(regs))
+			return;
+
 		bust_spinlocks(1);
 		pr_alert("%s opcode: %x, rz: %d, rx: %d, imm: %d, addr: %x.\n",
 		          __func__, opcode, rz, rx, imm, addr);
