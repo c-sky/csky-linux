@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0
 // Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
 #include <linux/types.h>
+#include <linux/highmem.h>
 #include <linux/mm.h>
 #include <linux/dma-mapping.h>
 #include <linux/scatterlist.h>
@@ -52,22 +53,32 @@ static void csky_dma_free(
 	free_pages(addr, get_order(size));
 }
 
-static inline void __dma_sync(
-	unsigned long addr,
+static void __dma_sync(
+	void *va,
+	struct page *page,
+	unsigned long offset,
 	size_t size,
 	enum dma_data_direction direction)
 {
+	unsigned long vaddr = (unsigned long) va;
+
+	if (va == NULL && PageHighMem(page))
+		vaddr = (unsigned long) kmap_atomic(page);
+
 	switch (direction) {
 	case DMA_TO_DEVICE:
-		dma_wb_range(addr, addr+size);
+		dma_wb_range(vaddr + offset, vaddr + offset + size);
 		break;
 	case DMA_FROM_DEVICE:
 	case DMA_BIDIRECTIONAL:
-		dma_wbinv_range(addr, addr+size);
+		dma_wbinv_range(vaddr + offset, vaddr + offset + size);
 		break;
 	default:
 		BUG();
 	}
+
+	if (va == NULL && PageHighMem(page))
+		kunmap_atomic((void *) vaddr);
 }
 
 static dma_addr_t csky_dma_map_page(
@@ -79,27 +90,23 @@ static dma_addr_t csky_dma_map_page(
 	unsigned long attrs
 	)
 {
-	unsigned long addr;
-
-	addr = (unsigned long) page_address(page) + offset;
-
-	__dma_sync(addr, size, direction);
+	__dma_sync(page_address(page), page, offset, size, direction);
 
 	return page_to_phys(page) + offset;
 }
 
 static void csky_dma_unmap_page(
 	struct device *dev,
-	dma_addr_t dma_handle,
+	dma_addr_t handle,
 	size_t size,
 	enum dma_data_direction direction,
 	unsigned long attrs
 	)
 {
-	unsigned long addr;
+	unsigned long offset = handle & ~PAGE_MASK;
+	struct page *page = pfn_to_page(__phys_to_pfn(handle));
 
-	addr = (unsigned long)phys_to_virt((unsigned long)dma_handle);
-	__dma_sync(addr, size, direction);
+	__dma_sync(page_address(page), page, offset, size, direction);
 }
 
 static int csky_dma_map_sg(
@@ -141,13 +148,10 @@ static void csky_dma_sync_single_for_all(
 	enum dma_data_direction dir
 	)
 {
-	unsigned int offset = handle & (PAGE_SIZE - 1);
+	unsigned int offset = handle & ~PAGE_MASK;
 	struct page *page = pfn_to_page(__phys_to_pfn(handle));
-	unsigned long addr;
 
-	addr = (unsigned long) page_address(page) + offset;
-
-	__dma_sync(addr, size, dir);
+	__dma_sync(page_address(page), page, offset, size, dir);
 }
 
 static void csky_dma_sync_sg_for_cpu(
@@ -161,8 +165,8 @@ static void csky_dma_sync_sg_for_cpu(
 	struct scatterlist *sg;
 
 	for_each_sg(sglist, sg, nelems, i)
-		__dma_sync((unsigned long)page_address(sg_page(sg)),
-				sg->length, direction);
+		__dma_sync(page_address(sg_page(sg)), sg_page(sg), 0,
+			   sg->length, direction);
 }
 
 static void csky_dma_sync_sg_for_device(
@@ -176,8 +180,8 @@ static void csky_dma_sync_sg_for_device(
 	struct scatterlist *sg;
 
 	for_each_sg(sglist, sg, nelems, i)
-		__dma_sync((unsigned long)page_address(sg_page(sg)),
-				sg->length, direction);
+		__dma_sync(page_address(sg_page(sg)), sg_page(sg), 0,
+			   sg->length, direction);
 }
 
 int csky_dma_mapping_error(struct device *dev, dma_addr_t dma_addr)
