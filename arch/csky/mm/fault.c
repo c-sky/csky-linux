@@ -25,24 +25,11 @@
 
 extern void die_if_kernel(char *, struct pt_regs *, long);
 
-static inline int delay_slot(struct pt_regs *regs)
-{
-        return 0;
-}
-
-static inline unsigned long exception_epc(struct pt_regs *regs)
-{
-        if (!delay_slot(regs))
-                return regs->pc;
-
-        return regs->pc + 4;
-}
-
 int fixup_exception(struct pt_regs *regs)
 {
         const struct exception_table_entry *fixup;
 
-        fixup = search_exception_tables(exception_epc(regs));
+        fixup = search_exception_tables(instruction_pointer(regs));
         if (fixup) {
                 regs->pc = fixup->nextinsn;
 
