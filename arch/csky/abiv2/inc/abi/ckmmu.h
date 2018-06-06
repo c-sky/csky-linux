@@ -57,7 +57,7 @@ static inline void tlb_read(void)
 static inline void tlb_invalid_all(void)
 {
 #ifdef CONFIG_CPU_HAS_TLBI
-	asm volatile("tlbi.all\n");
+	asm volatile("tlbi.alls\n");
 #else
 	mtcr("cr<8, 15>", 0x04000000);
 #endif

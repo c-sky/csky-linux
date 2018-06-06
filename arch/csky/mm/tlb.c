@@ -49,7 +49,7 @@ void flush_tlb_range(struct vm_area_struct *vma, unsigned long start,
 			end &= (PAGE_MASK << 1);
 #ifdef CONFIG_CPU_HAS_TLBI
 			while (start < end) {
-				asm volatile("tlbi.va %0"::"r"(start):);
+				asm volatile("tlbi.alls"::"r"(start):);
 				start += (PAGE_SIZE << 1);
 			}
 			asm volatile("sync.is\n");
@@ -90,7 +90,7 @@ void flush_tlb_kernel_range(unsigned long start, unsigned long end)
 		end &= (PAGE_MASK << 1);
 #ifdef CONFIG_CPU_HAS_TLBI
 		while (start < end) {
-			asm volatile("tlbi.va %0"::"r"(start):);
+			asm volatile("tlbi.alls"::"r"(start):);
 			start += (PAGE_SIZE << 1);
 		}
 		asm volatile("sync.is\n");
@@ -123,7 +123,7 @@ void flush_tlb_page(struct vm_area_struct *vma, unsigned long page)
 		page &= (PAGE_MASK << 1);
 
 #ifdef CONFIG_CPU_HAS_TLBI
-		asm volatile("tlbi.va %0"::"r"(page):);
+		asm volatile("tlbi.alls"::"r"(page):);
 		asm volatile("sync.is\n");
 #else
 		{
@@ -154,7 +154,7 @@ void flush_tlb_one(unsigned long page)
 	page &= (PAGE_MASK << 1);
 
 #ifdef CONFIG_CPU_HAS_TLBI
-	asm volatile("tlbi.va %0"::"r"(page):);
+	asm volatile("tlbi.alls"::"r"(page):);
 	asm volatile("sync.is\n");
 #else
 	{
