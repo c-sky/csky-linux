@@ -64,7 +64,8 @@ static void cache_op_range(
 		l2_sync = 0;
 
 	spin_lock_irqsave(&cache_lock, flags);
-	for(i = start; i < end; i += L1_CACHE_BYTES) {
+	i = start & ~(L1_CACHE_BYTES - 1);
+	for(; i < end; i += L1_CACHE_BYTES) {
 		cache_op_line(i, val);
 		if (l2_sync) {
 			SYNC;
