@@ -5,6 +5,18 @@
 #include <asm/barrier.h>
 
 #define arch_spin_is_locked(x)	(READ_ONCE((x)->lock) != 0)
+#ifdef CSKY_DEBUG_WITH_KERNEL_4_9
+#define arch_spin_lock_flags(lock, flags)  arch_spin_lock(lock)
+#define arch_read_lock_flags(lock, flags)  arch_read_lock(lock)
+#define arch_write_lock_flags(lock, flags) arch_write_lock(lock)
+
+static inline void arch_spin_unlock_wait(arch_spinlock_t *lock)
+{
+	smp_mb();
+	while(arch_spin_is_locked(lock));
+	smp_mb();
+}
+#endif
 
 /****** spin lock/unlock/trylock ******/
 static inline void arch_spin_lock(arch_spinlock_t *lock)

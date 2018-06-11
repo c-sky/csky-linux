@@ -12,8 +12,19 @@
 #include <linux/irq.h>
 #include <linux/irqdomain.h>
 #include <linux/of.h>
+#ifndef CSKY_DEBUG_WITH_KERNEL_4_9
 #include <linux/sched/task_stack.h>
 #include <linux/sched/mm.h>
+#else
+static inline void mmgrab(struct mm_struct *mm)
+{
+	atomic_inc(&mm->mm_count);
+}
+static inline void mmget(struct mm_struct *mm)
+{
+	atomic_inc(&mm->mm_users);
+}
+#endif
 #include <asm/irq.h>
 #include <asm/traps.h>
 #include <asm/sections.h>

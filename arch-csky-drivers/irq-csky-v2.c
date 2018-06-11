@@ -80,6 +80,12 @@ static void csky_irq_v2_eoi(struct irq_data *d)
 }
 
 #ifdef CONFIG_SMP
+#ifdef CSKY_DEBUG_WITH_KERNEL_4_9
+static inline void irq_data_update_effective_affinity(struct irq_data *d,
+						      const struct cpumask *m)
+{
+}
+#endif
 static int csky_irq_set_affinity(struct irq_data *d,
 				 const struct cpumask *mask_val,
 				 bool force)
