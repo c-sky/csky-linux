@@ -28,9 +28,7 @@ ENTRY(_start_smp_secondary)
 	addi	a3, (1<<4) | 3
 	mtcr	a3, cr17
 
-	/* invalid TLB */
-	bgeni   a3, 26
-	mtcr	a3, cr<8, 15>
+	tlbi.all
 
 	/* setup PAGEMASK */
 	movi	a3, 0
@@ -54,6 +52,12 @@ _start_smp_pc:
 	/* write TLB */
 	bgeni   a3, 28
 	mtcr	a3, cr<8, 15>
+
+	/* setup msa0 & msa1 */
+	lrw	a3, PHYS_OFFSET | 0x8e
+	mtcr	a3, cr<30, 15>
+	lrw	a3, PHYS_OFFSET | 0x26
+	mtcr	a3, cr<31, 15>
 
 	/* enable MMU */
 	movi	a3, 1

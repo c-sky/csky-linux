@@ -17,7 +17,7 @@ jiffies = jiffies_64 + 4;
 
 SECTIONS
 {
-	. = PAGE_OFFSET + CONFIG_RAM_BASE;
+	. = PAGE_OFFSET + PHYS_OFFSET_OFFSET;
 
 	_stext = .;
 	__init_begin = .;

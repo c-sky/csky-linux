@@ -9,11 +9,9 @@
 
 static __init void setup_cpu_msa(void)
 {
-	if (memblock_start_of_DRAM() != (PHYS_OFFSET + CONFIG_RAM_BASE)) {
-		pr_err("C-SKY: dts-DRAM doesn't fit .config: %x-%x.\n",
-			memblock_start_of_DRAM(),
-			PHYS_OFFSET + CONFIG_RAM_BASE);
-		return;
+	if (memblock_start_of_DRAM() != CONFIG_RAM_BASE) {
+		panic("dts-ram-start doesn't equal CONFIG_RAM_BASE in .config: %x-%x.\n",
+			memblock_start_of_DRAM(), CONFIG_RAM_BASE);
 	}
 
 	mtcr_msa0(PHYS_OFFSET | 0xe);

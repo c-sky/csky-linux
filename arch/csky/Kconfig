@@ -177,16 +177,9 @@ config NR_CPUS
 
 comment "*****System type*****"
 
-config SSEG0_BASE
-	hex "Direct mapping physical address"
-	default 0x0
-	help
-	  There are MSAx regs can be used to change the base physical address
-	  of direct mapping. The default base physical address is 0x0.
-
 config RAM_BASE
-	hex "DRAM base address offset from SSEG0_BASE, it must be the same with dts memory."
-	default 0x08000000
+	hex "It must be the same with the memory section in your dts"
+	default 0x0
 endmenu
 
 menu "Power management options"

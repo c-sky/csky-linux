@@ -77,9 +77,9 @@ void __init trap_init (void)
 #endif
 
 #ifdef CONFIG_SMP
-	mtcr("cr<28, 0>", (unsigned int)vec_base & 0x7fffffff);
+	mtcr("cr<28, 0>", virt_to_phys(vec_base));
 
-	VEC_INIT(VEC_RESET, (void *)((unsigned int)_start_smp_secondary & 0x7fffffff));
+	VEC_INIT(VEC_RESET, (void *)virt_to_phys(_start_smp_secondary));
 #endif
 }
 
