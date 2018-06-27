@@ -2,7 +2,11 @@ OBJCOPYFLAGS	:=-O binary
 GZFLAGS		:=-9
 
 ifdef CONFIG_CPU_HAS_FPU
-FPUEXT =f
+FPUEXT = f
+endif
+
+ifdef CONFIG_CPU_HAS_TRUSTZONE
+TRUSTZEXT = t
 endif
 
 ifdef CONFIG_CPU_CK610
@@ -11,17 +15,17 @@ CSKYABI	= abiv1
 endif
 
 ifdef CONFIG_CPU_CK810
-CPUTYPE = ck810$(FPUEXT)
+CPUTYPE = ck810$(FPUEXT)$(TRUSTZEXT)
 CSKYABI	= abiv2
 endif
 
 ifdef CONFIG_CPU_CK807
-CPUTYPE = ck807$(FPUEXT)
+CPUTYPE = ck807$(FPUEXT)$(TRUSTZEXT)
 CSKYABI	= abiv2
 endif
 
 ifdef CONFIG_CPU_CK860
-CPUTYPE = ck860$(FPUEXT)
+CPUTYPE = ck860$(FPUEXT)$(TRUSTZEXT)
 CSKYABI	= abiv2
 endif
 
@@ -62,12 +66,12 @@ libs-y += arch/csky/lib/ \
 	$(shell $(CC) $(KBUILD_CFLAGS) $(KCFLAGS) -print-libgcc-file-name)
 
 ifdef CONFIG_CSKY_BUILTIN_DTB
-core-y				+= arch/csky/boot/dts/
+core-y += arch/csky/boot/dts/
 endif
 
 all: zImage
 
-boot	:= arch/csky/boot
+boot := arch/csky/boot
 
 dtbs: scripts
 	$(Q)$(MAKE) $(build)=$(boot)/dts
