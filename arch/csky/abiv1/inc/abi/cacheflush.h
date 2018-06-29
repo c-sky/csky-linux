@@ -13,12 +13,14 @@ extern void flush_dcache_page(struct page *);
 #define flush_cache_mm(mm)		cache_wbinv_all()
 #define flush_cache_page(vma,page,pfn)	cache_wbinv_all()
 #define flush_cache_dup_mm(mm)		cache_wbinv_all()
-#define flush_icache_page(vma, page)	icache_inv_all()
 
 #define flush_cache_range(mm,start,end)	cache_wbinv_range(start, end)
 #define flush_cache_vmap(start, end)	cache_wbinv_range(start, end)
 #define flush_cache_vunmap(start, end)  cache_wbinv_range(start, end)
-#define flush_icache_range(start, end)	icache_inv_range(start, end)
+
+#define flush_icache_page(vma, page)	cache_wbinv_all()
+#define flush_icache_range(start, end)	cache_wbinv_range(start, end)
+#define flush_icache_user_range(vma,pg,adr,len)	cache_wbinv_range(adr, adr + len)
 
 #define copy_from_user_page(vma, page, vaddr, dst, src, len) \
 do{ \

@@ -199,7 +199,6 @@ no_context:
          * terminate things with extreme prejudice.
          */
         bust_spinlocks(1);
-
         printk(KERN_ALERT "Unable to handle kernel paging request at virtual "
                "address %08lx, epc == %08lx\n",
                address, regs->pc);

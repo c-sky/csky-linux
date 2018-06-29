@@ -27,27 +27,6 @@ void icache_inv_all(void)
 	SYNC;
 }
 
-static void dcache_wbinv_all_percpu(void *arg)
-{
-	asm volatile("dcache.ciall\n");
-	SYNC;
-}
-
-void dcache_wbinv_all(void)
-{
-	int cpu;
-
-	for_each_online_cpu(cpu)
-		smp_call_function_single(cpu, dcache_wbinv_all_percpu, NULL, true);
-
-}
-
-void cache_wbinv_all(void)
-{
-	dcache_wbinv_all();
-	icache_inv_all();
-}
-
 void dcache_wb_range(unsigned long start, unsigned long end)
 {
 	unsigned long i = start & ~(L1_CACHE_BYTES - 1);
@@ -63,6 +42,9 @@ void dcache_wbinv_range(unsigned long start, unsigned long end)
 
 	for (;i < end; i += L1_CACHE_BYTES) {
 		asm volatile("dcache.cval1 %0\n"::"r"(i));
+	}
+	SYNC;
+	for (;i < end; i += L1_CACHE_BYTES) {
 		asm volatile("dcache.iva %0\n"::"r"(i));
 	}
 	SYNC;
@@ -83,7 +65,13 @@ void cache_wbinv_range(unsigned long start, unsigned long end)
 
 	for (;i < end; i += L1_CACHE_BYTES) {
 		asm volatile("dcache.cval1 %0\n"::"r"(i));
+	}
+	SYNC;
+	for (;i < end; i += L1_CACHE_BYTES) {
 		asm volatile("dcache.iva %0\n"::"r"(i));
+	}
+	SYNC;
+	for (;i < end; i += L1_CACHE_BYTES) {
 		asm volatile("icache.iva %0\n"::"r"(i));
 	}
 	SYNC;

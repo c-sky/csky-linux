@@ -64,6 +64,7 @@ static void cache_op_range(
 		l2_sync = 0;
 
 	spin_lock_irqsave(&cache_lock, flags);
+
 	i = start & ~(L1_CACHE_BYTES - 1);
 	for(; i < end; i += L1_CACHE_BYTES) {
 		cache_op_line(i, val);
@@ -102,11 +103,6 @@ void dcache_wb_range(unsigned long start, unsigned long end)
 void dcache_wbinv_range(unsigned long start, unsigned long end)
 {
 	cache_op_range(start, end, DATA_CACHE|CACHE_CLR|CACHE_INV, 0);
-}
-
-void dcache_inv_range(unsigned long start, unsigned long end)
-{
-	cache_op_range(start, end, DATA_CACHE|CACHE_INV, 0);
 }
 
 void dcache_wbinv_all(void)

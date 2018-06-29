@@ -29,3 +29,23 @@ void flush_dcache_page(struct page *page)
 	dcache_wbinv_range(addr, addr + PAGE_SIZE);
 }
 
+void update_mmu_cache(struct vm_area_struct *vma, unsigned long address, pte_t *pte)
+{
+	unsigned long addr;
+	struct page *page;
+	unsigned long pfn;
+
+	pfn = pte_pfn(*pte);
+	if (unlikely(!pfn_valid(pfn)))
+		return;
+
+	page = pfn_to_page(pfn);
+	addr = (unsigned long) page_address(page);
+
+	if (vma->vm_flags & VM_EXEC ||
+	    pages_do_alias(addr, address & PAGE_MASK))
+		cache_wbinv_all();
+
+	clear_bit(PG_arch_1, &(page)->flags);
+}
+

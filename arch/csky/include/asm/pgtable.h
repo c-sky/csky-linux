@@ -281,25 +281,17 @@ static inline pte_t *pte_offset(pmd_t * dir, unsigned long address)
 extern pgd_t swapper_pg_dir[PTRS_PER_PGD];
 extern void paging_init(void);
 
-extern void __update_cache(struct vm_area_struct *vma, unsigned long address,
-		pte_t pte);
 extern void show_jtlb_table(void);
 
-static inline void update_mmu_cache(struct vm_area_struct *vma,
-		unsigned long address, pte_t *ptep)
-{
-	pte_t pte = *ptep;
-	__update_cache(vma, address, pte);
-}
+void update_mmu_cache(struct vm_area_struct *vma, unsigned long address, pte_t *pte);
 
 /* Needs to be defined here and not in linux/mm.h, as it is arch dependent */
-#define PageSkip(page)		(0)
 #define kern_addr_valid(addr)	(1)
 
 /*
  * No page table caches to initialise
  */
-#define pgtable_cache_init()	do{}while(0)
+#define pgtable_cache_init()	do {} while(0)
 
 #define io_remap_pfn_range(vma, vaddr, pfn, size, prot) \
 	remap_pfn_range(vma, vaddr, pfn, size, prot)
