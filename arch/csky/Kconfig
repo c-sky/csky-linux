@@ -159,8 +159,8 @@ menuconfig CPU_HAS_FPU
 	bool "CPU has FPU coprocessor"
 	depends on CPU_CK807 || CPU_CK810 || CPU_CK860
 
-menuconfig CPU_HAS_TRUSTZONE
-	bool "CPU has TRUST-ZONE"
+menuconfig CPU_HAS_TEE
+	bool "CPU has Trusted Execution Environment"
 	depends on CPU_CK810
 
 config SMP
