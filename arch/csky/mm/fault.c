@@ -174,14 +174,6 @@ bad_area_nosemaphore:
         if (user_mode(regs)) {
                 tsk->thread.address = address;
                 tsk->thread.error_code = write;
-#if 0
-                printk(KERN_ERR "do_page_fault() #2: sending SIGSEGV to %s for"
-                       "invalid %s\n%08lx (epc == %08lx)\n",
-                       tsk->comm,
-                       write ? "write access to" : "read access from",
-                       address,
-                       regs->pc);
-#endif
                 info.si_signo = SIGSEGV;
                 info.si_errno = 0;
                 /* info.si_code has been set above */
@@ -199,7 +191,7 @@ no_context:
          * terminate things with extreme prejudice.
          */
         bust_spinlocks(1);
-        printk(KERN_ALERT "Unable to handle kernel paging request at virtual "
+        pr_alert("Unable to handle kernel paging request at virtual "
                "address %08lx, epc == %08lx\n",
                address, regs->pc);
 	die_if_kernel("Oops", regs, write);

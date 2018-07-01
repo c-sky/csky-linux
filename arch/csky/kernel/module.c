@@ -73,8 +73,8 @@ int apply_relocate_add(Elf32_Shdr *sechdrs, const char *strtab,
 			*temp = (short)((rel[i].r_addend + sym->st_value) & 0xffff);
 			break;
 		default:
-			printk(KERN_ERR "module %s: Unknown relocation: %u\n",
-					me->name, ELF32_R_TYPE(rel[i].r_info));
+			pr_err("module %s: Unknown relocation: %u\n",
+				me->name, ELF32_R_TYPE(rel[i].r_info));
 			return -ENOEXEC;
 		}
 	}

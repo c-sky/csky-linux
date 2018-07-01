@@ -61,7 +61,7 @@ void __init mem_init(void)
 void free_initrd_mem(unsigned long start, unsigned long end)
 {
 	if (start < end)
-		printk(KERN_INFO "Freeing initrd memory: %ldk freed\n",
+		pr_info("Freeing initrd memory: %ldk freed\n",
                      (end - start) >> 10);
 
 	for (; start < end; start += PAGE_SIZE) {
@@ -88,7 +88,7 @@ void free_initmem(void)
 	        totalram_pages++;
 	        addr += PAGE_SIZE;
 	}
-	printk(KERN_INFO "Freeing unused kernel memory: %dk freed\n",
+	pr_info("Freeing unused kernel memory: %dk freed\n",
 	        ((unsigned int)&__init_end - (unsigned int)&__init_begin) >> 10);
 }
 

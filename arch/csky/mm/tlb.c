@@ -187,7 +187,7 @@ void show_jtlb_table(void)
 
 	local_irq_save(flags);
 	entry = 0;
-	printk("\n\n\n");
+	pr_info("\n\n\n");
 
 	oldpid = read_mmu_entryhi();
 	while (entry < CSKY_TLB_SIZE)
@@ -199,8 +199,8 @@ void show_jtlb_table(void)
 		entrylo0 = entrylo0;
 		entrylo1 = read_mmu_entrylo1();
 		entrylo1 = entrylo1;
-		printk("jtlb[%d]:	entryhi - 0x%x;	entrylo0 - 0x%x;"
-		       "	entrylo1 - 0x%x\n",
+		pr_info("jtlb[%d]:	entryhi - 0x%x;	entrylo0 - 0x%x;"
+		        "	entrylo1 - 0x%x\n",
 			 entry, entryhi, entrylo0, entrylo1);
 		entry++;
 	}

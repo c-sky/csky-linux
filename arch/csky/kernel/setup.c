@@ -136,7 +136,7 @@ asmlinkage __visible void __init csky_start(
 	pre_mmu_init();
 
 #ifdef CONFIG_CSKY_BUILTIN_DTB
-	printk("Use builtin dtb\n");
+	pr_info("Use builtin dtb\n");
 	early_init_dt_scan(__dtb_start);
 #else
 	early_init_dt_scan(param);
