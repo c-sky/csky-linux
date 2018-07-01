@@ -99,3 +99,24 @@ void pgd_init(unsigned long *p)
 		p[i] = __pa(invalid_pte_table);
 }
 
+void __init pre_mmu_init(void)
+{
+	/* Setup mmu as coprocessor */
+	select_mmu_cp();
+
+	/*
+	 * Setup page-table and enable TLB-hardrefill
+	 */
+	flush_tlb_all();
+	pgd_init((unsigned long *)swapper_pg_dir);
+	TLBMISS_HANDLER_SETUP_PGD(swapper_pg_dir);
+
+#ifdef CONFIG_CPU_HAS_TLBI
+	TLBMISS_HANDLER_SETUP_PGD_KERNEL(swapper_pg_dir);
+#endif
+
+	asid_cache(smp_processor_id()) = ASID_FIRST_VERSION;
+
+	/* Setup page mask to 4k */
+	write_mmu_pagemask(0);
+}

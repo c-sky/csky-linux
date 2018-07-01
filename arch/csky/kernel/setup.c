@@ -90,7 +90,8 @@ void __init setup_arch(char **cmdline_p)
 
 	console_verbose();
 
-	printk("C-SKY: https://c-sky.github.io\n");
+	pr_info("C-SKY: https://github.com/c-sky/csky-linux\n");
+	pr_info("Phys. mem: %ldMB\n", (unsigned long) memblock_phys_mem_size()/1024/1024);
 
 	init_mm.start_code = (unsigned long) _stext;
 	init_mm.end_code = (unsigned long) _etext;
@@ -121,6 +122,8 @@ void __init setup_arch(char **cmdline_p)
 }
 
 extern void pre_trap_init(void);
+extern void pre_mmu_init(void);
+
 asmlinkage __visible void __init csky_start(
 	unsigned int	unused,
 	void *		param
@@ -130,25 +133,7 @@ asmlinkage __visible void __init csky_start(
 	memset(__bss_start, 0, __bss_stop - __bss_start);
 
 	pre_trap_init();
-
-	/* Setup mmu as coprocessor */
-	select_mmu_cp();
-
-	/*
-	 * Setup page-table and enable TLB-hardrefill
-	 */
-	flush_tlb_all();
-	pgd_init((unsigned long *)swapper_pg_dir);
-	TLBMISS_HANDLER_SETUP_PGD(swapper_pg_dir);
-
-#ifdef CONFIG_CPU_HAS_TLBI
-	TLBMISS_HANDLER_SETUP_PGD_KERNEL(swapper_pg_dir);
-#endif
-
-	asid_cache(smp_processor_id()) = ASID_FIRST_VERSION;
-
-	/* Setup page mask to 4k */
-	write_mmu_pagemask(0);
+	pre_mmu_init();
 
 #ifdef CONFIG_CSKY_BUILTIN_DTB
 	printk("Use builtin dtb\n");
@@ -156,7 +141,6 @@ asmlinkage __visible void __init csky_start(
 #else
 	early_init_dt_scan(param);
 #endif
-	printk("Phys. mem: %ldMB\n", (unsigned long) memblock_phys_mem_size()/1024/1024);
 	start_kernel();
 
 	while(1);
