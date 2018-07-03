@@ -39,6 +39,7 @@ void flush_tlb_range(struct vm_area_struct *vma, unsigned long start,
 
 	if (cpu_context(cpu, mm) != 0) {
 		unsigned long size, flags;
+		int newpid = cpu_asid(cpu, mm);
 
 		local_irq_save(flags);
 		size = (end - start + (PAGE_SIZE - 1)) >> PAGE_SHIFT;
@@ -49,14 +50,13 @@ void flush_tlb_range(struct vm_area_struct *vma, unsigned long start,
 			end &= (PAGE_MASK << 1);
 #ifdef CONFIG_CPU_HAS_TLBI
 			while (start < end) {
-				asm volatile("tlbi.alls"::"r"(start):);
+				asm volatile("tlbi.vas %0"::"r"(start | newpid));
 				start += (PAGE_SIZE << 1);
 			}
 			asm volatile("sync.is\n");
 #else
 			{
 			int oldpid = read_mmu_entryhi();
-			int newpid = cpu_asid(cpu, mm);
 
 			while (start < end) {
 				int idx;
@@ -90,7 +90,7 @@ void flush_tlb_kernel_range(unsigned long start, unsigned long end)
 		end &= (PAGE_MASK << 1);
 #ifdef CONFIG_CPU_HAS_TLBI
 		while (start < end) {
-			asm volatile("tlbi.alls"::"r"(start):);
+			asm volatile("tlbi.vas %0"::"r"(start));
 			start += (PAGE_SIZE << 1);
 		}
 		asm volatile("sync.is\n");
@@ -118,19 +118,19 @@ void flush_tlb_kernel_range(unsigned long start, unsigned long end)
 void flush_tlb_page(struct vm_area_struct *vma, unsigned long page)
 {
 	int cpu = smp_processor_id();
+	int newpid = cpu_asid(cpu, vma->vm_mm);
 
 	if (!vma || cpu_context(cpu, vma->vm_mm) != 0) {
 		page &= (PAGE_MASK << 1);
 
 #ifdef CONFIG_CPU_HAS_TLBI
-		asm volatile("tlbi.alls"::"r"(page):);
+		asm volatile("tlbi.vas %0"::"r"(page | newpid));
 		asm volatile("sync.is\n");
 #else
 		{
-		int newpid, oldpid, idx;
+		int oldpid, idx;
 		unsigned long flags;
 		local_irq_save(flags);
-		newpid = cpu_asid(cpu, vma->vm_mm);
 		oldpid = read_mmu_entryhi();
 		write_mmu_entryhi(page | newpid);
 		tlb_probe();
@@ -154,7 +154,7 @@ void flush_tlb_one(unsigned long page)
 	page &= (PAGE_MASK << 1);
 
 #ifdef CONFIG_CPU_HAS_TLBI
-	asm volatile("tlbi.alls"::"r"(page):);
+	asm volatile("tlbi.vas %0"::"r"(page));
 	asm volatile("sync.is\n");
 #else
 	{
