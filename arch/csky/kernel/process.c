@@ -40,24 +40,12 @@ int copy_thread(unsigned long clone_flags,
 		unsigned long kthread_arg,
 		struct task_struct *p)
 {
-	struct switch_stack * childstack;
-	unsigned long reg_psr = 0;
+	struct switch_stack *childstack;
 	struct pt_regs *childregs = task_pt_regs(p);
-
-	preempt_disable();
-
-	reg_psr = mfcr("psr");
 
 #ifdef CONFIG_CPU_HAS_FPU
 	save_to_user_fp(&p->thread.user_fp);
 #endif
-#ifdef CONFIG_CPU_HAS_HILO
-	asm volatile(
-		"mfhi	%0 \n"
-		"mflo	%1 \n"
-		:"=r"(p->thread.hi),"=r"(p->thread.lo));
-#endif
-	preempt_enable();
 
 	childstack = ((struct switch_stack *) childregs) - 1;
 	memset(childstack, 0, sizeof(struct switch_stack));
@@ -70,22 +58,17 @@ int copy_thread(unsigned long clone_flags,
 		childstack->r15 = (unsigned long) ret_from_kernel_thread;
 		childstack->r8 = kthread_arg;
 		childstack->r9 = usp;
-		childregs->sr = reg_psr;
-
-		return 0;
+		childregs->sr = mfcr("psr");
 	} else {
 		*childregs = *(current_pt_regs());
+		if (usp)
+			childregs->usp = usp;
+		if (clone_flags & CLONE_SETTLS)
+			task_thread_info(p)->tp_value = childregs->tls
+						      = childregs->regs[0];
+
+		childregs->a0 = 0;
 		childstack->r15 = (unsigned long) ret_from_fork;
-	}
-
-	/* Return 0 for subprocess when return from fork(),vfork(),clone() */
-	childregs->a0 = 0;
-
-	if (usp != 0) childregs->usp = usp;
-
-	if (clone_flags & CLONE_SETTLS) {
-		task_thread_info(p)->tp_value = (current_pt_regs())->regs[0];
-		childregs->tls = task_thread_info(p)->tp_value;
 	}
 
 	return 0;

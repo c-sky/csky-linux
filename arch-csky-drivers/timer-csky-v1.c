@@ -25,11 +25,11 @@ static inline u64 get_ccvr(void)
 {
 	u32 lo, hi, t;
 
-	do {
-		hi = mfcr(PTIM_CCVR_HI);
-		lo = mfcr(PTIM_CCVR_LO);
-		t  = mfcr(PTIM_CCVR_HI);
-	} while(t != hi);
+	t  = mfcr(PTIM_CCVR_LO);
+	hi = mfcr(PTIM_CCVR_HI);
+	lo = mfcr(PTIM_CCVR_LO);
+
+	if (lo < t) hi++;
 
 	return ((u64)hi << 32) | lo;
 }
