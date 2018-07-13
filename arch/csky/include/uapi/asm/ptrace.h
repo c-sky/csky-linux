@@ -40,7 +40,7 @@ struct pt_regs {
 };
 
 struct user_fp {
-	unsigned long	vr[64];
+	unsigned long	vr[96];
 	unsigned long	fcr;
 	unsigned long	fesr;
 	unsigned long	fid;

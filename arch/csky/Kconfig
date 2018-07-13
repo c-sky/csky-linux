@@ -42,6 +42,9 @@ config CSKY
 config CPU_HAS_CACHEV2
 	bool
 
+config CPU_HAS_FPUV2
+	bool
+
 config CPU_HAS_HILO
 	bool
 
@@ -132,6 +135,7 @@ config CPU_CK860
 	select CPU_HAS_TLBI
 	select CPU_HAS_CACHEV2
 	select CPU_HAS_LDSTEX
+	select CPU_HAS_FPUV2
 endchoice
 
 config CPU_TLB_SIZE

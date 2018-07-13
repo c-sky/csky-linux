@@ -159,11 +159,10 @@ void fpu_fpe(struct pt_regs * regs)
 void save_to_user_fp(struct user_fp *user_fp)
 {
 	unsigned long flg;
-	unsigned long tmp1, tmp2, tmp3, tmp4;
+	unsigned long tmp1, tmp2;
 	unsigned long *fpregs;
 
 	local_save_flags(flg);
-
 
 	asm volatile(
 		"mfcr    %0, cr<1, 2> \n"
@@ -174,6 +173,17 @@ void save_to_user_fp(struct user_fp *user_fp)
 	user_fp->fesr = tmp2;
 
 	fpregs = &user_fp->vr[0];
+#ifdef CONFIG_CPU_HAS_FPUV2
+	asm volatile(
+		"vstmu.32    vr0-vr3,   (%0) \n"
+		"vstmu.32    vr4-vr7,   (%0) \n"
+		"vstmu.32    vr8-vr11,  (%0) \n"
+		"vstmu.32    vr12-vr15, (%0) \n"
+		"fstmu.64    vr16-vr31, (%0) \n"
+		:"+a"(fpregs));
+#else
+	{
+	unsigned long tmp3, tmp4;
 	asm volatile(
 		FMFVR_FPU_REGS(vr0, vr1)
 		STW_FPU_REGS(0, 4, 16, 20)
@@ -183,7 +193,7 @@ void save_to_user_fp(struct user_fp *user_fp)
 		STW_FPU_REGS(64, 68, 80, 84)
 		FMFVR_FPU_REGS(vr6, vr7)
 		STW_FPU_REGS(96, 100, 112, 116)
-		"addi    %4, 128\n"
+		"addi	%4, 128\n"
 		FMFVR_FPU_REGS(vr8, vr9)
 		STW_FPU_REGS(0, 4, 16, 20)
 		FMFVR_FPU_REGS(vr10, vr11)
@@ -194,6 +204,8 @@ void save_to_user_fp(struct user_fp *user_fp)
 		STW_FPU_REGS(96, 100, 112, 116)
 		:"=a"(tmp1),"=a"(tmp2),"=a"(tmp3),
 		"=a"(tmp4),"+a"(fpregs));
+	}
+#endif
 
 	local_irq_restore(flg);
 }
@@ -201,7 +213,7 @@ void save_to_user_fp(struct user_fp *user_fp)
 void restore_from_user_fp(struct user_fp *user_fp)
 {
 	unsigned long flg;
-	unsigned long tmp1, tmp2, tmp3, tmp4;
+	unsigned long tmp1, tmp2;
 	unsigned long *fpregs;
 
 	local_irq_save(flg);
@@ -215,6 +227,17 @@ void restore_from_user_fp(struct user_fp *user_fp)
 		::"r"(tmp1), "r"(tmp2));
 
 	fpregs = &user_fp->vr[0];
+#ifdef CONFIG_CPU_HAS_FPUV2
+	asm volatile(
+		"vldmu.32    vr0-vr3,   (%0) \n"
+		"vldmu.32    vr4-vr7,   (%0) \n"
+		"vldmu.32    vr8-vr11,  (%0) \n"
+		"vldmu.32    vr12-vr15, (%0) \n"
+		"fldmu.64    vr16-vr31, (%0) \n"
+		:"+a"(fpregs));
+#else
+	{
+	unsigned long tmp3, tmp4;
 	asm volatile(
 		LDW_FPU_REGS(0, 4, 16, 20)
 		FMTVR_FPU_REGS(vr0, vr1)
@@ -224,7 +247,7 @@ void restore_from_user_fp(struct user_fp *user_fp)
 		FMTVR_FPU_REGS(vr4, vr5)
 		LDW_FPU_REGS(96, 100, 112, 116)
 		FMTVR_FPU_REGS(vr6, vr7)
-		"addi   %4, 128\n"
+		"addi	%4, 128\n"
 		LDW_FPU_REGS(0, 4, 16, 20)
 		FMTVR_FPU_REGS(vr8, vr9)
 		LDW_FPU_REGS(32, 36, 48, 52)
@@ -235,8 +258,9 @@ void restore_from_user_fp(struct user_fp *user_fp)
 		FMTVR_FPU_REGS(vr14, vr15)
 		:"=a"(tmp1),"=a"(tmp2),"=a"(tmp3),
 		"=a"(tmp4),"+a"(fpregs));
+	}
+#endif
 
 	local_irq_restore(flg);
 }
-
 

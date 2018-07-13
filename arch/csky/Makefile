@@ -2,7 +2,11 @@ OBJCOPYFLAGS	:=-O binary
 GZFLAGS		:=-9
 
 ifdef CONFIG_CPU_HAS_FPU
+ifdef CONFIG_CPU_HAS_FPUV2
+FPUEXT = fv
+else
 FPUEXT = f
+endif
 endif
 
 ifdef CONFIG_CPU_HAS_TEE

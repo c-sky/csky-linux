@@ -11,9 +11,6 @@
 #include <asm/setup.h>
 #include <asm/page.h>
 #include <asm/thread_info.h>
-#ifdef CONFIG_CPU_HAS_FPU
-#include <abi/fpu.h>
-#endif
 
 #define PTE_INDX_MSK    0xffc
 #define PTE_INDX_SHIFT  10
@@ -357,10 +354,6 @@ ENTRY(__switch_to)
 
 	stw      sp, (a3, THREAD_KSP)   /* Save ksp in task struct */
 
-#ifdef CONFIG_CPU_HAS_FPU
-	FPU_SAVE_REGS
-#endif
-
 #ifdef CONFIG_CPU_HAS_HILO
 	lrw      r10, THREAD_DSPHI
 	add      r10, a3
@@ -377,10 +370,6 @@ ENTRY(__switch_to)
 	addu     a3, a1			/* a3 point to thread in next task_struct */
 
 	ldw      sp, (a3, THREAD_KSP)	/* Set next ksp */
-
-#ifdef CONFIG_CPU_HAS_FPU
-	FPU_RESTORE_REGS
-#endif
 
 #ifdef CONFIG_CPU_HAS_HILO
 	lrw      r10, THREAD_DSPHI

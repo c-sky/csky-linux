@@ -57,7 +57,6 @@ generic-y += sizes.h
 generic-y += socket.h
 generic-y += sockios.h
 generic-y += statfs.h
-generic-y += switch_to.h
 generic-y += termbits.h
 generic-y += termios.h
 generic-y += timex.h
