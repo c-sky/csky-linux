@@ -28,7 +28,7 @@ ENTRY(csky_\name)
 	RD_PGDR	r6
 	RD_MEH	a3
 #ifdef CONFIG_CPU_HAS_TLBI
-	tlbi.vas a3
+	tlbi.vaas a3
 	sync.is
 
 	btsti	a3, 31

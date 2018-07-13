@@ -58,6 +58,7 @@ static inline void tlb_invalid_all(void)
 {
 #ifdef CONFIG_CPU_HAS_TLBI
 	asm volatile("tlbi.alls\n");
+	asm volatile("sync.is\n");
 #else
 	mtcr("cr<8, 15>", 0x04000000);
 #endif

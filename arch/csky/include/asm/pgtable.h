@@ -119,6 +119,7 @@ static inline void set_pte(pte_t *p, pte_t pte)
 #if defined(CONFIG_CPU_NEED_TLBSYNC)
 	dcache_wb_line((u32)p);
 #endif
+	smp_mb();
 }
 #define set_pte_at(mm,addr,ptep,pteval) set_pte(ptep,pteval)
 
@@ -139,6 +140,7 @@ static inline void set_pmd(pmd_t *p, pmd_t pmd)
 #if defined(CONFIG_CPU_NEED_TLBSYNC)
 	dcache_wb_line((u32)p);
 #endif
+	smp_mb();
 }
 
 

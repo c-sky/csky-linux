@@ -28,7 +28,8 @@ ENTRY(_start_smp_secondary)
 	addi	a3, (1<<4) | 3
 	mtcr	a3, cr17
 
-	tlbi.all
+	tlbi.alls
+	sync.is
 
 	/* setup PAGEMASK */
 	movi	a3, 0
