@@ -91,6 +91,7 @@ static inline void set_bit(int nr, volatile unsigned long *addr)
 	unsigned long tmp;
 
 	/* *p  |= mask; */
+	smp_mb();
 	asm volatile (
 		"1:	ldex.w		%0, (%2)	\n"
 		"	or32		%0, %0, %1	\n"
@@ -120,6 +121,7 @@ static inline void clear_bit(int nr, volatile unsigned long *addr)
 
 	/* *p &= ~mask; */
 	mask = ~mask;
+	smp_mb();
 	asm volatile (
 		"1:	ldex.w		%0, (%2)	\n"
 		"	and32		%0, %0, %1	\n"
@@ -148,6 +150,7 @@ static inline void change_bit(int nr, volatile unsigned long *addr)
 	unsigned long tmp;
 
 	/* *p ^= mask; */
+	smp_mb();
 	asm volatile (
 		"1:	ldex.w		%0, (%2)	\n"
 		"	xor32		%0, %0, %1	\n"
@@ -178,6 +181,7 @@ static inline int test_and_set_bit(int nr, volatile unsigned long *addr)
 	 * old = *p;
 	 * *p = old | mask;
 	 */
+	smp_mb();
 	asm volatile (
 		"1:	ldex.w		%1, (%3)	\n"
 		"	mov		%0, %1		\n"
@@ -187,7 +191,6 @@ static inline int test_and_set_bit(int nr, volatile unsigned long *addr)
 		: "=&r"(tmp), "=&r"(old)
 		: "r"(mask), "r"(p)
 		: "memory");
-
 	smp_mb();
 
 	return (old & mask) != 0;
@@ -212,6 +215,7 @@ static inline int test_and_clear_bit(int nr, volatile unsigned long *addr)
 	 * old = *p;
 	 * *p = old & ~mask;
 	 */
+	smp_mb();
 	mask_not = ~mask;
 	asm volatile (
 		"1:	ldex.w		%1, (%3)	\n"
@@ -246,6 +250,7 @@ static inline int test_and_change_bit(int nr, volatile unsigned long *addr)
 	 * old = *p;
 	 * *p = old ^ mask;
 	 */
+	smp_mb();
 	asm volatile (
 		"1:	ldex.w		%1, (%3)	\n"
 		"	mov		%0, %1		\n"
@@ -255,7 +260,6 @@ static inline int test_and_change_bit(int nr, volatile unsigned long *addr)
 		: "=&r"(tmp), "=&r"(old)
 		: "r"(mask), "r"(p)
 		: "memory");
-
 	smp_mb();
 
 	return (old & mask) != 0;

@@ -13,6 +13,7 @@
 	unsigned long tmp;					\
 	switch (size) {						\
 	case 4:							\
+		smp_mb();					\
 		asm volatile (					\
 		"1:	ldex.w		%0, (%3) \n"		\
 		"	mov		%1, %2   \n"		\
@@ -40,6 +41,7 @@
 	__typeof__(*(ptr)) __ret;				\
 	switch (size) {						\
 	case 4:							\
+		smp_mb();					\
 		asm volatile (					\
 		"1:	ldex.w		%0, (%3) \n"		\
 		"	cmpne		%0, %4   \n"		\
