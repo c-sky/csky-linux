@@ -174,6 +174,7 @@ void save_to_user_fp(struct user_fp *user_fp)
 
 	fpregs = &user_fp->vr[0];
 #ifdef CONFIG_CPU_HAS_FPUV2
+#ifdef CONFIG_CPU_HAS_VDSP
 	asm volatile(
 		"vstmu.32    vr0-vr3,   (%0) \n"
 		"vstmu.32    vr4-vr7,   (%0) \n"
@@ -181,6 +182,11 @@ void save_to_user_fp(struct user_fp *user_fp)
 		"vstmu.32    vr12-vr15, (%0) \n"
 		"fstmu.64    vr16-vr31, (%0) \n"
 		:"+a"(fpregs));
+#else
+	asm volatile(
+		"fstmu.64    vr0-vr31,  (%0) \n"
+		:"+a"(fpregs));
+#endif
 #else
 	{
 	unsigned long tmp3, tmp4;
@@ -228,6 +234,7 @@ void restore_from_user_fp(struct user_fp *user_fp)
 
 	fpregs = &user_fp->vr[0];
 #ifdef CONFIG_CPU_HAS_FPUV2
+#ifdef CONFIG_CPU_HAS_VDSP
 	asm volatile(
 		"vldmu.32    vr0-vr3,   (%0) \n"
 		"vldmu.32    vr4-vr7,   (%0) \n"
@@ -235,6 +242,11 @@ void restore_from_user_fp(struct user_fp *user_fp)
 		"vldmu.32    vr12-vr15, (%0) \n"
 		"fldmu.64    vr16-vr31, (%0) \n"
 		:"+a"(fpregs));
+#else
+	asm volatile(
+		"fldmu.64    vr0-vr31,  (%0) \n"
+		:"+a"(fpregs));
+#endif
 #else
 	{
 	unsigned long tmp3, tmp4;

@@ -159,11 +159,15 @@ config HIGHMEM
 	depends on !CPU_CK610
 	default y
 
-menuconfig CPU_HAS_FPU
+config CPU_HAS_VDSP
+	bool "CPU has VDSP coprocessor"
+	depends on CPU_HAS_FPU && CPU_HAS_FPUV2
+
+config CPU_HAS_FPU
 	bool "CPU has FPU coprocessor"
 	depends on CPU_CK807 || CPU_CK810 || CPU_CK860
 
-menuconfig CPU_HAS_TEE
+config CPU_HAS_TEE
 	bool "CPU has Trusted Execution Environment"
 	depends on CPU_CK810
 

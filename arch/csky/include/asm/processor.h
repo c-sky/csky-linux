@@ -55,18 +55,15 @@ struct thread_struct {
 	unsigned long  ksp;       /* kernel stack pointer */
 	unsigned long  sr;        /* saved status register */
 	unsigned long  esp0;      /* points to SR of stack frame */
-
-	/* FPU regs */
-	struct user_fp	user_fp;
-
 	unsigned long  hi;
 	unsigned long  lo;
-	unsigned long  dspcsr;
 
 	/* Other stuff associated with the thread. */
 	unsigned long address;      /* Last user fault */
 	unsigned long error_code;
-	unsigned long trap_no;
+
+	/* FPU regs */
+	struct user_fp __attribute__((aligned(16))) user_fp;
 };
 
 #define INIT_THREAD  { \

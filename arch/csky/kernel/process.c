@@ -84,7 +84,7 @@ EXPORT_SYMBOL(dump_fpu);
 
 int dump_task_regs(struct task_struct *tsk, elf_gregset_t *pr_regs)
 {
-	struct pt_regs *regs = (struct pt_regs *)(tsk->thread.esp0);
+	struct pt_regs *regs = task_pt_regs(tsk);
 
 	/* NOTE: usp is error value. */
 	ELF_CORE_COPY_REGS ((*pr_regs), regs)

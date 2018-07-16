@@ -105,24 +105,54 @@ static int fpr_get(struct task_struct *target,
 		   unsigned int pos, unsigned int count,
 		   void *kbuf, void __user *ubuf)
 {
-	struct user_fp *regs;
+	struct user_fp *regs = (struct user_fp *)&target->thread.user_fp;
 
-	regs = (struct user_fp *)&target->thread.user_fp;
+#if defined(CONFIG_CPU_HAS_FPUV2) && !defined(CONFIG_CPU_HAS_VDSP)
+	int i;
+	struct user_fp tmp = *regs;
 
+	for (i = 0; i < 16; i++) {
+		tmp.vr[i*4] = regs->vr[i*2];
+		tmp.vr[i*4 + 1] = regs->vr[i*2 + 1];
+	}
+
+	for (i = 0; i < 32; i++) {
+		tmp.vr[64 + i] = regs->vr[32 + i];
+	}
+
+	return user_regset_copyout(&pos, &count, &kbuf, &ubuf, &tmp, 0, -1);
+#else
 	return user_regset_copyout(&pos, &count, &kbuf, &ubuf, regs, 0, -1);
+#endif
 }
 
 static int fpr_set(struct task_struct *target,
-		    const struct user_regset *regset,
-		    unsigned int pos, unsigned int count,
-		    const void *kbuf, const void __user *ubuf)
+		   const struct user_regset *regset,
+		   unsigned int pos, unsigned int count,
+		   const void *kbuf, const void __user *ubuf)
 {
 	int ret;
-	struct user_fp *regs;
+	struct user_fp *regs = (struct user_fp *)&target->thread.user_fp;
 
-	regs = (struct user_fp *)&target->thread.user_fp;
+#if defined(CONFIG_CPU_HAS_FPUV2) && !defined(CONFIG_CPU_HAS_VDSP)
+	int i;
+	struct user_fp tmp;
 
+	ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf, &tmp, 0, -1);
+
+	*regs = tmp;
+
+	for (i = 0; i < 16; i++) {
+		regs->vr[i*2] = tmp.vr[i*4];
+		regs->vr[i*2 + 1] = tmp.vr[i*4 + 1];
+	}
+
+	for (i = 0; i < 32; i++) {
+		regs->vr[32 + i] = tmp.vr[64 + i];
+	}
+#else
 	ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf, regs, 0, -1);
+#endif
 
 	return ret;
 }
