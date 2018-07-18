@@ -75,10 +75,6 @@ config GENERIC_CALIBRATE_DELAY
 	bool
 	default y
 
-config HZ
-	int
-	default 100
-
 config GENERIC_CSUM
 	bool
 	default y
@@ -203,6 +199,8 @@ source "mm/Kconfig"
 source "fs/Kconfig.binfmt"
 
 source "kernel/Kconfig.preempt"
+
+source "kernel/Kconfig.hz"
 
 source "net/Kconfig"
 
