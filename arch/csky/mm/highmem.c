@@ -35,21 +35,12 @@ void kunmap(struct page *page)
 }
 EXPORT_SYMBOL(kunmap);
 
-/*
- * kmap_atomic/kunmap_atomic is significantly faster than kmap/kunmap because
- * no global lock is needed and because the kmap code must perform a global TLB
- * invalidation when the kmap pool wraps.
- *
- * However when holding an atomic kmap is is not legal to sleep, so atomic
- * kmaps are appropriate for short, tight code paths only.
- */
-
 void *kmap_atomic(struct page *page)
 {
 	unsigned long vaddr;
 	int idx, type;
 
-	/* even !CONFIG_PREEMPT needs this, for in_atomic in do_page_fault */
+	preempt_disable();
 	pagefault_disable();
 	if (!PageHighMem(page))
 		return page_address(page);
@@ -70,29 +61,23 @@ EXPORT_SYMBOL(kmap_atomic);
 void __kunmap_atomic(void *kvaddr)
 {
 	unsigned long vaddr = (unsigned long) kvaddr & PAGE_MASK;
-	int type;
+
+	if (vaddr < FIXADDR_START)
+		goto out;
 	
-	if (vaddr < FIXADDR_START) {
-	    pagefault_enable();
-	    return;
-	}
-	
-	type = kmap_atomic_idx();
 #ifdef CONFIG_DEBUG_HIGHMEM
-	int idx = type + KM_TYPE_NR * smp_processor_id();
+	int idx = KM_TYPE_NR*smp_processor_id() + kmap_atomic_idx();
 
 	BUG_ON(vaddr != __fix_to_virt(FIX_KMAP_BEGIN + idx));
 
-	/*
-	 * force other mappings to Oops if they'll try to access
-	 * this pte without first remap it
-	 */
-	pte_clear(&init_mm, vaddr, kmap_pte-idx);
+	pte_clear(&init_mm, vaddr, kmap_pte - idx);
 	flush_tlb_one(vaddr);
 #endif
 
 	kmap_atomic_idx_pop();
+out:
 	pagefault_enable();
+	preempt_enable();
 }
 EXPORT_SYMBOL(__kunmap_atomic);
 
@@ -200,11 +185,11 @@ void __init fixaddr_kmap_pages_init(void)
 
 void __init kmap_init(void)
 {
-	unsigned long kmap_vstart;
+	unsigned long vaddr;
 
 	fixaddr_kmap_pages_init();
 
-	/* cache the first kmap pte */
-	kmap_vstart = __fix_to_virt(FIX_KMAP_BEGIN);
-	kmap_pte = kmap_get_fixmap_pte(kmap_vstart);
+	vaddr = __fix_to_virt(FIX_KMAP_BEGIN);
+
+	kmap_pte = pte_offset_kernel((pmd_t *)pgd_offset_k(vaddr), vaddr);
 }

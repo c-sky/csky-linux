@@ -8,7 +8,6 @@
 #include <abi/pgtable-bits.h>
 #include <asm-generic/pgtable-nopmd.h>
 
-/* PGDIR_SHIFT determines what a third-level page table entry can map */
 #define PGDIR_SHIFT		22
 #define PGDIR_SIZE		(1UL << PGDIR_SHIFT)
 #define PGDIR_MASK		(~(PGDIR_SIZE-1))
@@ -16,16 +15,13 @@
 #define USER_PTRS_PER_PGD	(0x80000000UL/PGDIR_SIZE)
 #define FIRST_USER_ADDRESS	0UL
 
+#define PKMAP_BASE		(0xff800000)
+
 #define VMALLOC_START		(0xc0008000)
-#ifdef CONFIG_HIGHMEM
-#define PKMAP_BASE		(0xfe000000UL)
 #define VMALLOC_END		(PKMAP_BASE - 2*PAGE_SIZE)
-#else
-#define VMALLOC_END		(FIXADDR_START - 2*PAGE_SIZE)
-#endif
 
 /*
- * traditional two-level paging structure:
+ * C-SKY is two-level paging structure:
  */
 #define PGD_ORDER	0
 #define PTE_ORDER	0
