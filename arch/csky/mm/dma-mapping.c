@@ -7,9 +7,82 @@
 #include <linux/scatterlist.h>
 #include <linux/io.h>
 #include <linux/cache.h>
+#include <linux/genalloc.h>
 #include <asm/cache.h>
 
-static void *csky_dma_alloc(
+static struct gen_pool *atomic_pool;
+static size_t atomic_pool_size __initdata = SZ_256K;
+
+static int __init early_coherent_pool(char *p)
+{
+	atomic_pool_size = memparse(p, &p);
+	return 0;
+}
+early_param("coherent_pool", early_coherent_pool);
+
+static int __init atomic_pool_init(void)
+{
+	struct page *page;
+	size_t size = atomic_pool_size;
+	void *ptr;
+	int ret;
+
+	atomic_pool = gen_pool_create(PAGE_SHIFT, -1);
+	if (!atomic_pool)
+		BUG();
+
+	page = alloc_pages(GFP_KERNEL | GFP_DMA, get_order(size));
+	if (!page)
+		BUG();
+
+	ptr = dma_common_contiguous_remap(page, size, VM_ALLOC,
+					  pgprot_noncached(PAGE_KERNEL),
+					  __builtin_return_address(0));
+	if (!ptr)
+		BUG();
+
+	ret = gen_pool_add_virt(atomic_pool, (unsigned long)ptr,
+				page_to_phys(page), atomic_pool_size, -1);
+	if (ret)
+		BUG();
+
+	gen_pool_set_algo(atomic_pool, gen_pool_first_fit_order_align, NULL);
+
+	pr_info("DMA: preallocated %zu KiB pool for atomic coherent allocations\n",
+		atomic_pool_size / 1024);
+	pr_info("DMA: vaddr: 0x%x phy: 0x%lx, \n", (unsigned int)ptr, page_to_phys(page));
+
+	return 0;
+}
+postcore_initcall(atomic_pool_init);
+
+static void *csky_dma_alloc_atomic(
+	struct device *dev,
+	size_t size,
+	dma_addr_t *dma_handle
+	)
+{
+	unsigned long addr;
+
+	addr = gen_pool_alloc(atomic_pool, size);
+	if (addr)
+		*dma_handle = gen_pool_virt_to_phys(atomic_pool, addr);
+
+	return (void *)addr;
+}
+
+static void csky_dma_free_atomic(
+	struct device *dev,
+	size_t size,
+	void *vaddr,
+	dma_addr_t dma_handle,
+	unsigned long attrs
+	)
+{
+	gen_pool_free(atomic_pool, (unsigned long)vaddr, size);
+}
+
+static void *csky_dma_alloc_nonatomic(
 	struct device *dev,
 	size_t size,
 	dma_addr_t *dma_handle,
@@ -20,10 +93,12 @@ static void *csky_dma_alloc(
 	unsigned long ret;
 	void * vaddr;
 
-	if (DMA_ATTR_NON_CONSISTENT & attrs)
-		panic("csky %s panic DMA_ATTR_NON_CONSISTENT.\n", __func__);
+	struct page *page;
 
-	ret =  __get_free_pages((gfp | __GFP_NORETRY) & (~__GFP_HIGHMEM), get_order(size));
+	if (DMA_ATTR_NON_CONSISTENT & attrs)
+		BUG();
+
+	ret =  __get_free_pages(gfp & (~__GFP_HIGHMEM), get_order(size));
 	if (!ret) {
 		pr_err("csky %s no more free pages, %ld.\n", __func__, ret);
 		return NULL;
@@ -35,9 +110,43 @@ static void *csky_dma_alloc(
 
 	*dma_handle = virt_to_phys((void*)ret);
 
-	vaddr = (void *) UNCACHE_ADDR(ret);
+	page = virt_to_page(ret);
+
+	vaddr = dma_common_contiguous_remap(page, PAGE_ALIGN(size), VM_USERMAP,
+				pgprot_noncached(PAGE_KERNEL) , __builtin_return_address(0));
+	if (!vaddr)
+		BUG();
 
 	return vaddr;
+}
+
+static void csky_dma_free_nonatomic(
+	struct device *dev,
+	size_t size,
+	void *vaddr,
+	dma_addr_t dma_handle,
+	unsigned long attrs
+	)
+{
+	unsigned long addr = (unsigned long)phys_to_virt(dma_handle);
+
+	vunmap(vaddr);
+
+	free_pages(addr, get_order(size));
+}
+
+static void *csky_dma_alloc(
+	struct device *dev,
+	size_t size,
+	dma_addr_t *dma_handle,
+	gfp_t gfp,
+	unsigned long attrs
+	)
+{
+	if (gfpflags_allow_blocking(gfp))
+		return csky_dma_alloc_nonatomic(dev, size, dma_handle, gfp, attrs);
+	else
+		return csky_dma_alloc_atomic(dev, size, dma_handle);
 }
 
 static void csky_dma_free(
@@ -48,9 +157,10 @@ static void csky_dma_free(
 	unsigned long attrs
 	)
 {
-	unsigned long addr = (unsigned long)phys_to_virt(dma_handle);
-
-	free_pages(addr, get_order(size));
+	if (!addr_in_gen_pool(atomic_pool, (unsigned int) vaddr, size))
+		csky_dma_free_nonatomic(dev, size, vaddr, dma_handle, attrs);
+	else
+		csky_dma_free_atomic(dev, size, vaddr, dma_handle, attrs);
 }
 
 static void __dma_sync(
