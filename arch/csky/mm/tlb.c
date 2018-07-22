@@ -163,9 +163,10 @@ void flush_tlb_one(unsigned long page)
 	asm volatile("sync.is\n");
 #else
 	{
-	page = page | (oldpid & 0xff);
 	int idx;
 	unsigned long flags;
+
+	page = page | (oldpid & 0xff);
 
 	local_irq_save(flags);
 	write_mmu_entryhi(page);
