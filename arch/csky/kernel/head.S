@@ -3,7 +3,7 @@
 #include <linux/linkage.h>
 #include <linux/init.h>
 #include <asm/page.h>
-#include <abi/regdef.h>
+#include <abi/entry.h>
 
 __HEAD
 ENTRY(_start)
@@ -11,6 +11,8 @@ ENTRY(_start)
 	lrw	a3, DEFAULT_PSR_VALUE
 	mtcr    a3, psr
 	psrset  ee
+
+	SETUP_MMU a3
 
 	/* set stack point */
 	lrw     a3, init_thread_union + THREAD_SIZE
@@ -54,11 +56,7 @@ _start_smp_pc:
 	bgeni   a3, 28
 	mtcr	a3, cr<8, 15>
 
-	/* setup msa0 & msa1 */
-	lrw	a3, PHYS_OFFSET | 0x8e
-	mtcr	a3, cr<30, 15>
-	lrw	a3, PHYS_OFFSET | 0x26
-	mtcr	a3, cr<31, 15>
+	SETUP_MMU a3
 
 	/* enable MMU */
 	movi	a3, 1

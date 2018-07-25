@@ -21,26 +21,6 @@ static inline unsigned int mfcr_hint(void)
 	return mfcr("cr30");
 }
 
-static inline unsigned int mfcr_msa0(void)
-{
-	return cprcr("cpcr30");
-}
-
-static inline void mtcr_msa0(unsigned int value)
-{
-	cpwcr("cpcr30", value);
-}
-
-static inline unsigned int mfcr_msa1(void)
-{
-	return cprcr("cpcr31");
-}
-
-static inline void mtcr_msa1(unsigned int value)
-{
-	cpwcr("cpcr31", value);
-}
-
 static inline unsigned int mfcr_ccr2(void){return 0;}
 
 #endif /* __ABI_REG_OPS_H */

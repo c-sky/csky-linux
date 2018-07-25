@@ -13,33 +13,23 @@
 #include <linux/sched.h>
 #include <abi/ckmmu.h>
 
-/* misc */
-static inline void tlbmiss_handler_setup_pgd(unsigned long pgd)
+static inline void tlbmiss_handler_setup_pgd(unsigned long pgd, bool kernel)
 {
 	pgd &= ~(1<<31);
 	pgd += PHYS_OFFSET;
 	pgd |= 1;
-	setup_pgd(pgd);
+	setup_pgd(pgd, kernel);
 }
+
+#define TLBMISS_HANDLER_SETUP_PGD(pgd) \
+	tlbmiss_handler_setup_pgd((unsigned long)pgd, 0)
+#define TLBMISS_HANDLER_SETUP_PGD_KERNEL(pgd) \
+	tlbmiss_handler_setup_pgd((unsigned long)pgd, 1)
 
 static inline unsigned long tlb_get_pgd(void)
 {
 	return ((get_pgd()|(1<<31)) - PHYS_OFFSET) & ~1;
 }
-#define TLBMISS_HANDLER_SETUP_PGD(pgd) tlbmiss_handler_setup_pgd((unsigned long)pgd)
-
-#ifdef CONFIG_CPU_HAS_TLBI
-/* misc */
-static inline void tlbmiss_handler_setup_pgd_kernel(unsigned long pgd)
-{
-	pgd &= ~(1<<31);
-	pgd += PHYS_OFFSET;
-	pgd |= 1;
-	setup_pgd_kernel(pgd);
-}
-
-#define TLBMISS_HANDLER_SETUP_PGD_KERNEL(pgd) tlbmiss_handler_setup_pgd_kernel((unsigned long)pgd)
-#endif
 
 #define cpu_context(cpu, mm)	((mm)->context.asid[cpu])
 #define cpu_asid(cpu, mm)	(cpu_context((cpu), (mm)) & ASID_MASK)

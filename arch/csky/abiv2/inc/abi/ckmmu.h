@@ -4,8 +4,6 @@
 #define __ASM_CSKY_CKMMUV2_H
 #include <abi/reg_ops.h>
 
-static inline void select_mmu_cp(void){}
-
 static inline int  read_mmu_index(void)
 {
 	return mfcr("cr<0, 15>");
@@ -75,14 +73,12 @@ static inline unsigned long get_pgd(void)
 	return mfcr("cr<29, 15>");
 }
 
-static inline void setup_pgd(unsigned long pgd)
+static inline void setup_pgd(unsigned long pgd, bool kernel)
 {
-	mtcr("cr<29, 15>", pgd);
-}
-
-static inline void setup_pgd_kernel(unsigned long pgd)
-{
-	mtcr("cr<28, 15>", pgd);
+	if (kernel)
+		mtcr("cr<28, 15>", pgd);
+	else
+		mtcr("cr<29, 15>", pgd);
 }
 
 #endif /* __ASM_CSKY_CKMMUV2_H */

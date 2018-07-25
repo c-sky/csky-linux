@@ -4,11 +4,6 @@
 #define __ASM_CSKY_CKMMUV1_H
 #include <abi/reg_ops.h>
 
-static inline void select_mmu_cp(void)
-{
-	 asm volatile("cpseti cp15\n");
-}
-
 static inline int read_mmu_index(void)
 {
 	return cprcr("cpcr0");
@@ -67,7 +62,7 @@ static inline void tlb_invalid_indexed(void)
 	cpwcr("cpcr8", 0x02000000);
 }
 
-static inline void setup_pgd(unsigned long pgd)
+static inline void setup_pgd(unsigned long pgd, bool kernel)
 {
 	cpwcr("cpcr29", pgd);
 }

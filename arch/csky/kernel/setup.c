@@ -46,8 +46,11 @@ static void __init csky_memblock_init(void)
 	memset(zhole_size, 0, sizeof(zhole_size));
 
 	min_low_pfn = PFN_UP(memblock_start_of_DRAM());
+	max_pfn	    = PFN_DOWN(memblock_end_of_DRAM());
+
 	max_low_pfn = PFN_UP(memblock_end_of_REG0());
-	max_pfn = PFN_DOWN(memblock_end_of_DRAM());
+	if (max_low_pfn == 0)
+		max_low_pfn = max_pfn;
 
 	size = max_pfn - min_low_pfn;
 
@@ -83,7 +86,6 @@ static void __init csky_memblock_init(void)
 	free_area_init_node(0, zone_size, min_low_pfn, zhole_size);
 }
 
-extern void cpu_dt_probe(void);
 void __init setup_arch(char **cmdline_p)
 {
 	*cmdline_p = boot_command_line;
@@ -103,8 +105,6 @@ void __init setup_arch(char **cmdline_p)
 	csky_memblock_init();
 
 	unflatten_and_copy_device_tree();
-
-	cpu_dt_probe();
 
 #ifdef CONFIG_SMP
 	setup_smp();

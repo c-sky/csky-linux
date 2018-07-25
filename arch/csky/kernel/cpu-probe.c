@@ -7,22 +7,6 @@
 
 #include <abi/reg_ops.h>
 
-static __init void setup_cpu_msa(void)
-{
-	if (memblock_start_of_DRAM() != CONFIG_RAM_BASE) {
-		panic("dts-ram-start doesn't equal CONFIG_RAM_BASE in .config: %x-%x.\n",
-			memblock_start_of_DRAM(), CONFIG_RAM_BASE);
-	}
-
-	mtcr_msa0(PHYS_OFFSET | 0xe);
-	mtcr_msa1(PHYS_OFFSET | 0x26);
-}
-
-__init void cpu_dt_probe(void)
-{
-	setup_cpu_msa();
-}
-
 static void percpu_print(void *arg)
 {
 	struct seq_file *m = (struct seq_file *)arg;
@@ -40,8 +24,6 @@ static void percpu_print(void *arg)
 	seq_printf(m, "ccr reg         : 0x%08x\n", mfcr("cr18"));
 	seq_printf(m, "ccr2 reg        : 0x%08x\n", mfcr_ccr2());
 	seq_printf(m, "hint reg        : 0x%08x\n", mfcr_hint());
-	seq_printf(m, "msa0 reg        : 0x%08x\n", mfcr_msa0());
-	seq_printf(m, "msa1 reg        : 0x%08x\n", mfcr_msa1());
 	seq_printf(m, "\n");
 }
 

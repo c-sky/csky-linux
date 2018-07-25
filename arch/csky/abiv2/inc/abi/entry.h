@@ -146,4 +146,11 @@
 	mtcr    \rx, cr<8, 15>
 .endm
 
+.macro SETUP_MMU rx
+	lrw	\rx, PHYS_OFFSET | 0xe
+	mtcr	\rx, cr<30, 15>
+	lrw	\rx, (PHYS_OFFSET + 0x20000000) | 0xe
+	mtcr	\rx, cr<31, 15>
+.endm
+
 #endif /* __ASM_CSKY_ENTRY_H */

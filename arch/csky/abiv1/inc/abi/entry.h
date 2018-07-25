@@ -149,4 +149,12 @@
 	cpwcr   \rx, cpcr8
 .endm
 
+.macro SETUP_MMU rx
+	cpseti	cp15
+	lrw	\rx, PHYS_OFFSET | 0xe
+	cpwcr	\rx, cpcr30
+	lrw	\rx, (PHYS_OFFSET + 0x20000000) | 0xe
+	cpwcr	\rx, cpcr31
+.endm
+
 #endif /* __ASM_CSKY_ENTRY_H */
