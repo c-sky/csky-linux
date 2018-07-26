@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 // Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
+
 #include <linux/kernel.h>
 #include <linux/init.h>
 #include <linux/of.h>
@@ -30,6 +31,7 @@ static void __iomem *INTCL_base;
 
 #define INTCL_PICTLR	0x0
 #define INTCL_SIGR	0x60
+#define INTCL_HPPIR	0x68
 #define INTCL_RDYIR	0x6c
 #define INTCL_SENR	0xa0
 #define INTCL_CENR	0xa4
@@ -37,46 +39,41 @@ static void __iomem *INTCL_base;
 
 #define INTC_IRQS	256
 
-#define INTC_ICR_AVE	BIT(31)
-
-DEFINE_PER_CPU(void __iomem *, intcl_reg);
+static DEFINE_PER_CPU(void __iomem *, intcl_reg);
+static DEFINE_PER_CPU(unsigned int, next_irq);
 
 static void csky_irq_v2_handler(struct pt_regs *regs)
 {
-	static void __iomem	*reg_base;
-	irq_hw_number_t		hwirq;
+	void __iomem *reg_base = this_cpu_read(intcl_reg);
 
-	reg_base = *this_cpu_ptr(&intcl_reg);
-
-	hwirq = readl_relaxed(reg_base + INTCL_RDYIR);
-	handle_domain_irq(NULL, hwirq, regs);
+	do {
+		handle_domain_irq(NULL,
+				  readl_relaxed(reg_base + INTCL_RDYIR),
+				  regs);
+	} while (this_cpu_read(next_irq) & BIT(31));
 }
 
 static void csky_irq_v2_enable(struct irq_data *d)
 {
-	static void __iomem	*reg_base;
-
-	reg_base = *this_cpu_ptr(&intcl_reg);
+	void __iomem *reg_base = this_cpu_read(intcl_reg);
 
 	writel_relaxed(d->hwirq, reg_base + INTCL_SENR);
 }
 
 static void csky_irq_v2_disable(struct irq_data *d)
 {
-	static void __iomem	*reg_base;
-
-	reg_base = *this_cpu_ptr(&intcl_reg);
+	void __iomem *reg_base = this_cpu_read(intcl_reg);
 
 	writel_relaxed(d->hwirq, reg_base + INTCL_CENR);
 }
 
 static void csky_irq_v2_eoi(struct irq_data *d)
 {
-	static void __iomem	*reg_base;
-
-	reg_base = *this_cpu_ptr(&intcl_reg);
+	void __iomem *reg_base = this_cpu_read(intcl_reg);
 
 	writel_relaxed(d->hwirq, reg_base + INTCL_CACR);
+
+	this_cpu_write(next_irq, readl_relaxed(reg_base + INTCL_HPPIR));
 }
 
 #ifdef CONFIG_SMP
@@ -91,6 +88,7 @@ static int csky_irq_set_affinity(struct irq_data *d,
 				 bool force)
 {
 	unsigned int cpu;
+	unsigned int offset = 4 * (d->hwirq - COMM_IRQ_BASE);
 
 	if (!force)
 		cpu = cpumask_any_and(mask_val, cpu_online_mask);
@@ -103,7 +101,7 @@ static int csky_irq_set_affinity(struct irq_data *d,
 	/* Enable interrupt destination */
 	cpu |= BIT(31);
 
-	writel_relaxed(cpu, INTCG_base + INTCG_CIDSTR + (4*(d->hwirq - COMM_IRQ_BASE)));
+	writel_relaxed(cpu, INTCG_base + INTCG_CIDSTR + offset);
 
 	irq_data_update_effective_affinity(d, cpumask_of(cpu));
 
@@ -127,8 +125,9 @@ static int csky_irqdomain_map(struct irq_domain *d, unsigned int irq,
 	if(hwirq < COMM_IRQ_BASE) {
 		irq_set_percpu_devid(irq);
 		irq_set_chip_and_handler(irq, &csky_irq_chip, handle_percpu_irq);
-	} else
+	} else {
 		irq_set_chip_and_handler(irq, &csky_irq_chip, handle_fasteoi_irq);
+	}
 
 	return 0;
 }
@@ -141,9 +140,7 @@ static const struct irq_domain_ops csky_irqdomain_ops = {
 #ifdef CONFIG_SMP
 static void csky_irq_v2_send_ipi(const unsigned long *mask, unsigned long irq)
 {
-	static void __iomem	*reg_base;
-
-	reg_base = *this_cpu_ptr(&intcl_reg);
+	void __iomem *reg_base = this_cpu_read(intcl_reg);
 
 	/*
 	 * INTCL_SIGR[3:0] INTID
