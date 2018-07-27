@@ -37,9 +37,9 @@ ifneq ($(CSKYABI),)
 MCPU_STR = $(CPUTYPE)$(FPUEXT)$(VDSPEXT)$(TEEEXT)
 KBUILD_CFLAGS += -mcpu=$(MCPU_STR)
 KBUILD_CFLAGS += -DCSKYCPU_DEF_NAME=\"$(MCPU_STR)\"
-endif
 KBUILD_CFLAGS += -mfloat-abi=soft
 KBUILD_CFLAGS += -fno-tree-vectorize
+endif
 
 ifeq ($(VERSION)_$(PATCHLEVEL), 4_9)
 KBUILD_CFLAGS += -DCSKY_DEBUG_WITH_KERNEL_4_9
