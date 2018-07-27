@@ -40,7 +40,6 @@ static void __iomem *INTCL_base;
 #define INTC_IRQS	256
 
 static DEFINE_PER_CPU(void __iomem *, intcl_reg);
-static DEFINE_PER_CPU(unsigned int, next_irq);
 
 static void csky_irq_v2_handler(struct pt_regs *regs)
 {
@@ -50,7 +49,7 @@ static void csky_irq_v2_handler(struct pt_regs *regs)
 		handle_domain_irq(NULL,
 				  readl_relaxed(reg_base + INTCL_RDYIR),
 				  regs);
-	} while (this_cpu_read(next_irq) & BIT(31));
+	} while (readl_relaxed(reg_base + INTCL_HPPIR) & BIT(31));
 }
 
 static void csky_irq_v2_enable(struct irq_data *d)
@@ -72,8 +71,6 @@ static void csky_irq_v2_eoi(struct irq_data *d)
 	void __iomem *reg_base = this_cpu_read(intcl_reg);
 
 	writel_relaxed(d->hwirq, reg_base + INTCL_CACR);
-
-	this_cpu_write(next_irq, readl_relaxed(reg_base + INTCL_HPPIR));
 }
 
 #ifdef CONFIG_SMP
