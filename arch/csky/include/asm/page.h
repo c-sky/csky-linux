@@ -41,6 +41,7 @@ extern void *memcpy (void *to, const void *from, size_t l);
 #define copy_page(to,from)      memcpy((to), (from), PAGE_SIZE)
 
 #define page_to_phys(page)	(page_to_pfn(page) << PAGE_SHIFT)
+#define phys_to_page(paddr)	(pfn_to_page(PFN_DOWN(paddr)))
 
 struct page;
 

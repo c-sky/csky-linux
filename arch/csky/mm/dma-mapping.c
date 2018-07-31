@@ -90,27 +90,38 @@ static void *csky_dma_alloc_nonatomic(
 	unsigned long attrs
 	)
 {
-	unsigned long ret;
-	void * vaddr;
+	void  *vaddr;
 
 	struct page *page;
 
 	if (DMA_ATTR_NON_CONSISTENT & attrs)
 		BUG();
 
-	ret =  __get_free_pages(gfp & (~__GFP_HIGHMEM), get_order(size));
-	if (!ret) {
-		pr_err("csky %s no more free pages, %ld.\n", __func__, ret);
+	page = alloc_pages(gfp, get_order(size));
+	if (!page) {
+		pr_err("csky %s no more free pages.\n", __func__);
 		return NULL;
 	}
 
-	memset((void *)ret, 0, size);
+	*dma_handle = page_to_phys(page);
 
-	dma_wbinv_range(ret, ret + size);
+	if (PageHighMem(page)) {
+		while (size > 0) {
+			void *ptr = kmap_atomic(page);
+			memset(ptr, 0, PAGE_SIZE);
+			dma_wbinv_range((unsigned long)ptr,(unsigned long)ptr + PAGE_SIZE);
+			kunmap_atomic(ptr);
+			page++;
+			size -= PAGE_SIZE;
+		}
+	} else {
+		void *ptr = page_address(page);
+		memset(ptr, 0, size);
+		dma_wbinv_range((unsigned long)ptr,(unsigned long)ptr + PAGE_SIZE);
+	}
 
-	*dma_handle = virt_to_phys((void*)ret);
-
-	page = virt_to_page(ret);
+	if (attrs & DMA_ATTR_NO_KERNEL_MAPPING)
+		return page;
 
 	vaddr = dma_common_contiguous_remap(page, PAGE_ALIGN(size), VM_USERMAP,
 				pgprot_noncached(PAGE_KERNEL) , __builtin_return_address(0));
@@ -128,11 +139,10 @@ static void csky_dma_free_nonatomic(
 	unsigned long attrs
 	)
 {
-	unsigned long addr = (unsigned long)phys_to_virt(dma_handle);
+	if ((unsigned int)vaddr >= VMALLOC_START)
+		dma_common_free_remap(vaddr, size, VM_USERMAP);
 
-	vunmap(vaddr);
-
-	free_pages(addr, get_order(size));
+	__free_pages(phys_to_page(dma_handle), get_order(size));
 }
 
 static void *csky_dma_alloc(
