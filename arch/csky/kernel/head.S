@@ -64,8 +64,6 @@ _start_smp_pc:
 
 	jmpi	_goto_mmu_on
 _goto_mmu_on:
-	movi	a3, 0xaa
-
 	lrw	a3, DEFAULT_PSR_VALUE
 	mtcr    a3, psr
 	psrset  ee

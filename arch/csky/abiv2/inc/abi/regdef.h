@@ -8,7 +8,17 @@
 
 #define regs_syscallid(regs) regs->regs[3]
 
-#define DEFAULT_PSR_VALUE	0x8f000200
+/*
+ * PSR format:
+ * | 31 | 30-24 | 23-16 | 15 14 | 13-10 | 9 | 8-0 |
+ *   S              VEC     TM            MM
+ *
+ *   S: Super Mode
+ * VEC: Exception Number
+ *  TM: Trace Mode
+ *  MM: Memory unaligned addr access
+ */
+#define DEFAULT_PSR_VALUE	0x80000200
 
 #define SYSTRACE_SAVENUM	5
 
