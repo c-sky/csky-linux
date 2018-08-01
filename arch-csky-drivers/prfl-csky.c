@@ -81,6 +81,63 @@ int proc_hpsir(struct ctl_table *table, int write,
 	return ret;
 }
 
+static unsigned int hpcntenr;
+int proc_hpcntenr(struct ctl_table *table, int write,
+		  void __user *buffer, size_t *lenp, loff_t *ppos)
+{
+	int ret;
+
+	if (!write)
+	asm volatile ("cprcr  %0, <0, 0x4>\n":"=r"(hpcntenr));
+
+	ret = proc_douintvec(table, write, buffer, lenp, ppos);
+
+	if (write)
+	asm volatile ("cpwcr  %0, <0, 0x4>\n"::"r"(hpcntenr));
+
+	pr_info("%s, %x\n", __func__, hpcntenr);
+
+	return ret;
+}
+
+static unsigned int hpintenr;
+int proc_hpintenr(struct ctl_table *table, int write,
+		  void __user *buffer, size_t *lenp, loff_t *ppos)
+{
+	int ret;
+
+	if (!write)
+	asm volatile ("cprcr  %0, <0, 0x5>\n":"=r"(hpintenr));
+
+	ret = proc_douintvec(table, write, buffer, lenp, ppos);
+
+	if (write)
+	asm volatile ("cpwcr  %0, <0, 0x5>\n"::"r"(hpintenr));
+
+	pr_info("%s, %x\n", __func__, hpintenr);
+
+	return ret;
+}
+
+static unsigned int hpofsr;
+int proc_hpofsr(struct ctl_table *table, int write,
+		void __user *buffer, size_t *lenp, loff_t *ppos)
+{
+	int ret;
+
+	if (!write)
+	asm volatile ("cprcr  %0, <0, 0x6>\n":"=r"(hpofsr));
+
+	ret = proc_douintvec(table, write, buffer, lenp, ppos);
+
+	if (write)
+	asm volatile ("cpwcr  %0, <0, 0x6>\n"::"r"(hpofsr));
+
+	pr_info("%s, %x\n", __func__, hpofsr);
+
+	return ret;
+}
+
 static unsigned int hpcc_lo;
 int proc_hpcc_lo(struct ctl_table *table, int write,
 		 void __user *buffer, size_t *lenp, loff_t *ppos)
@@ -429,6 +486,27 @@ static struct ctl_table prfl_tbl[] = {
 		.maxlen = sizeof(hpsir),
 		.mode = 0666,
 		.proc_handler = &proc_hpsir
+	},
+	{
+		.procname = "hpcntenr",
+		.data = &hpcntenr,
+		.maxlen = sizeof(hpcntenr),
+		.mode = 0666,
+		.proc_handler = &proc_hpcntenr
+	},
+	{
+		.procname = "hpintenr",
+		.data = &hpintenr,
+		.maxlen = sizeof(hpintenr),
+		.mode = 0666,
+		.proc_handler = &proc_hpintenr
+	},
+	{
+		.procname = "hpofsr",
+		.data = &hpofsr,
+		.maxlen = sizeof(hpofsr),
+		.mode = 0666,
+		.proc_handler = &proc_hpofsr
 	},
 	{
 		.procname = "HardwarePfCycleCounter_lo",
