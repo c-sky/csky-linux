@@ -99,7 +99,11 @@ static void *csky_dma_alloc_nonatomic(
 		BUG();
 
 	if (IS_ENABLED(CONFIG_DMA_CMA))
+#ifdef CSKY_DEBUG_WITH_KERNEL_4_9
+		page = dma_alloc_from_contiguous(dev, count, get_order(size));
+#else
 		page = dma_alloc_from_contiguous(dev, count, get_order(size), gfp);
+#endif
 	else
 		page = alloc_pages(gfp, get_order(size));
 
