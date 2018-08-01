@@ -4,6 +4,7 @@
 #include <linux/highmem.h>
 #include <linux/mm.h>
 #include <linux/dma-mapping.h>
+#include <linux/dma-contiguous.h>
 #include <linux/scatterlist.h>
 #include <linux/io.h>
 #include <linux/cache.h>
@@ -91,13 +92,17 @@ static void *csky_dma_alloc_nonatomic(
 	)
 {
 	void  *vaddr;
-
 	struct page *page;
+	unsigned int count = PAGE_ALIGN(size) >> PAGE_SHIFT;
 
 	if (DMA_ATTR_NON_CONSISTENT & attrs)
 		BUG();
 
-	page = alloc_pages(gfp, get_order(size));
+	if (IS_ENABLED(CONFIG_DMA_CMA))
+		page = dma_alloc_from_contiguous(dev, count, get_order(size), gfp);
+	else
+		page = alloc_pages(gfp, get_order(size));
+
 	if (!page) {
 		pr_err("csky %s no more free pages.\n", __func__);
 		return NULL;
@@ -139,10 +144,16 @@ static void csky_dma_free_nonatomic(
 	unsigned long attrs
 	)
 {
+	struct page *page = phys_to_page(dma_handle);
+	unsigned int count = PAGE_ALIGN(size) >> PAGE_SHIFT;
+
 	if ((unsigned int)vaddr >= VMALLOC_START)
 		dma_common_free_remap(vaddr, size, VM_USERMAP);
 
-	__free_pages(phys_to_page(dma_handle), get_order(size));
+	if (IS_ENABLED(CONFIG_DMA_CMA))
+		dma_release_from_contiguous(dev, page, count);
+	else
+		__free_pages(page, get_order(size));
 }
 
 static void *csky_dma_alloc(

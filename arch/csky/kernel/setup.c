@@ -7,6 +7,7 @@
 #include <linux/of.h>
 #include <linux/of_fdt.h>
 #include <linux/start_kernel.h>
+#include <linux/dma-contiguous.h>
 #include <asm/sections.h>
 #include <asm/mmu_context.h>
 #include <asm/pgalloc.h>
@@ -82,6 +83,8 @@ static void __init csky_memblock_init(void)
 	highend_pfn = max_pfn;
 #endif
 	memblock_set_current_limit(PFN_PHYS(max_low_pfn));
+
+	dma_contiguous_reserve(0);
 
 	free_area_init_node(0, zone_size, min_low_pfn, zhole_size);
 }
