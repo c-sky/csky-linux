@@ -56,6 +56,9 @@ static void ck_irq_handler(struct pt_regs *regs)
 	irq_hw_number_t irq = readl_relaxed(reg_base + INTC_ISR) & 0x3f;
 #endif
 	handle_domain_irq(root_domain, irq, regs);
+
+	writel_relaxed(0, reg_base + INTC_IFR31_00);
+	writel_relaxed(0, reg_base + INTC_IFR63_32);
 }
 
 #define expand_byte_to_word(i) (i|(i<<8)|(i<<16)|(i<<24))
