@@ -83,6 +83,31 @@ static void csky_dma_free_atomic(
 	gen_pool_free(atomic_pool, (unsigned long)vaddr, size);
 }
 
+static void __dma_clear_buffer(struct page *page, size_t size)
+{
+	if (PageHighMem(page)) {
+		unsigned int count = PAGE_ALIGN(size) >> PAGE_SHIFT;
+
+		do {
+			void *ptr = kmap_atomic(page);
+			size_t _size = (size < PAGE_SIZE)? size: PAGE_SIZE;
+
+			memset(ptr, 0, _size);
+			dma_wbinv_range((unsigned long)ptr,(unsigned long)ptr + _size);
+
+			kunmap_atomic(ptr);
+
+			page++;
+			size -= PAGE_SIZE;
+			count--;
+		} while (count);
+	} else {
+		void *ptr = page_address(page);
+		memset(ptr, 0, size);
+		dma_wbinv_range((unsigned long)ptr,(unsigned long)ptr + size);
+	}
+}
+
 static void *csky_dma_alloc_nonatomic(
 	struct device *dev,
 	size_t size,
@@ -114,20 +139,7 @@ static void *csky_dma_alloc_nonatomic(
 
 	*dma_handle = page_to_phys(page);
 
-	if (PageHighMem(page)) {
-		while (size > 0) {
-			void *ptr = kmap_atomic(page);
-			memset(ptr, 0, PAGE_SIZE);
-			dma_wbinv_range((unsigned long)ptr,(unsigned long)ptr + PAGE_SIZE);
-			kunmap_atomic(ptr);
-			page++;
-			size -= PAGE_SIZE;
-		}
-	} else {
-		void *ptr = page_address(page);
-		memset(ptr, 0, size);
-		dma_wbinv_range((unsigned long)ptr,(unsigned long)ptr + PAGE_SIZE);
-	}
+	__dma_clear_buffer(page, size);
 
 	if (attrs & DMA_ATTR_NO_KERNEL_MAPPING)
 		return page;
