@@ -13,14 +13,11 @@
 #include <asm/io.h>
 #include <asm/traps.h>
 
-#ifdef CONFIG_CSKY_VECIRQ_LEGENCY
-#include <asm/reg_ops.h>
-#endif
-
 static void __iomem *reg_base;
 
 #define INTC_ICR	0x00
-#define INTC_ISR	0x00
+#define INTC_PEN31_00	0x14
+#define INTC_PEN63_32	0x2c
 #define INTC_NEN31_00	0x10
 #define INTC_NEN63_32	0x28
 #define INTC_IFR31_00	0x08
@@ -35,6 +32,33 @@ static void __iomem *reg_base;
 
 static struct irq_domain *root_domain;
 
+static inline int handle_irq_perbit(struct pt_regs *regs, u32 hwirq, u32 irq_base)
+{
+	u32 irq;
+
+	if (hwirq == 0) return 0;
+
+	while (hwirq) {
+		irq = __ffs(hwirq);
+		hwirq &= ~BIT(irq);
+		handle_domain_irq(root_domain, irq_base + irq, regs);
+	}
+
+	return 1;
+}
+
+static void ck_irq_handler(struct pt_regs *regs)
+{
+	int ret;
+
+	do {
+		ret  = handle_irq_perbit(regs ,readl_relaxed(reg_base + INTC_PEN31_00), 0);
+		writel_relaxed(0, reg_base + INTC_IFR31_00);
+		ret |= handle_irq_perbit(regs ,readl_relaxed(reg_base + INTC_PEN63_32), 32);
+		writel_relaxed(0, reg_base + INTC_IFR63_32);
+	} while(ret);
+}
+
 static void __init ck_set_gc(void __iomem *reg_base, u32 irq_base,
 			     u32 mask_reg)
 {
@@ -47,22 +71,8 @@ static void __init ck_set_gc(void __iomem *reg_base, u32 irq_base,
 	gc->chip_types[0].chip.irq_unmask = irq_gc_mask_set_bit;
 }
 
-static struct irq_domain *root_domain;
-static void ck_irq_handler(struct pt_regs *regs)
-{
-#ifdef CONFIG_CSKY_VECIRQ_LEGENCY
-	irq_hw_number_t irq = ((mfcr("psr") >> 16) & 0xff) - VEC_IRQ_BASE;
-#else
-	irq_hw_number_t irq = readl_relaxed(reg_base + INTC_ISR) & 0x3f;
-#endif
-	handle_domain_irq(root_domain, irq, regs);
-
-	writel_relaxed(0, reg_base + INTC_IFR31_00);
-	writel_relaxed(0, reg_base + INTC_IFR63_32);
-}
-
 #define expand_byte_to_word(i) (i|(i<<8)|(i<<16)|(i<<24))
-static inline void setup_irq_channel(void __iomem *reg_base)
+static inline void setup_irq_channel(void __iomem *reg_base, u32 channel_magic)
 {
 	int i;
 
@@ -71,7 +81,7 @@ static inline void setup_irq_channel(void __iomem *reg_base)
 	 * Setup every channel with the same hwirq num.
 	 */
 	for (i = 0; i < INTC_IRQS; i += 4) {
-		writel_relaxed(expand_byte_to_word(i) + 0x00010203,
+		writel_relaxed(expand_byte_to_word(i) + channel_magic,
 			       reg_base + INTC_SOURCE + i);
 	}
 }
@@ -96,13 +106,9 @@ csky_intc_v1_init(struct device_node *node, struct device_node *parent)
 	writel_relaxed(0, reg_base + INTC_NEN31_00);
 	writel_relaxed(0, reg_base + INTC_NEN63_32);
 
-#ifndef CONFIG_CSKY_VECIRQ_LEGENCY
 	writel_relaxed(INTC_ICR_AVE, reg_base + INTC_ICR);
-#else
-	writel_relaxed(0, reg_base + INTC_ICR);
-#endif
 
-	setup_irq_channel(reg_base);
+	setup_irq_channel(reg_base, 0x00010203);
 
 	root_domain = irq_domain_add_linear(node, INTC_IRQS, &irq_generic_chip_ops, NULL);
 	if (!root_domain) {

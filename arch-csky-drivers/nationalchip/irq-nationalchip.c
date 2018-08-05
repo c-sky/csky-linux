@@ -15,14 +15,10 @@
 
 static void __iomem *reg_base;
 
-#define INTC_NINT31_00		0x00
-#define INTC_NINT63_32		0x04
+#define INTC_PEN31_00		0x00
+#define INTC_PEN63_32		0x04
 #define INTC_NEN31_00		0x40
 #define INTC_NEN63_32		0x44
-#define INTC_NENSET31_00	0x20
-#define INTC_NENSET63_32	0x24
-#define INTC_NENCLR31_00	0x30
-#define INTC_NENCLR63_32	0x34
 #define INTC_NMASK31_00		0x50
 #define INTC_NMASK63_32		0x54
 #define INTC_SOURCE		0x60
@@ -31,40 +27,45 @@ static void __iomem *reg_base;
 
 static struct irq_domain *root_domain;
 
-static void nc_irq_handler(struct pt_regs *regs)
+static inline int handle_irq_perbit(struct pt_regs *regs, u32 hwirq, u32 irq_base)
 {
-	u32 status, irq;
+	u32 irq;
 
-	do {
-		status = readl_relaxed(reg_base + INTC_NINT31_00);
-		if (status) {
-			irq = __ffs(status);
-		} else {
-			status = readl_relaxed(reg_base + INTC_NINT63_32);
-			if (status)
-				irq = __ffs(status) + 32;
-			else
-				return;
-		}
-		handle_domain_irq(root_domain, irq, regs);
-	} while(1);
+	if (hwirq == 0) return 0;
+
+	while (hwirq) {
+		irq = __ffs(hwirq);
+		hwirq &= ~BIT(irq);
+		handle_domain_irq(root_domain, irq_base + irq, regs);
+	}
+
+	return 1;
 }
 
-static void __init nc_set_gc(void __iomem *reg_base, u32 irq_base,
-			     u32 en_reg, u32 dis_reg)
+static void ck_irq_handler(struct pt_regs *regs)
+{
+	int ret;
+
+	do {
+		ret  = handle_irq_perbit(regs ,readl_relaxed(reg_base + INTC_PEN31_00), 0);
+		ret |= handle_irq_perbit(regs ,readl_relaxed(reg_base + INTC_PEN63_32), 32);
+	} while(ret);
+}
+
+static void __init ck_set_gc(void __iomem *reg_base, u32 irq_base,
+			     u32 mask_reg)
 {
 	struct irq_chip_generic *gc;
 
 	gc = irq_get_domain_generic_chip(root_domain, irq_base);
 	gc->reg_base = reg_base;
-	gc->chip_types[0].regs.enable = en_reg;
-	gc->chip_types[0].regs.disable = dis_reg;
-	gc->chip_types[0].chip.irq_mask = irq_gc_mask_disable_reg;
-	gc->chip_types[0].chip.irq_unmask = irq_gc_unmask_enable_reg;
+	gc->chip_types[0].regs.mask = mask_reg;
+	gc->chip_types[0].chip.irq_mask = irq_gc_mask_clr_bit;
+	gc->chip_types[0].chip.irq_unmask = irq_gc_mask_set_bit;
 }
 
 #define expand_byte_to_word(i) (i|(i<<8)|(i<<16)|(i<<24))
-static inline void setup_irq_channel(void __iomem *reg_base)
+static inline void setup_irq_channel(void __iomem *reg_base, u32 channel_magic)
 {
 	int i;
 
@@ -73,7 +74,7 @@ static inline void setup_irq_channel(void __iomem *reg_base)
 	 * Setup every channel with the same hwirq num.
 	 */
 	for (i = 0; i < INTC_IRQS; i += 4) {
-		writel_relaxed(expand_byte_to_word(i) + 0x03020100,
+		writel_relaxed(expand_byte_to_word(i) + channel_magic,
 			       reg_base + INTC_SOURCE + i);
 	}
 }
@@ -103,7 +104,7 @@ intc_init(struct device_node *node, struct device_node *parent)
 	writel_relaxed(0x0, reg_base + INTC_NMASK31_00);
 	writel_relaxed(0x0, reg_base + INTC_NMASK63_32);
 
-	setup_irq_channel(reg_base);
+	setup_irq_channel(reg_base, 0x03020100);
 
 	root_domain = irq_domain_add_linear(node, INTC_IRQS, &irq_generic_chip_ops, NULL);
 	if (!root_domain) {
@@ -119,10 +120,10 @@ intc_init(struct device_node *node, struct device_node *parent)
 		return -ENOMEM;
 	}
 
-	nc_set_gc(reg_base, 0,  INTC_NENSET31_00, INTC_NENCLR31_00);
-	nc_set_gc(reg_base, 32, INTC_NENSET63_32, INTC_NENCLR63_32);
+	ck_set_gc(reg_base, 0,  INTC_NEN31_00);
+	ck_set_gc(reg_base, 32, INTC_NEN63_32);
 
-	set_handle_irq(nc_irq_handler);
+	set_handle_irq(ck_irq_handler);
 
 	return 0;
 }
