@@ -1,6 +1,5 @@
 config CSKY
-	bool
-	default y
+	def_bool y
 	select ARCH_USE_BUILTIN_BSWAP
 	select COMMON_CLK
 	select CLKSRC_MMIO
@@ -55,7 +54,7 @@ config CPU_HAS_TLBI
 config CPU_HAS_LDSTEX
 	bool
 	help
-	  For SMP cpu need "ldex&stex" instrcutions to keep atomic.
+	  For SMP, CPU needs "ldex&stex" instrcutions to atomic operations.
 
 config CPU_NEED_TLBSYNC
 	bool
@@ -68,37 +67,30 @@ config CPU_NO_USER_BKPT
 	help
 	  For abiv2 we couldn't use "trap 1" as user space bkpt in gdbserver, because
 	  abiv2 is 16/32bit instruction set and "trap 1" is 32bit.
-	  So we need a 16bit instruction as user space bkpt, and it will cause a illegal
+	  So we need a 16bit instruction as user space bkpt, and it will cause an illegal
 	  instruction exception.
-	  In kernel we parse the *regs->pc to determine wether send SIGTRAP or not.
+	  In kernel we parse the *regs->pc to determine whether to send SIGTRAP or not.
 
 config GENERIC_CALIBRATE_DELAY
-	bool
-	default y
+	def_bool y
 
 config GENERIC_CSUM
-	bool
-	default y
+	def_bool y
 
 config GENERIC_HWEIGHT
-	bool
-	default y
+	def_bool y
 
 config MMU
-	bool
-	default y
+	def_bool y
 
 config RWSEM_GENERIC_SPINLOCK
-	bool
-	default y
+	def_bool y
 
 config TIME_LOW_RES
-	bool
-	default y
+	def_bool y
 
 config TRACE_IRQFLAGS_SUPPORT
-	bool
-	default y
+	def_bool y
 
 source "init/Kconfig"
 
@@ -137,19 +129,19 @@ endchoice
 
 config CPU_TLB_SIZE
 	int
-	default "128"	if(CPU_CK610 || CPU_CK807 || CPU_CK810)
-	default "1024"	if(CPU_CK860)
+	default "128"	if (CPU_CK610 || CPU_CK807 || CPU_CK810)
+	default "1024"	if (CPU_CK860)
 
 config CPU_ASID_BITS
 	int
-	default "8"	if(CPU_CK610 || CPU_CK807 || CPU_CK810)
-	default "12"	if(CPU_CK860)
+	default "8"	if (CPU_CK610 || CPU_CK807 || CPU_CK810)
+	default "12"	if (CPU_CK860)
 
 config L1_CACHE_SHIFT
 	int
-	default "4"	if(CPU_CK610)
-	default "5"	if(CPU_CK807 || CPU_CK810)
-	default "6"	if(CPU_CK860)
+	default "4"	if (CPU_CK610)
+	default "5"	if (CPU_CK807 || CPU_CK810)
+	default "6"	if (CPU_CK860)
 
 config HIGHMEM
 	bool "High Memory Support"
@@ -191,8 +183,7 @@ menu "Power management options"
 source "kernel/power/Kconfig"
 
 config ARCH_SUSPEND_POSSIBLE
-	bool
-	default y
+	def_bool y
 endmenu
 
 source "mm/Kconfig"
