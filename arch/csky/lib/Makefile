@@ -1,1 +1,1 @@
-lib-y  := memset.o usercopy.o delay.o
+lib-y  := usercopy.o delay.o

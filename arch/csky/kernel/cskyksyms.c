@@ -22,10 +22,12 @@ EXPORT_SYMBOL(__muldi3);
 EXPORT_SYMBOL(__ucmpdi2);
 
 /*
- * Defined in abiv1/src/memcpy.S
- * and abiv2/src/memcpy.c
+ * String operations
  */
 EXPORT_SYMBOL(memcpy);
-
-/* Defined in lib/memset.c */
 EXPORT_SYMBOL(memset);
+EXPORT_SYMBOL(memcmp);
+EXPORT_SYMBOL(memmove);
+EXPORT_SYMBOL(strcmp);
+EXPORT_SYMBOL(strcpy);
+EXPORT_SYMBOL(strlen);
