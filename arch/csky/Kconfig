@@ -93,13 +93,27 @@ config TIME_LOW_RES
 config TRACE_IRQFLAGS_SUPPORT
 	def_bool y
 
+config CPU_TLB_SIZE
+	int
+	default "128"	if (CPU_CK610 || CPU_CK807 || CPU_CK810)
+	default "1024"	if (CPU_CK860)
+
+config CPU_ASID_BITS
+	int
+	default "8"	if (CPU_CK610 || CPU_CK807 || CPU_CK810)
+	default "12"	if (CPU_CK860)
+
+config L1_CACHE_SHIFT
+	int
+	default "4"	if (CPU_CK610)
+	default "5"	if (CPU_CK807 || CPU_CK810)
+	default "6"	if (CPU_CK860)
+
 source "init/Kconfig"
 
 source "kernel/Kconfig.freezer"
 
 menu "Processor type and features"
-
-comment "Processor type"
 
 choice
 	prompt "CPU MODEL"
@@ -128,26 +142,22 @@ config CPU_CK860
 	select CPU_HAS_FPUV2
 endchoice
 
-config CPU_TLB_SIZE
-	int
-	default "128"	if (CPU_CK610 || CPU_CK807 || CPU_CK810)
-	default "1024"	if (CPU_CK860)
+choice
+	prompt "Power Manager Instruction (wait/doze/stop)"
+	default CPU_PM_NONE
 
-config CPU_ASID_BITS
-	int
-	default "8"	if (CPU_CK610 || CPU_CK807 || CPU_CK810)
-	default "12"	if (CPU_CK860)
+config CPU_PM_NONE
+	bool "None"
 
-config L1_CACHE_SHIFT
-	int
-	default "4"	if (CPU_CK610)
-	default "5"	if (CPU_CK807 || CPU_CK810)
-	default "6"	if (CPU_CK860)
+config CPU_PM_WAIT
+	bool "wait"
 
-config HIGHMEM
-	bool "High Memory Support"
-	depends on !CPU_CK610
-	default y
+config CPU_PM_DOZE
+	bool "doze"
+
+config CPU_PM_STOP
+	bool "stop"
+endchoice
 
 config CPU_HAS_VDSP
 	bool "CPU has VDSP coprocessor"
@@ -172,10 +182,13 @@ config NR_CPUS
 	depends on SMP
 	default "4"
 
-comment "*****System type*****"
+config HIGHMEM
+	bool "High Memory Support"
+	depends on !CPU_CK610
+	default y
 
 config RAM_BASE
-	hex "It must be the same with the memory section in your dts"
+	hex "DRAM start addr (the same with memory-section in dts)"
 	default 0x0
 endmenu
 

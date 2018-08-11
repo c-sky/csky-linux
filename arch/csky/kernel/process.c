@@ -115,5 +115,22 @@ unsigned long get_wchan(struct task_struct *p)
 	} while (count++ < 16);
 	return 0;
 }
-
 EXPORT_SYMBOL(get_wchan);
+
+#ifndef CONFIG_CPU_PM_NONE
+void arch_cpu_idle(void)
+{
+#ifdef CONFIG_CPU_PM_WAIT
+	asm volatile("wait\n");
+#endif
+
+#ifdef CONFIG_CPU_PM_DOZE
+	asm volatile("doze\n");
+#endif
+
+#ifdef CONFIG_CPU_PM_STOP
+	asm volatile("stop\n");
+#endif
+	local_irq_enable();
+}
+#endif
