@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: GPL-2.0
 // Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
+
 #ifndef __ASM_CSKY_CKMMUV2_H
 #define __ASM_CSKY_CKMMUV2_H
 #include <abi/reg_ops.h>
+#include <asm/barrier.h>
 
 static inline int  read_mmu_index(void)
 {
@@ -56,7 +58,7 @@ static inline void tlb_invalid_all(void)
 {
 #ifdef CONFIG_CPU_HAS_TLBI
 	asm volatile("tlbi.alls\n");
-	asm volatile("sync.is\n");
+	sync_is();
 #else
 	mtcr("cr<8, 15>", 0x04000000);
 #endif

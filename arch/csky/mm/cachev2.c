@@ -3,13 +3,12 @@
 #include <linux/spinlock.h>
 #include <linux/smp.h>
 #include <asm/cache.h>
-
-#define SYNC asm volatile("sync.is\n")
+#include <asm/barrier.h>
 
 void inline dcache_wb_line(unsigned long start)
 {
 	asm volatile("dcache.cval1 %0\n"::"r"(start));
-	SYNC;
+	sync_is();
 }
 
 void icache_inv_range(unsigned long start, unsigned long end)
@@ -18,13 +17,13 @@ void icache_inv_range(unsigned long start, unsigned long end)
 
 	for (;i < end; i += L1_CACHE_BYTES)
 		asm volatile("icache.iva %0\n"::"r"(i));
-	SYNC;
+	sync_is();
 }
 
 void icache_inv_all(void)
 {
 	asm volatile("icache.ialls\n");
-	SYNC;
+	sync_is();
 }
 
 void dcache_wb_range(unsigned long start, unsigned long end)
@@ -33,7 +32,7 @@ void dcache_wb_range(unsigned long start, unsigned long end)
 
 	for (;i < end; i += L1_CACHE_BYTES)
 		asm volatile("dcache.cval1 %0\n"::"r"(i));
-	SYNC;
+	sync_is();
 }
 
 void dcache_wbinv_range(unsigned long start, unsigned long end)
@@ -43,11 +42,11 @@ void dcache_wbinv_range(unsigned long start, unsigned long end)
 	for (;i < end; i += L1_CACHE_BYTES) {
 		asm volatile("dcache.cval1 %0\n"::"r"(i));
 	}
-	SYNC;
+	sync_is();
 	for (;i < end; i += L1_CACHE_BYTES) {
 		asm volatile("dcache.iva %0\n"::"r"(i));
 	}
-	SYNC;
+	sync_is();
 }
 
 void dcache_inv_range(unsigned long start, unsigned long end)
@@ -56,7 +55,7 @@ void dcache_inv_range(unsigned long start, unsigned long end)
 
 	for (;i < end; i += L1_CACHE_BYTES)
 		asm volatile("dcache.civa %0\n"::"r"(i));
-	SYNC;
+	sync_is();
 }
 
 void cache_wbinv_range(unsigned long start, unsigned long end)
@@ -66,15 +65,15 @@ void cache_wbinv_range(unsigned long start, unsigned long end)
 	for (;i < end; i += L1_CACHE_BYTES) {
 		asm volatile("dcache.cval1 %0\n"::"r"(i));
 	}
-	SYNC;
+	sync_is();
 	for (;i < end; i += L1_CACHE_BYTES) {
 		asm volatile("dcache.iva %0\n"::"r"(i));
 	}
-	SYNC;
+	sync_is();
 	for (;i < end; i += L1_CACHE_BYTES) {
 		asm volatile("icache.iva %0\n"::"r"(i));
 	}
-	SYNC;
+	sync_is();
 }
 
 void dma_wbinv_range(unsigned long start, unsigned long end)
@@ -83,7 +82,7 @@ void dma_wbinv_range(unsigned long start, unsigned long end)
 
 	for (; i < end; i += L1_CACHE_BYTES)
 		asm volatile("dcache.civa %0\n"::"r"(i));
-	SYNC;
+	sync_is();
 }
 
 void dma_wb_range(unsigned long start, unsigned long end)
@@ -93,5 +92,5 @@ void dma_wb_range(unsigned long start, unsigned long end)
 	for (; i < end; i += L1_CACHE_BYTES)
 		asm volatile("dcache.civa %0\n"::"r"(i));
 
-	SYNC;
+	sync_is();
 }

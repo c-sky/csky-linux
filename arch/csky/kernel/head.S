@@ -31,7 +31,6 @@ ENTRY(_start_smp_secondary)
 	mtcr	a3, cr17
 
 	tlbi.alls
-	sync.is
 
 	/* setup PAGEMASK */
 	movi	a3, 0

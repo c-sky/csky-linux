@@ -51,9 +51,6 @@ static irqreturn_t handle_ipi(int irq, void *dev)
 	while (true) {
 		unsigned long ops;
 
-		/* Order bit clearing and data access. */
-		mb();
-
 		ops = xchg(pending_ipis, 0);
 		if (ops == 0)
 			return IRQ_HANDLED;
@@ -65,9 +62,6 @@ static irqreturn_t handle_ipi(int irq, void *dev)
 			generic_smp_call_function_interrupt();
 
 		BUG_ON((ops >> IPI_MAX) != 0);
-
-		/* Order data access and bit testing. */
-		mb();
 	}
 
 	return IRQ_HANDLED;
@@ -88,11 +82,10 @@ send_ipi_message(const struct cpumask *to_whom, enum ipi_message_type operation)
 {
 	int i;
 
-	mb();
 	for_each_cpu(i, to_whom)
 		set_bit(operation, &ipi_data[i].bits);
 
-	mb();
+	smp_mb();
 	send_arch_ipi(cpumask_bits(to_whom), IPI_IRQ);
 }
 

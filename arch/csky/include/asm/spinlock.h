@@ -44,10 +44,8 @@ static inline void arch_spin_unlock(arch_spinlock_t *lock)
 
 	smp_mb();
 	asm volatile (
-		"1:	ldex.w		%0, (%1) \n"
 		"	movi		%0, 0    \n"
-		"	stex.w		%0, (%1) \n"
-		"	bez		%0, 1b   \n"
+		"	stw		%0, (%1) \n"
 		: "=&r" (tmp)
 		: "r"(p)
 		: "memory");
