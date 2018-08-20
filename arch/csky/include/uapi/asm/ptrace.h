@@ -98,8 +98,6 @@ struct  switch_stack {
 #define instruction_pointer(regs) ((regs)->pc)
 #define profile_pc(regs) instruction_pointer(regs)
 
-void show_regs(struct pt_regs *);
-
 #endif /* __KERNEL__ */
 #endif /* __ASSEMBLY__ */
 #endif /* _CSKY_PTRACE_H */

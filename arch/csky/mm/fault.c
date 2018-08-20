@@ -23,8 +23,6 @@
 #include <asm/traps.h>
 #include <asm/page.h>
 
-extern void die_if_kernel(char *, struct pt_regs *, long);
-
 int fixup_exception(struct pt_regs *regs)
 {
         const struct exception_table_entry *fixup;
