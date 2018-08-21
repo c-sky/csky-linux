@@ -3,6 +3,7 @@
 
 #ifndef __ASM_CSKY_CKMMUV2_H
 #define __ASM_CSKY_CKMMUV2_H
+
 #include <abi/reg_ops.h>
 #include <asm/barrier.h>
 
@@ -84,4 +85,3 @@ static inline void setup_pgd(unsigned long pgd, bool kernel)
 }
 
 #endif /* __ASM_CSKY_CKMMUV2_H */
-

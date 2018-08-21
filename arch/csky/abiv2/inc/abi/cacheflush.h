@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0
+
 #ifndef __ABI_CSKY_CACHEFLUSH_H
 #define __ABI_CSKY_CACHEFLUSH_H
 

@@ -9,6 +9,7 @@
 
 #ifdef CONFIG_SMP
 
+#ifndef CSKY_DEBUG_WITH_KERNEL_4_9
 #define __atomic_add_unless __atomic_add_unless
 static inline int __atomic_add_unless(atomic_t *v, int a, int u)
 {
@@ -34,6 +35,7 @@ static inline int __atomic_add_unless(atomic_t *v, int a, int u)
 
 	return ret;
 }
+#endif
 
 #define ATOMIC_OP(op, c_op)						\
 static inline void atomic_##op(int i, atomic_t *v)			\
@@ -96,6 +98,7 @@ static inline int atomic_fetch_##op(int i, atomic_t *v)			\
 
 #include <linux/irqflags.h>
 
+#ifndef CSKY_DEBUG_WITH_KERNEL_4_9
 #define __atomic_add_unless __atomic_add_unless
 static inline int __atomic_add_unless(atomic_t *v, int a, int u)
 {
@@ -119,6 +122,7 @@ static inline int __atomic_add_unless(atomic_t *v, int a, int u)
 
 	return ret;
 }
+#endif
 
 #define ATOMIC_OP(op, c_op)						\
 static inline void atomic_##op(int i, atomic_t *v)			\
