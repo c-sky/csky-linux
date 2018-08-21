@@ -145,48 +145,31 @@ void __init setup_smp_ipi(void)
 	enable_smp_ipi();
 }
 
-static int csky_of_cpu(struct device_node *node)
-{
-	const char *status;
-	int cpu;
-
-	if (of_property_read_u32(node, "reg", &cpu))
-		goto error;
-
-	if (cpu >= NR_CPUS)
-		goto error;
-
-	if (of_property_read_string(node, "status", &status))
-		status = "enable";
-
-	if (strcmp(status, "disable") == 0)
-		goto error;
-
-	return cpu;
-error:
-	return -ENODEV;
-}
-
 void __init setup_smp(void)
 {
 	struct device_node *node = NULL;
 	int cpu;
 
 	while ((node = of_find_node_by_type(node, "cpu"))) {
-		cpu = csky_of_cpu(node);
-		if (cpu >= 0) {
-			set_cpu_possible(cpu, true);
-			set_cpu_present(cpu, true);
-		}
+		if (!of_device_is_available(node))
+			continue;
+
+		if (of_property_read_u32(node, "reg", &cpu))
+			continue;
+
+		if (cpu >= NR_CPUS)
+			continue;
+
+		set_cpu_possible(cpu, true);
+		set_cpu_present(cpu, true);
 	}
 }
 
 extern void _start_smp_secondary(void);
 
-static unsigned int secondary_hint;
-static unsigned int secondary_ccr;
-
-unsigned int secondary_stack;
+volatile unsigned int secondary_hint;
+volatile unsigned int secondary_ccr;
+volatile unsigned int secondary_stack;
 
 int __cpu_up(unsigned int cpu, struct task_struct *tidle)
 {
@@ -198,12 +181,15 @@ int __cpu_up(unsigned int cpu, struct task_struct *tidle)
 
 	secondary_ccr  = mfcr("cr18");
 
-	pr_info("%s: CPU%u\n", __func__, cpu);
+	/* Flush dcache */
+	mtcr("cr17", 0x22);
 
+	/* Enable cpu in SMP reset ctrl reg */
 	tmp = mfcr("cr<29, 0>");
 	tmp |= 1 << cpu;
 	mtcr("cr<29, 0>", tmp);
 
+	/* Wait for the cpu online */
 	while (!cpu_online(cpu));
 
 	secondary_stack = 0;
