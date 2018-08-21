@@ -37,6 +37,10 @@ struct thread_info {
 #define init_thread_info	(init_thread_union.thread_info)
 #define init_stack		(init_thread_union.stack)
 #endif
+#ifdef CSKY_DEBUG_WITH_KERNEL_4_14
+#define init_thread_info	(init_thread_union.thread_info)
+#define init_stack		(init_thread_union.stack)
+#endif
 
 static inline struct thread_info *current_thread_info(void)
 {
