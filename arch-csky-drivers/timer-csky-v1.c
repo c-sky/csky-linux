@@ -8,31 +8,55 @@
 
 #include "timer-of.h"
 
+#define PTIM_CCVR	"cr<3, 14>"
 #define PTIM_CTLR	"cr<0, 14>"
-#define PTIM_TSR	"cr<1, 14>"
-#define PTIM_CCVR_HI	"cr<2, 14>"
-#define PTIM_CCVR_LO	"cr<3, 14>"
 #define PTIM_LVR	"cr<6, 14>"
+#define PTIM_TSR	"cr<1, 14>"
 
-#define BITS_CSKY_TIMER	56
-
-DECLARE_PER_CPU(struct timer_of, csky_to);
-
-static int csky_timer_irq;
-static int csky_timer_rate;
-
-static inline u64 get_ccvr(void)
+static int csky_mptimer_set_next_event(unsigned long delta, struct clock_event_device *ce)
 {
-	u32 lo, hi, t;
+	mtcr(PTIM_LVR, delta);
 
-	do {
-		t  = mfcr(PTIM_CCVR_LO);
-		hi = mfcr(PTIM_CCVR_HI);
-		lo = mfcr(PTIM_CCVR_LO);
-	} while (unlikely(lo < t));
-
-	return ((u64)hi << 32) | lo;
+	return 0;
 }
+
+static int csky_mptimer_shutdown(struct clock_event_device *ce)
+{
+	mtcr(PTIM_CTLR, 0);
+
+	return 0;
+}
+
+static int csky_mptimer_oneshot(struct clock_event_device *ce)
+{
+	mtcr(PTIM_CTLR, 1);
+
+	return 0;
+}
+
+static int csky_mptimer_oneshot_stopped(struct clock_event_device *ce)
+{
+	mtcr(PTIM_CTLR, 0);
+
+	return 0;
+}
+
+static DEFINE_PER_CPU(struct timer_of, csky_to) = {
+	.flags					= TIMER_OF_CLOCK,
+	.clkevt = {
+		.rating				= 300,
+		.features			= CLOCK_EVT_FEAT_PERCPU |
+						  CLOCK_EVT_FEAT_ONESHOT,
+		.set_state_shutdown		= csky_mptimer_shutdown,
+		.set_state_oneshot		= csky_mptimer_oneshot,
+		.set_state_oneshot_stopped	= csky_mptimer_oneshot_stopped,
+		.set_next_event			= csky_mptimer_set_next_event,
+	},
+	.of_irq = {
+		.flags				= IRQF_TIMER,
+		.percpu				= 1,
+	},
+};
 
 static irqreturn_t timer_interrupt(int irq, void *dev)
 {
@@ -45,125 +69,97 @@ static irqreturn_t timer_interrupt(int irq, void *dev)
 	return IRQ_HANDLED;
 }
 
-static int csky_timer_set_next_event(unsigned long delta, struct clock_event_device *ce)
+/*
+ * clock event for percpu
+ */
+static int csky_mptimer_starting_cpu(unsigned int cpu)
 {
-	mtcr(PTIM_LVR, delta);
+	struct timer_of *to = per_cpu_ptr(&csky_to, cpu);
+
+	to->clkevt.cpumask = cpumask_of(cpu);
+
+	clockevents_config_and_register(&to->clkevt, timer_of_rate(to), 2, ULONG_MAX);
+
+	enable_percpu_irq(timer_of_irq(to), 0);
 
 	return 0;
 }
 
-static int csky_timer_shutdown(struct clock_event_device *ce)
+static int csky_mptimer_dying_cpu(unsigned int cpu)
 {
-	mtcr(PTIM_CTLR, 0);
+	struct timer_of *to = per_cpu_ptr(&csky_to, cpu);
+
+	disable_percpu_irq(timer_of_irq(to));
 
 	return 0;
 }
 
-static int csky_timer_oneshot(struct clock_event_device *ce)
-{
-	mtcr(PTIM_CTLR, 1);
-
-	return 0;
-}
-
-static int csky_timer_oneshot_stopped(struct clock_event_device *ce)
-{
-	mtcr(PTIM_CTLR, 0);
-
-	return 0;
-}
-
-DEFINE_PER_CPU(struct timer_of, csky_to) = {
-	.flags = TIMER_OF_CLOCK | TIMER_OF_IRQ,
-
-	.clkevt = {
-		.name = "C-SKY SMP Timer V1",
-		.rating = 300,
-		.features = CLOCK_EVT_FEAT_PERCPU | CLOCK_EVT_FEAT_ONESHOT,
-		.set_state_shutdown		= csky_timer_shutdown,
-		.set_state_oneshot		= csky_timer_oneshot,
-		.set_state_oneshot_stopped	= csky_timer_oneshot_stopped,
-		.set_next_event			= csky_timer_set_next_event,
-	},
-
-	.of_irq = {
-		.handler = timer_interrupt,
-		.flags = IRQF_TIMER,
-		.percpu = 1,
-	},
-};
-
-/*** clock event for percpu ***/
-static int csky_timer_starting_cpu(unsigned int cpu)
-{
-	struct timer_of *to = this_cpu_ptr(&csky_to);
-
-	to->clkevt.cpumask = cpumask_of(smp_processor_id());
-
-	clockevents_config_and_register(&to->clkevt, csky_timer_rate, 0, ULONG_MAX);
-
-	enable_percpu_irq(csky_timer_irq, 0);
-
-	return 0;
-}
-
-static int csky_timer_dying_cpu(unsigned int cpu)
-{
-	disable_percpu_irq(csky_timer_irq);
-
-	return 0;
-}
-
-/*** clock source ***/
+/*
+ * clock source
+ */
 static u64 sched_clock_read(void)
 {
-	return get_ccvr();
+	return (u64) mfcr(PTIM_CCVR);
 }
 
 static u64 clksrc_read(struct clocksource *c)
 {
-	return get_ccvr();
+	return (u64) mfcr(PTIM_CCVR);
 }
 
 struct clocksource csky_clocksource = {
-	.name = "csky_timer_v1_clksrc",
-	.rating = 400,
-	.mask = CLOCKSOURCE_MASK(BITS_CSKY_TIMER),
-	.flags = CLOCK_SOURCE_IS_CONTINUOUS,
-	.read = clksrc_read,
+	.name	= "csky",
+	.rating	= 400,
+	.mask	= CLOCKSOURCE_MASK(32),
+	.flags	= CLOCK_SOURCE_IS_CONTINUOUS,
+	.read	= clksrc_read,
 };
 
-static void csky_clksrc_init(void)
+#define CPUHP_AP_CSKY_TIMER_STARTING CPUHP_AP_DUMMY_TIMER_STARTING
+
+static int __init csky_mptimer_init(struct device_node *np)
 {
-	clocksource_register_hz(&csky_clocksource, csky_timer_rate);
+	int ret, cpu;
+	struct timer_of *to;
+	int rate = 0;
+	int irq	 = 0;
 
-	sched_clock_register(sched_clock_read, BITS_CSKY_TIMER, csky_timer_rate);
-}
+	for_each_possible_cpu(cpu) {
+		to = per_cpu_ptr(&csky_to, cpu);
 
-static int __init csky_timer_v1_init(struct device_node *np)
-{
-	int ret;
-	struct timer_of *to = this_cpu_ptr(&csky_to);
+		if (cpu == 0) {
+			to->flags	  |= TIMER_OF_IRQ;
+			to->of_irq.handler = timer_interrupt;
 
-	ret = timer_of_init(np, to);
-	if (ret)
-		return ret;
+			ret = timer_of_init(np, to);
+			if (ret)
+				return ret;
 
-	csky_timer_irq = to->of_irq.irq;
-	csky_timer_rate = timer_of_rate(to);
+			rate	= timer_of_rate(to);
+			irq	= to->of_irq.irq;
+		} else {
+			ret = timer_of_init(np, to);
+			if (ret)
+				return ret;
 
-	ret = cpuhp_setup_state(CPUHP_AP_DUMMY_TIMER_STARTING,
+			to->of_clk.rate	= rate;
+			to->of_irq.irq	= irq;
+		}
+	}
+
+	ret = cpuhp_setup_state(CPUHP_AP_CSKY_TIMER_STARTING,
 				"clockevents/csky/timer:starting",
-				csky_timer_starting_cpu,
-				csky_timer_dying_cpu);
+				csky_mptimer_starting_cpu,
+				csky_mptimer_dying_cpu);
 	if (ret) {
 		pr_err("%s: Failed to cpuhp_setup_state.\n", __func__);
 		return ret;
 	}
 
-	csky_clksrc_init();
+	clocksource_register_hz(&csky_clocksource, rate);
+	sched_clock_register(sched_clock_read, 32, rate);
 
-	return ret;
+	return 0;
 }
-TIMER_OF_DECLARE(csky_timer_v1, "csky,timer-v1", csky_timer_v1_init);
-
+TIMER_OF_DECLARE(csky_mptimer, "csky,mptimer", csky_mptimer_init);
+TIMER_OF_DECLARE(csky_timer_v1, "csky,timer-v1", csky_mptimer_init);
