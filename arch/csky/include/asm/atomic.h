@@ -7,7 +7,7 @@
 #include <asm/cmpxchg.h>
 #include <asm/barrier.h>
 
-#ifdef CONFIG_SMP
+#ifdef CONFIG_CPU_HAS_LDSTEX
 
 #ifndef CSKY_DEBUG_WITH_KERNEL_4_9
 #define __atomic_add_unless __atomic_add_unless
@@ -94,7 +94,7 @@ static inline int atomic_fetch_##op(int i, atomic_t *v)			\
 	return ret;							\
 }
 
-#else /* CONFIG_SMP */
+#else /* CONFIG_CPU_HAS_LDSTEX */
 
 #include <linux/irqflags.h>
 
@@ -130,8 +130,9 @@ static inline void atomic_##op(int i, atomic_t *v)			\
 	unsigned long tmp;						\
 									\
 	asm volatile (							\
-	"	idly4			 \n"				\
+	"1:	idly4			 \n"				\
 	"	ldw		%0, (%2) \n"				\
+	"	bt		1b	 \n"				\
 	"	" #op "		%0, %1   \n"				\
 	"	stw		%0, (%2) \n"				\
 		: "=&r" (tmp)						\
@@ -145,8 +146,9 @@ static inline int atomic_##op##_return(int i, atomic_t *v)		\
 	unsigned long tmp, ret;						\
 									\
 	asm volatile (							\
-	"	idly4			 \n"				\
+	"1:	idly4			 \n"				\
 	"	ldw		%0, (%3) \n"				\
+	"	bt		1b	 \n"				\
 	"	" #op "		%0, %2   \n"				\
 	"	stw		%0, (%3) \n"				\
 	"	mov		%1, %0   \n"				\
@@ -160,10 +162,11 @@ static inline int atomic_##op##_return(int i, atomic_t *v)		\
 #define ATOMIC_FETCH_OP(op, c_op)					\
 static inline int atomic_fetch_##op(int i, atomic_t *v)			\
 {									\
-	unsigned long tmp, ret;						\
+	unsigned long tmp, ret, flags;					\
+									\
+	raw_local_irq_save(flags);					\
 									\
 	asm volatile (							\
-	"	idly4			 \n"				\
 	"	ldw		%0, (%3) \n"				\
 	"	mov		%1, %0   \n"				\
 	"	" #op "		%0, %2   \n"				\
@@ -172,10 +175,12 @@ static inline int atomic_fetch_##op(int i, atomic_t *v)			\
 		: "r" (i), "r"(&v->counter)				\
 		: "memory");						\
 									\
+	raw_local_irq_restore(flags);					\
+									\
 	return ret;							\
 }
 
-#endif /* CONFIG_SMP */
+#endif /* CONFIG_CPU_HAS_LDSTEX */
 
 #define atomic_add_return atomic_add_return
 ATOMIC_OP_RETURN(add, +)
