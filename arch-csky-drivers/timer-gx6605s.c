@@ -121,14 +121,27 @@ static int gx6605s_clksrc_init(void __iomem *base)
 
 	sched_clock_register(gx6605s_sched_clock_read, 32, timer_of_rate(&to));
 
-	return clocksource_mmio_init(base + TIMER_VALUE, "gx6605s", timer_of_rate(&to), 200, 32,
-				     clocksource_mmio_readl_up);
+	return clocksource_mmio_init(base + TIMER_VALUE, "gx6605s", timer_of_rate(&to),
+				     200, 32, clocksource_mmio_readl_up);
 }
 
 static int __init gx6605s_timer_init(struct device_node *np)
 {
 	int ret;
 
+	/*
+	 * The timer driver is for nationalchip gx6605s SOC and there are two same timer
+	 * in gx6605s. We use one for clkevt and another for clksrc.
+	 *
+	 * The timer is mmio map to access, so we need give mmio addres in dts.
+	 *
+	 * It provides a 32bit countup timer and interrupt will be caused by count-overflow.
+	 * So we need set-next-event by ULONG_MAX - delta in TIMER_INI reg.
+	 *
+	 * The counter at 0x0  offset is clock event.
+	 * The counter at 0x40 offset is clock source.
+	 * They are the same in hardware, just different used by driver.
+	 */
 	ret = timer_of_init(np, &to);
 	if (ret)
 		return ret;

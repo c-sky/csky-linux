@@ -128,6 +128,19 @@ static int __init csky_mptimer_init(struct device_node *np)
 	int rate = 0;
 	int irq	 = 0;
 
+	/*
+	 * Csky_mptimer is designed for C-SKY SMP multi-processors and
+	 * every core has it's own private irq and regs for clkevt and
+	 * clksrc.
+	 *
+	 * The regs is accessed by cpu instruction: mfcr/mtcr instead of
+	 * mmio map style. So we needn't mmio-address in dts, but we still
+	 * need to give clk and irq number.
+	 *
+	 * We use private irq for the mptimer and irq number is the same
+	 * for every core. So we use request_percpu_irq() in timer_of_init.
+	 */
+
 	for_each_possible_cpu(cpu) {
 		to = per_cpu_ptr(&csky_to, cpu);
 
