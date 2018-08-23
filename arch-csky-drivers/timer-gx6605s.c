@@ -19,18 +19,18 @@
 #define TIMER_DIV	0x24
 #define TIMER_INI	0x28
 
-#define STATUS_CLR	BIT(0)
-#define CONTRL_RST	BIT(0)
-#define CONTRL_START	BIT(1)
-#define CONFIG_EN	BIT(0)
-#define CONFIG_IRQ_EN	BIT(1)
+#define GX6605S_STATUS_CLR	BIT(0)
+#define GX6605S_CONTRL_RST	BIT(0)
+#define GX6605S_CONTRL_START	BIT(1)
+#define GX6605S_CONFIG_EN	BIT(0)
+#define GX6605S_CONFIG_IRQ_EN	BIT(1)
 
 static irqreturn_t gx6605s_timer_interrupt(int irq, void *dev)
 {
 	struct clock_event_device *ce = (struct clock_event_device *) dev;
 	void __iomem *base = timer_of_base(to_timer_of(ce));
 
-	writel_relaxed(STATUS_CLR, base + TIMER_STATUS);
+	writel_relaxed(GX6605S_STATUS_CLR, base + TIMER_STATUS);
 
 	ce->event_handler(ce);
 
@@ -42,10 +42,10 @@ static int gx6605s_timer_set_oneshot(struct clock_event_device *ce)
 	void __iomem *base = timer_of_base(to_timer_of(ce));
 
 	/* reset and stop counter */
-	writel_relaxed(CONTRL_RST, base + TIMER_CONTRL);
+	writel_relaxed(GX6605S_CONTRL_RST, base + TIMER_CONTRL);
 
 	/* enable with irq and start */
-	writel_relaxed(CONFIG_EN | CONFIG_IRQ_EN, base + TIMER_CONFIG);
+	writel_relaxed(GX6605S_CONFIG_EN | GX6605S_CONFIG_IRQ_EN, base + TIMER_CONFIG);
 
 	return 0;
 }
@@ -55,11 +55,11 @@ static int gx6605s_timer_set_next_event(unsigned long delta, struct clock_event_
 	void __iomem *base = timer_of_base(to_timer_of(ce));
 
 	/* use reset to pause timer */
-	writel_relaxed(CONTRL_RST, base + TIMER_CONTRL);
+	writel_relaxed(GX6605S_CONTRL_RST, base + TIMER_CONTRL);
 
 	/* config next timeout value */
 	writel_relaxed(ULONG_MAX - delta, base + TIMER_INI);
-	writel_relaxed(CONTRL_START, base + TIMER_CONTRL);
+	writel_relaxed(GX6605S_CONTRL_START, base + TIMER_CONTRL);
 
 	return 0;
 }
@@ -113,11 +113,11 @@ static int gx6605s_clksrc_init(void __iomem *base)
 	writel_relaxed(0, base + TIMER_DIV);
 	writel_relaxed(0, base + TIMER_INI);
 
-	writel_relaxed(CONTRL_RST, base + TIMER_CONTRL);
+	writel_relaxed(GX6605S_CONTRL_RST, base + TIMER_CONTRL);
 
-	writel_relaxed(CONFIG_EN, base + TIMER_CONFIG);
+	writel_relaxed(GX6605S_CONFIG_EN, base + TIMER_CONFIG);
 
-	writel_relaxed(CONTRL_START, base + TIMER_CONTRL);
+	writel_relaxed(GX6605S_CONTRL_START, base + TIMER_CONTRL);
 
 	sched_clock_register(gx6605s_sched_clock_read, 32, timer_of_rate(&to));
 
