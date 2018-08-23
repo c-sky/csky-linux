@@ -1,5 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0
-// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
+/*
+ * Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
+ * Author: Guo Ren <ren_guo@c-sky.com>
+ */
 
 #include <linux/kernel.h>
 #include <linux/init.h>
@@ -162,8 +165,7 @@ gx_intc_init(struct device_node *node, struct device_node *parent)
 
 	return 0;
 }
-IRQCHIP_DECLARE(nationalchip_intc_v1_ave, "nationalchip,intc-v1,ave", gx_intc_init);
-IRQCHIP_DECLARE(gx6605s_intc, "csky,gx6605s-intc", gx_intc_init);
+IRQCHIP_DECLARE(gx6605s_intc, "natchip,gx6605s-intc", gx_intc_init);
 
 /* C-SKY simple 64 irqs interrupt controller, dual-together could support 128 irqs */
 static void ck_irq_handler(struct pt_regs *regs)

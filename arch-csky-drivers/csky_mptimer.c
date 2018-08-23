@@ -1,5 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0
-// Copyright (C) 2018 Hangzhou NationalChip Science & Technology Co.,Ltd.
+/*
+ * Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
+ * Author: Guo Ren <ren_guo@c-sky.com>
+ */
+
 #include <linux/init.h>
 #include <linux/interrupt.h>
 #include <linux/sched_clock.h>
