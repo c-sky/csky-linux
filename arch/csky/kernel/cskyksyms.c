@@ -2,7 +2,9 @@
 // Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
 
 #include <linux/module.h>
+#include <linux/version.h>
 
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(4,18,0)
 /*
  * Defined in libgcc
  *
@@ -19,3 +21,4 @@ EXPORT_SYMBOL(__ashrdi3);
 EXPORT_SYMBOL(__lshrdi3);
 EXPORT_SYMBOL(__muldi3);
 EXPORT_SYMBOL(__ucmpdi2);
+#endif
