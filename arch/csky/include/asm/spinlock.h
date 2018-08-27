@@ -69,7 +69,9 @@ static inline int arch_spin_trylock(arch_spinlock_t *lock)
 		: "=&r" (tmp)
 		: "r"(p)
 		: "memory");
-	smp_mb();
+
+	if (!tmp)
+		smp_mb();
 
 	return !tmp;
 }
@@ -127,7 +129,9 @@ static inline int arch_read_trylock(arch_rwlock_t *lock)
 		: "=&r" (tmp)
 		: "r"(p)
 		: "memory");
-	smp_mb();
+
+	if (!tmp)
+		smp_mb();
 
 	return !tmp;
 }
@@ -185,7 +189,9 @@ static inline int arch_write_trylock(arch_rwlock_t *lock)
 		: "=&r" (tmp)
 		: "r"(p)
 		: "memory");
-	smp_mb();
+
+	if (!tmp)
+		smp_mb();
 
 	return !tmp;
 }
