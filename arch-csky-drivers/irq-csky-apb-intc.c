@@ -1,8 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0
-/*
- * Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
- * Author: Guo Ren <ren_guo@c-sky.com>
- */
+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
 
 #include <linux/kernel.h>
 #include <linux/init.h>
