@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 // Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
+
 #include <linux/ptrace.h>
 #include <linux/uaccess.h>
 #include <abi/reg_ops.h>
@@ -91,7 +92,8 @@ void fpu_fpe(struct pt_regs * regs)
 	int sig;
 	unsigned int fesr;
 	siginfo_t info;
-	asm volatile("mfcr %0, cr<2, 2>":"=r"(fesr));
+
+	fesr = mfcr("cr<2, 2>");
 
 	if(fesr & FPE_ILLE){
 		info.si_code = ILL_ILLOPC;
@@ -162,12 +164,10 @@ void save_to_user_fp(struct user_fp *user_fp)
 	unsigned long tmp1, tmp2;
 	unsigned long *fpregs;
 
-	local_save_flags(flg);
+	local_irq_save(flg);
 
-	asm volatile(
-		"mfcr    %0, cr<1, 2> \n"
-		"mfcr    %1, cr<2, 2> \n"
-		:"=r"(tmp1),"=r"(tmp2));
+	tmp1 = mfcr("cr<1, 2>");
+	tmp2 = mfcr("cr<2, 2>");
 
 	user_fp->fcr = tmp1;
 	user_fp->fesr = tmp2;
@@ -181,11 +181,13 @@ void save_to_user_fp(struct user_fp *user_fp)
 		"vstmu.32    vr8-vr11,  (%0) \n"
 		"vstmu.32    vr12-vr15, (%0) \n"
 		"fstmu.64    vr16-vr31, (%0) \n"
-		:"+a"(fpregs));
+		:"+a"(fpregs)
+		::"memory");
 #else
 	asm volatile(
 		"fstmu.64    vr0-vr31,  (%0) \n"
-		:"+a"(fpregs));
+		:"+a"(fpregs)
+		::"memory");
 #endif
 #else
 	{
@@ -209,7 +211,8 @@ void save_to_user_fp(struct user_fp *user_fp)
 		FMFVR_FPU_REGS(vr14, vr15)
 		STW_FPU_REGS(96, 100, 112, 116)
 		:"=a"(tmp1),"=a"(tmp2),"=a"(tmp3),
-		"=a"(tmp4),"+a"(fpregs));
+		"=a"(tmp4),"+a"(fpregs)
+		::"memory");
 	}
 #endif
 
@@ -227,10 +230,8 @@ void restore_from_user_fp(struct user_fp *user_fp)
 	tmp1 = user_fp->fcr;
 	tmp2 = user_fp->fesr;
 
-	asm volatile(
-		"mtcr   %0, cr<1, 2>\n"
-		"mtcr   %1, cr<2, 2>\n"
-		::"r"(tmp1), "r"(tmp2));
+	mtcr("cr<1, 2>", tmp1);
+	mtcr("cr<2, 2>", tmp2);
 
 	fpregs = &user_fp->vr[0];
 #ifdef CONFIG_CPU_HAS_FPUV2
@@ -241,11 +242,13 @@ void restore_from_user_fp(struct user_fp *user_fp)
 		"vldmu.32    vr8-vr11,  (%0) \n"
 		"vldmu.32    vr12-vr15, (%0) \n"
 		"fldmu.64    vr16-vr31, (%0) \n"
-		:"+a"(fpregs));
+		:"+a"(fpregs)
+		::"memory");
 #else
 	asm volatile(
 		"fldmu.64    vr0-vr31,  (%0) \n"
-		:"+a"(fpregs));
+		:"+a"(fpregs)
+		::"memory");
 #endif
 #else
 	{
@@ -269,7 +272,8 @@ void restore_from_user_fp(struct user_fp *user_fp)
 		LDW_FPU_REGS(96, 100, 112, 116)
 		FMTVR_FPU_REGS(vr14, vr15)
 		:"=a"(tmp1),"=a"(tmp2),"=a"(tmp3),
-		"=a"(tmp4),"+a"(fpregs));
+		"=a"(tmp4),"+a"(fpregs)
+		::"memory");
 	}
 #endif
 

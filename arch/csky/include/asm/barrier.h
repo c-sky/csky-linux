@@ -33,7 +33,7 @@
 #define __smp_wmb()	asm volatile ("bar.bwaws":::"memory")
 #endif /* CONFIG_SMP */
 
-#define sync_is()	asm volatile ("sync.is")
+#define sync_is()	asm volatile ("sync.is":::"memory")
 
 #else /* !CONFIG_CPU_HAS_CACHEV2 */
 #define mb()		asm volatile ("sync":::"memory")

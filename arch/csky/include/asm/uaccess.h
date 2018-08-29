@@ -167,7 +167,6 @@ do{                                                             \
 	         : "memory");                                   \
 }while(0)
 
-
 #define __put_user_asm_64(x, ptr, err)                          \
 do{                                                             \
 	int tmp;                                                \

@@ -9,20 +9,20 @@ static inline unsigned long arch_local_irq_save(void)
 	unsigned long flags;
 
 	flags = mfcr("psr");
-	asm volatile("psrclr ie\n");
+	asm volatile("psrclr ie\n":::"memory");
 	return flags;
 }
 #define arch_local_irq_save arch_local_irq_save
 
 static inline void arch_local_irq_enable(void)
 {
-	asm volatile("psrset ee, ie\n");
+	asm volatile("psrset ee, ie\n":::"memory");
 }
 #define arch_local_irq_enable arch_local_irq_enable
 
 static inline void arch_local_irq_disable(void)
 {
-	asm volatile("psrclr ie\n");
+	asm volatile("psrclr ie\n":::"memory");
 }
 #define arch_local_irq_disable arch_local_irq_disable
 

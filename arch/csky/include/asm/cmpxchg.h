@@ -21,7 +21,7 @@
 		"	bez		%1, 1b   \n"		\
 			: "=&r" (__ret), "=&r" (tmp)		\
 			: "r" (__new), "r"(__ptr)		\
-			: "memory");				\
+			:);					\
 		smp_mb();					\
 		break;						\
 	default:						\
@@ -52,7 +52,7 @@
 		"2:				 \n"		\
 			: "=&r" (__ret), "=&r" (__tmp)		\
 			: "r" (__new), "r"(__ptr), "r"(__old)	\
-			: "memory");				\
+			:);					\
 		smp_mb();					\
 		break;						\
 	default:						\

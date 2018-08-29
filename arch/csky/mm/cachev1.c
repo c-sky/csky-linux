@@ -80,7 +80,7 @@ static void cache_op_range(
 
 void dcache_wb_line(unsigned long start)
 {
-	asm volatile("idly4\n");
+	asm volatile("idly4\n":::"memory");
 	cache_op_line(start, DATA_CACHE|CACHE_CLR);
 	SYNC;
 }

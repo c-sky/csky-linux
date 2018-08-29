@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 // Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
+
 #include <linux/uaccess.h>
 #include <linux/types.h>
 
@@ -166,7 +167,7 @@ long strnlen_user(const char *s, long n)
         "5:                             \n"             
         :"=r"(n),"=r"(s), "=r"(res), "=r"(tmp)   
         : "0"(n), "1"(s), "2"(n)      
-        : "cc" );
+        : "memory", "cc" );
 		return res;     
 	}
 	return 0;     
