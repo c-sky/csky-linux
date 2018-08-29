@@ -1,6 +1,7 @@
 config CSKY
 	def_bool y
 	select ARCH_USE_BUILTIN_BSWAP
+	select ARCH_USE_QUEUED_RWLOCKS if NR_CPUS>2
 	select COMMON_CLK
 	select CLKSRC_MMIO
 	select CLKSRC_OF
@@ -186,7 +187,7 @@ config NR_CPUS
 	int "Maximum number of CPUs (2-32)"
 	range 2 32
 	depends on SMP
-	default "4"
+	default "2"
 
 config HIGHMEM
 	bool "High Memory Support"

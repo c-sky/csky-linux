@@ -42,6 +42,7 @@ generic-y += percpu.h
 generic-y += posix_types.h
 generic-y += poll.h
 generic-y += preempt.h
+generic-y += qrwlock.h
 generic-y += resource.h
 generic-y += scatterlist.h
 generic-y += sections.h
