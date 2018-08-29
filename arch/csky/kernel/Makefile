@@ -6,4 +6,4 @@ obj-y += entry.o atomic.o signal.o traps.o irq.o time.o vdso.o \
 
 obj-$(CONFIG_MODULES)			+= module.o
 obj-$(CONFIG_SMP)			+= smp.o
-obj-y					+= cskyksyms.o
+obj-y					+= libgcc_ksyms.o
