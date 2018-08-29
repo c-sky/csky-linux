@@ -43,6 +43,8 @@ void dcache_wbinv_range(unsigned long start, unsigned long end)
 		asm volatile("dcache.cval1 %0\n"::"r"(i));
 	}
 	sync_is();
+
+	i = start & ~(L1_CACHE_BYTES - 1);
 	for (;i < end; i += L1_CACHE_BYTES) {
 		asm volatile("dcache.iva %0\n"::"r"(i));
 	}
@@ -66,10 +68,14 @@ void cache_wbinv_range(unsigned long start, unsigned long end)
 		asm volatile("dcache.cval1 %0\n"::"r"(i));
 	}
 	sync_is();
+
+	i = start & ~(L1_CACHE_BYTES - 1);
 	for (;i < end; i += L1_CACHE_BYTES) {
 		asm volatile("dcache.iva %0\n"::"r"(i));
 	}
 	sync_is();
+
+	i = start & ~(L1_CACHE_BYTES - 1);
 	for (;i < end; i += L1_CACHE_BYTES) {
 		asm volatile("icache.iva %0\n"::"r"(i));
 	}
