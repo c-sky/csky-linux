@@ -49,29 +49,6 @@ csum_tcpudp_nofold(
 }
 #define csum_tcpudp_nofold csum_tcpudp_nofold
 
-static __inline__ __sum16
-csum_ipv6_magic(
-	const struct in6_addr *saddr,
-	const struct in6_addr *daddr,
-	__u32 len,
-	unsigned short proto,
-	__wsum sum
-	)
-{
-	sum += saddr->in6_u.u6_addr32[0];
-	sum += saddr->in6_u.u6_addr32[1];
-	sum += saddr->in6_u.u6_addr32[2];
-	sum += saddr->in6_u.u6_addr32[3];
-	sum += daddr->in6_u.u6_addr32[0];
-	sum += daddr->in6_u.u6_addr32[1];
-	sum += daddr->in6_u.u6_addr32[2];
-	sum += daddr->in6_u.u6_addr32[3];
-	sum += (len + proto);
-
-	return csum_fold(sum);
-}
-#define _HAVE_ARCH_IPV6_CSUM
-
 #include <asm-generic/checksum.h>
 
 #endif /* __ASM_CSKY_CHECKSUM_H */
