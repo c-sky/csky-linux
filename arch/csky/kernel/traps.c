@@ -64,7 +64,6 @@ void __init trap_init (void)
 	VEC_INIT(VEC_TLBINVALIDS, csky_tlbinvalids);
 	VEC_INIT(VEC_TLBMODIFIED, csky_tlbmodified);
 
-
 #ifdef CONFIG_CPU_HAS_FPU
 	init_fpu();
 #endif
@@ -90,6 +89,16 @@ void die_if_kernel (char *str, struct pt_regs *regs, int nr)
 void buserr(struct pt_regs *regs)
 {
 	siginfo_t info;
+#ifdef CONFIG_CPU_CK810
+	static unsigned long prev_pc;
+
+	if ((regs->pc == prev_pc) && prev_pc != 0) {
+		prev_pc = 0;
+	} else {
+		prev_pc = regs->pc;
+		return;
+	}
+#endif
 
 	die_if_kernel("Kernel mode BUS error", regs, 0);
 
@@ -157,4 +166,3 @@ asmlinkage void set_esp0 (unsigned long ssp)
 {
 	current->thread.esp0 = ssp;
 }
-
