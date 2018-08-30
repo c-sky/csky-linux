@@ -5,6 +5,7 @@
 
 #ifndef __ASSEMBLY__
 
+#include <linux/version.h>
 #include <asm/types.h>
 #include <asm/page.h>
 #include <asm/processor.h>
@@ -33,11 +34,11 @@ struct thread_info {
 }
 
 #define THREAD_SIZE_ORDER (THREAD_SHIFT - PAGE_SHIFT)
-#ifdef CSKY_DEBUG_WITH_KERNEL_4_9
+#if (LINUX_VERSION_CODE >> 8) == (KERNEL_VERSION(4,9,0) >> 8)
 #define init_thread_info	(init_thread_union.thread_info)
 #define init_stack		(init_thread_union.stack)
 #endif
-#ifdef CSKY_DEBUG_WITH_KERNEL_4_14
+#if (LINUX_VERSION_CODE >> 8) == (KERNEL_VERSION(4,14,0) >> 8)
 #define init_thread_info	(init_thread_union.thread_info)
 #define init_stack		(init_thread_union.stack)
 #endif

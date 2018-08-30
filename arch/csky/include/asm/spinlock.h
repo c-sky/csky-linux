@@ -4,7 +4,7 @@
 #include <linux/spinlock_types.h>
 #include <asm/barrier.h>
 
-#ifdef CSKY_DEBUG_WITH_KERNEL_4_9
+#if (LINUX_VERSION_CODE >> 8) == (KERNEL_VERSION(4,9,0) >> 8)
 #define arch_spin_lock_flags(lock, flags)  arch_spin_lock(lock)
 #define arch_read_lock_flags(lock, flags)  arch_read_lock(lock)
 #define arch_write_lock_flags(lock, flags) arch_write_lock(lock)

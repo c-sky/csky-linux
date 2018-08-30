@@ -4,12 +4,13 @@
 #ifndef __ASM_CSKY_ATOMIC_H
 #define __ASM_CSKY_ATOMIC_H
 
+#include <linux/version.h>
 #include <asm/cmpxchg.h>
 #include <asm/barrier.h>
 
 #ifdef CONFIG_CPU_HAS_LDSTEX
 
-#ifndef CSKY_DEBUG_WITH_KERNEL_4_9
+#if (LINUX_VERSION_CODE >> 8) != (KERNEL_VERSION(4,9,0) >> 8)
 #define __atomic_add_unless __atomic_add_unless
 static inline int __atomic_add_unless(atomic_t *v, int a, int u)
 {
@@ -98,7 +99,7 @@ static inline int atomic_fetch_##op(int i, atomic_t *v)			\
 
 #include <linux/irqflags.h>
 
-#ifndef CSKY_DEBUG_WITH_KERNEL_4_9
+#if (LINUX_VERSION_CODE >> 8) != (KERNEL_VERSION(4,9,0) >> 8)
 #define __atomic_add_unless __atomic_add_unless
 static inline int __atomic_add_unless(atomic_t *v, int a, int u)
 {

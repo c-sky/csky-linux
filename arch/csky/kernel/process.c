@@ -3,7 +3,7 @@
 #include <linux/module.h>
 #include <linux/version.h>
 #include <linux/sched.h>
-#ifndef CSKY_DEBUG_WITH_KERNEL_4_9
+#if (LINUX_VERSION_CODE >> 8) != (KERNEL_VERSION(4,9,0) >> 8)
 #include <linux/sched/task_stack.h>
 #include <linux/sched/debug.h>
 #endif

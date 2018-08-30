@@ -41,14 +41,6 @@ KBUILD_CFLAGS += -msoft-float -mdiv
 KBUILD_CFLAGS += -fno-tree-vectorize
 endif
 
-ifeq ($(VERSION)_$(PATCHLEVEL), 4_9)
-KBUILD_CFLAGS += -DCSKY_DEBUG_WITH_KERNEL_4_9
-endif
-
-ifeq ($(VERSION)_$(PATCHLEVEL), 4_14)
-KBUILD_CFLAGS += -DCSKY_DEBUG_WITH_KERNEL_4_14
-endif
-
 KBUILD_CFLAGS += -pipe
 ifeq ($(CSKYABI),abiv2)
 KBUILD_CFLAGS += -mno-stack-size

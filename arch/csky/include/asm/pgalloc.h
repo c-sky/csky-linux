@@ -23,7 +23,7 @@ static inline void pmd_populate(struct mm_struct *mm, pmd_t *pmd,
 
 extern void pgd_init(unsigned long *p);
 
-#ifdef CSKY_DEBUG_WITH_KERNEL_4_9
+#if (LINUX_VERSION_CODE >> 8) == (KERNEL_VERSION(4,9,0) >> 8)
 #define __GFP_RETRY_MAYFAIL __GFP_REPEAT
 #endif
 static inline pte_t *pte_alloc_one_kernel(struct mm_struct *mm,

@@ -1,14 +1,16 @@
 // SPDX-License-Identifier: GPL-2.0
 // Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-#include <linux/types.h>
-#include <linux/highmem.h>
-#include <linux/mm.h>
+
+#include <linux/cache.h>
 #include <linux/dma-mapping.h>
 #include <linux/dma-contiguous.h>
-#include <linux/scatterlist.h>
-#include <linux/io.h>
-#include <linux/cache.h>
 #include <linux/genalloc.h>
+#include <linux/highmem.h>
+#include <linux/io.h>
+#include <linux/mm.h>
+#include <linux/scatterlist.h>
+#include <linux/types.h>
+#include <linux/version.h>
 #include <asm/cache.h>
 
 static struct gen_pool *atomic_pool;
@@ -124,7 +126,7 @@ static void *csky_dma_alloc_nonatomic(
 		BUG();
 
 	if (IS_ENABLED(CONFIG_DMA_CMA))
-#ifdef CSKY_DEBUG_WITH_KERNEL_4_9
+#if (LINUX_VERSION_CODE >> 8) == (KERNEL_VERSION(4,9,0) >> 8)
 		page = dma_alloc_from_contiguous(dev, count, get_order(size));
 #else
 		page = dma_alloc_from_contiguous(dev, count, get_order(size), gfp);

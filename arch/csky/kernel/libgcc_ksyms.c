@@ -4,7 +4,7 @@
 #include <linux/module.h>
 #include <linux/version.h>
 
-#if LINUX_VERSION_CODE <= KERNEL_VERSION(4,18,0)
+#if (LINUX_VERSION_CODE >> 8) < (KERNEL_VERSION(4,18,0) >> 8)
 /*
  * Defined in libgcc
  *

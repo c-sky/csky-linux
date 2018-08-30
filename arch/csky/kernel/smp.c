@@ -12,10 +12,11 @@
 #include <linux/irq.h>
 #include <linux/irqdomain.h>
 #include <linux/of.h>
-#ifndef CSKY_DEBUG_WITH_KERNEL_4_9
+#if (LINUX_VERSION_CODE >> 8) != (KERNEL_VERSION(4,9,0) >> 8)
 #include <linux/sched/task_stack.h>
 #include <linux/sched/mm.h>
-#else
+#endif
+#if (LINUX_VERSION_CODE >> 8) == (KERNEL_VERSION(4,9,0) >> 8)
 static inline void mmgrab(struct mm_struct *mm)
 {
 	atomic_inc(&mm->mm_count);
