@@ -15,7 +15,7 @@ SYSCALL_DEFINE3(cacheflush,
 		icache_inv_range((unsigned long)addr, (unsigned long)addr + bytes);
 		break;
 	case DCACHE:
-		dcache_wbinv_range((unsigned long)addr, (unsigned long)addr + bytes);
+		dcache_wb_range((unsigned long)addr, (unsigned long)addr + bytes);
 		break;
 	case BCACHE:
 		cache_wbinv_range((unsigned long)addr, (unsigned long)addr + bytes);

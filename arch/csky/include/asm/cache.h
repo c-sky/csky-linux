@@ -16,7 +16,6 @@ void icache_inv_range(unsigned long start, unsigned long end);
 void icache_inv_all(void);
 
 void dcache_wb_range(unsigned long start, unsigned long end);
-void dcache_wbinv_range(unsigned long start, unsigned long end);
 void dcache_wbinv_all(void);
 
 void cache_wbinv_range(unsigned long start, unsigned long end);

@@ -100,11 +100,6 @@ void dcache_wb_range(unsigned long start, unsigned long end)
 	cache_op_range(start, end, DATA_CACHE|CACHE_CLR, 0);
 }
 
-void dcache_wbinv_range(unsigned long start, unsigned long end)
-{
-	cache_op_range(start, end, DATA_CACHE|CACHE_CLR|CACHE_INV, 0);
-}
-
 void dcache_wbinv_all(void)
 {
 	cache_op_all(DATA_CACHE|CACHE_CLR|CACHE_INV, 0);

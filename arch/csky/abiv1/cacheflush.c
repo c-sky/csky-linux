@@ -26,7 +26,7 @@ void flush_dcache_page(struct page *page)
 	 * get faulted into the tlb (and thus flushed) anyways.
 	 */
 	addr = (unsigned long) page_address(page);
-	dcache_wbinv_range(addr, addr + PAGE_SIZE);
+	dcache_wb_range(addr, addr + PAGE_SIZE);
 }
 
 void update_mmu_cache(struct vm_area_struct *vma, unsigned long address, pte_t *pte)
