@@ -4,6 +4,7 @@
 #define __ASM_CSKY_BITOPS_H
 
 #include <linux/compiler.h>
+#include <asm/barrier.h>
 
 /*
  * asm-generic/bitops/ffs.h
