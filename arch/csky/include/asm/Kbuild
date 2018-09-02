@@ -1,9 +1,7 @@
 generic-y += asm-offsets.h
-generic-y += auxvec.h
 generic-y += bitsperlong.h
 generic-y += bugs.h
 generic-y += clkdev.h
-generic-y += cputime.h
 generic-y += current.h
 generic-y += delay.h
 generic-y += device.h
@@ -53,7 +51,6 @@ generic-y += shmbuf.h
 generic-y += shm.h
 generic-y += siginfo.h
 generic-y += signal.h
-generic-y += sizes.h
 generic-y += socket.h
 generic-y += sockios.h
 generic-y += statfs.h
