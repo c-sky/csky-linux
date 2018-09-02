@@ -46,10 +46,6 @@ ifeq ($(CSKYABI),abiv2)
 KBUILD_CFLAGS += -mno-stack-size
 endif
 
-ifeq ($(CONFIG_CSKY_DEBUG_INFO),y)
-KBUILD_CFLAGS += -g
-endif
-
 abidirs := $(patsubst %,arch/csky/%/,$(CSKYABI))
 KBUILD_CFLAGS += $(patsubst %,-I$(srctree)/%inc,$(abidirs))
 
