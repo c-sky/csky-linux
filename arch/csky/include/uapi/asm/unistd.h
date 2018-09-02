@@ -2,7 +2,7 @@
 // Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
 
 #include <linux/version.h>
-#if ((LINUX_VERSION_CODE >> 8) == (KERNEL_VERSION(4,9,0) >> 8)) || ((LINUX_VERSION_CODE >> 8) == (KERNEL_VERSION(4,14,0) >> 8))
+#if ((LINUX_VERSION_CODE >> 8) == (KERNEL_VERSION(4,9,0) >> 8)) || ((LINUX_VERSION_CODE >> 8) == (KERNEL_VERSION(4,14,0) >> 8)) || ((LINUX_VERSION_CODE >> 8) == (KERNEL_VERSION(4,16,0) >> 8))
 #define __ARCH_WANT_OLD_READDIR
 #define __ARCH_WANT_RENAMEAT
 #define __ARCH_WANT_STAT64
@@ -36,7 +36,7 @@
 __SYSCALL(__NR_set_thread_area, sys_set_thread_area)
 #define __NR_cacheflush		(__NR_arch_specific_syscall + 4)
 __SYSCALL(__NR_cacheflush, sys_cacheflush)
-#if ((LINUX_VERSION_CODE >> 8) == (KERNEL_VERSION(4,9,0) >> 8)) || ((LINUX_VERSION_CODE >> 8) == (KERNEL_VERSION(4,14,0) >> 8))
+#if ((LINUX_VERSION_CODE >> 8) == (KERNEL_VERSION(4,9,0) >> 8)) || ((LINUX_VERSION_CODE >> 8) == (KERNEL_VERSION(4,14,0) >> 8)) || ((LINUX_VERSION_CODE >> 8) == (KERNEL_VERSION(4,16,0) >> 8))
 #define __NR_ipc		(__NR_arch_specific_syscall + 1)
 __SYSCALL(__NR_ipc, sys_ipc)
 #define __NR_socketcall		(__NR_arch_specific_syscall + 2)
