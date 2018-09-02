@@ -34,11 +34,7 @@ struct thread_info {
 }
 
 #define THREAD_SIZE_ORDER (THREAD_SHIFT - PAGE_SHIFT)
-#if (LINUX_VERSION_CODE >> 8) == (KERNEL_VERSION(4,9,0) >> 8)
-#define init_thread_info	(init_thread_union.thread_info)
-#define init_stack		(init_thread_union.stack)
-#endif
-#if (LINUX_VERSION_CODE >> 8) == (KERNEL_VERSION(4,14,0) >> 8)
+#if ((LINUX_VERSION_CODE >> 8) == (KERNEL_VERSION(4,9,0) >> 8)) || ((LINUX_VERSION_CODE >> 8) == (KERNEL_VERSION(4,14,0) >> 8))
 #define init_thread_info	(init_thread_union.thread_info)
 #define init_stack		(init_thread_union.stack)
 #endif

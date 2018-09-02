@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: GPL-2.0
 // Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
+
+#include <linux/version.h>
+#if ((LINUX_VERSION_CODE >> 8) == (KERNEL_VERSION(4,9,0) >> 8)) || ((LINUX_VERSION_CODE >> 8) == (KERNEL_VERSION(4,14,0) >> 8))
 #define __ARCH_WANT_OLD_READDIR
 #define __ARCH_WANT_RENAMEAT
 #define __ARCH_WANT_STAT64
 #define __ARCH_WANT_SYS_ALARM
-#define __ARCH_WANT_SYS_CLONE
 #define __ARCH_WANT_SYS_FORK
 #define __ARCH_WANT_SYS_GETHOSTNAME
 #define __ARCH_WANT_SYS_GETPGRP
@@ -22,6 +24,8 @@
 #define __ARCH_WANT_SYS_UTIME
 #define __ARCH_WANT_SYS_VFORK
 #define __ARCH_WANT_SYS_WAITPID
+#endif
+#define __ARCH_WANT_SYS_CLONE
 
 #include <asm-generic/unistd.h>
 
@@ -30,18 +34,19 @@
  */
 #define __NR_set_thread_area	(__NR_arch_specific_syscall + 0)
 __SYSCALL(__NR_set_thread_area, sys_set_thread_area)
+#define __NR_cacheflush		(__NR_arch_specific_syscall + 4)
+__SYSCALL(__NR_cacheflush, sys_cacheflush)
+#if ((LINUX_VERSION_CODE >> 8) == (KERNEL_VERSION(4,9,0) >> 8)) || ((LINUX_VERSION_CODE >> 8) == (KERNEL_VERSION(4,14,0) >> 8))
 #define __NR_ipc		(__NR_arch_specific_syscall + 1)
 __SYSCALL(__NR_ipc, sys_ipc)
 #define __NR_socketcall		(__NR_arch_specific_syscall + 2)
 __SYSCALL(__NR_socketcall, sys_socketcall)
 #define __NR_ugetrlimit		(__NR_arch_specific_syscall + 3)
 __SYSCALL(__NR_ugetrlimit, sys_getrlimit)
-#define __NR_cacheflush		(__NR_arch_specific_syscall + 4)
-__SYSCALL(__NR_cacheflush, sys_cacheflush)
+
 #define __NR_sysfs		(__NR_arch_specific_syscall + 5)
 __SYSCALL(__NR_sysfs, sys_sysfs)
 
-__SYSCALL(__NR_fadvise64_64, sys_csky_fadvise64_64)
 
 #define __NR_setgroups32	__NR_setgroups
 #define __NR_getgid32		__NR_getgid
@@ -60,4 +65,4 @@ __SYSCALL(__NR_fadvise64_64, sys_csky_fadvise64_64)
 #define __NR_setreuid32		__NR_setreuid
 #define __NR_setregid32		__NR_setregid
 #define __NR__llseek		__NR_llseek
-
+#endif
