@@ -26,12 +26,8 @@
 #define __ARCH_WANT_SYS_WAITPID
 #endif
 #define __ARCH_WANT_SYS_CLONE
-
 #include <asm-generic/unistd.h>
 
-/*
- * other define
- */
 #define __NR_set_thread_area	(__NR_arch_specific_syscall + 0)
 __SYSCALL(__NR_set_thread_area, sys_set_thread_area)
 #define __NR_cacheflush		(__NR_arch_specific_syscall + 4)
@@ -46,7 +42,6 @@ __SYSCALL(__NR_ugetrlimit, sys_getrlimit)
 
 #define __NR_sysfs		(__NR_arch_specific_syscall + 5)
 __SYSCALL(__NR_sysfs, sys_sysfs)
-
 
 #define __NR_setgroups32	__NR_setgroups
 #define __NR_getgid32		__NR_getgid
