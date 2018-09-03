@@ -128,34 +128,38 @@ static inline int __atomic_add_unless(atomic_t *v, int a, int u)
 #define ATOMIC_OP(op, c_op)						\
 static inline void atomic_##op(int i, atomic_t *v)			\
 {									\
-	unsigned long tmp;						\
+	unsigned long tmp, flags;					\
+									\
+	raw_local_irq_save(flags);					\
 									\
 	asm volatile (							\
-	"1:	idly4			 \n"				\
 	"	ldw		%0, (%2) \n"				\
-	"	bt		1b	 \n"				\
 	"	" #op "		%0, %1   \n"				\
 	"	stw		%0, (%2) \n"				\
 		: "=&r" (tmp)						\
 		: "r" (i), "r"(&v->counter)				\
 		: "memory");						\
+									\
+	raw_local_irq_restore(flags);					\
 }
 
 #define ATOMIC_OP_RETURN(op, c_op)					\
 static inline int atomic_##op##_return(int i, atomic_t *v)		\
 {									\
-	unsigned long tmp, ret;						\
+	unsigned long tmp, ret, flags;					\
+									\
+	raw_local_irq_save(flags);					\
 									\
 	asm volatile (							\
-	"1:	idly4			 \n"				\
 	"	ldw		%0, (%3) \n"				\
-	"	bt		1b	 \n"				\
 	"	" #op "		%0, %2   \n"				\
 	"	stw		%0, (%3) \n"				\
 	"	mov		%1, %0   \n"				\
 		: "=&r" (tmp), "=&r" (ret)				\
 		: "r" (i), "r"(&v->counter)				\
 		: "memory");						\
+									\
+	raw_local_irq_restore(flags);					\
 									\
 	return ret;							\
 }
