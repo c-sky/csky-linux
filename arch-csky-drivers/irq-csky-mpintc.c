@@ -188,6 +188,5 @@ csky_mpintc_init(struct device_node *node, struct device_node *parent)
 
 	return 0;
 }
-IRQCHIP_DECLARE(csky_intc_v2, "csky,intc-v2", csky_mpintc_init);
 IRQCHIP_DECLARE(csky_mpintc, "csky,mpintc", csky_mpintc_init);
 

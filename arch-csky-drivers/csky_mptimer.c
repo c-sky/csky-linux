@@ -176,4 +176,3 @@ static int __init csky_mptimer_init(struct device_node *np)
 	return 0;
 }
 TIMER_OF_DECLARE(csky_mptimer, "csky,mptimer", csky_mptimer_init);
-TIMER_OF_DECLARE(csky_timer_v1, "csky,timer-v1", csky_mptimer_init);
