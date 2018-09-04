@@ -1,12 +1,16 @@
 /dts-v1/;
-
 / {
-	model = "qemu.csky";
-	compatible = "csky";
+	compatible = "csky,qemu";
 	#address-cells = <1>;
 	#size-cells = <1>;
+	interrupt-parent = <&intc>;
 
-	memory {
+	chosen {
+		bootargs = "console=ttyS0,115200";
+		stdout-path = &serial0;
+	};
+
+	memory@0 {
 		device_type = "memory";
 		reg = <0x0 0x40000000>;
 	};
@@ -18,36 +22,31 @@
 		ranges;
 
 		intc: interrupt-controller {
-			compatible = "csky,intc-v1";
+			compatible = "csky,apb-intc";
 			reg = <0xfffff000 0x1000>;
 			interrupt-controller;
 			#interrupt-cells = <1>;
 		};
 
-		/* clockevent */
-		timer0 {
+		timer0: timer@0xffffd000 {
 			compatible = "snps,dw-apb-timer";
 			reg = <0xffffd000 0x1000>;
 			clocks = <&dummy_apb>;
 			clock-names = "timer";
 			interrupts = <1>;
-			interrupt-parent = <&intc>;
 		};
 
-		/* clocksource */
-		timer1 {
+		timer1: timer@0xffffd014 {
 			compatible = "snps,dw-apb-timer";
 			reg = <0xffffd014 0x800>;
 			clocks = <&dummy_apb>;
 			clock-names = "timer";
 			interrupts = <2>;
-			interrupt-parent = <&intc>;
 		};
 
-		serial0 {
+		serial0:serial@0xffffe000 {
 			compatible = "ns16550a";
 			reg = <0xffffe000 0x1000>;
-			interrupt-parent = <&intc>;
 			interrupts = <3>;
 			clocks = <&dummy_apb>;
 			baud = <115200>;
@@ -62,10 +61,9 @@
 			#clock-cells = <0>;
 		};
 
-		gmac: ethernet {
+		mac0: ethernet@0xffffa000 {
 			compatible = "snps,dwmac";
 			reg = <0xffffa000 0x2000>;
-			interrupt-parent = <&intc>;
 			interrupts = <4>;
 			interrupt-names = "macirq";
 			clocks = <&dummy_apb>;
@@ -74,14 +72,6 @@
 			snps,pbl = <32>;
 			snps,fixed-burst;
 		};
-
-		qemu-exit {
-			compatible = "csky,qemu-exit";
-			reg = <0xffffc000 0x1000>;
-		};
 	};
 
-	chosen {
-		bootargs = "console=ttyS0,115200 rdinit=/sbin/init root=/dev/ram0";
-	};
 };
