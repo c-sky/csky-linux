@@ -3,10 +3,8 @@
 #include <linux/module.h>
 #include <linux/version.h>
 #include <linux/sched.h>
-#if (LINUX_VERSION_CODE >> 8) != (KERNEL_VERSION(4,9,0) >> 8)
 #include <linux/sched/task_stack.h>
 #include <linux/sched/debug.h>
-#endif
 #include <linux/delay.h>
 #include <linux/kallsyms.h>
 #include <linux/uaccess.h>

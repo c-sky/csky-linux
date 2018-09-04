@@ -10,7 +10,6 @@
 
 #ifdef CONFIG_CPU_HAS_LDSTEX
 
-#if (LINUX_VERSION_CODE >> 8) != (KERNEL_VERSION(4,9,0) >> 8)
 #define __atomic_add_unless __atomic_add_unless
 static inline int __atomic_add_unless(atomic_t *v, int a, int u)
 {
@@ -36,7 +35,6 @@ static inline int __atomic_add_unless(atomic_t *v, int a, int u)
 
 	return ret;
 }
-#endif
 
 #define ATOMIC_OP(op, c_op)						\
 static inline void atomic_##op(int i, atomic_t *v)			\
@@ -99,7 +97,6 @@ static inline int atomic_fetch_##op(int i, atomic_t *v)			\
 
 #include <linux/irqflags.h>
 
-#if (LINUX_VERSION_CODE >> 8) != (KERNEL_VERSION(4,9,0) >> 8)
 #define __atomic_add_unless __atomic_add_unless
 static inline int __atomic_add_unless(atomic_t *v, int a, int u)
 {
@@ -123,7 +120,6 @@ static inline int __atomic_add_unless(atomic_t *v, int a, int u)
 
 	return ret;
 }
-#endif
 
 #define ATOMIC_OP(op, c_op)						\
 static inline void atomic_##op(int i, atomic_t *v)			\

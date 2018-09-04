@@ -7,11 +7,6 @@
 void __init time_init(void)
 {
 	of_clk_init(NULL);
-#if (LINUX_VERSION_CODE >> 8) == (KERNEL_VERSION(4,9,0) >> 8)
-	clocksource_probe();
-#endif
-#if (LINUX_VERSION_CODE >> 8) != (KERNEL_VERSION(4,9,0) >> 8)
 	timer_probe();
-#endif
 }
 

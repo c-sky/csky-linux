@@ -12,20 +12,8 @@
 #include <linux/irq.h>
 #include <linux/irqdomain.h>
 #include <linux/of.h>
-#if (LINUX_VERSION_CODE >> 8) != (KERNEL_VERSION(4,9,0) >> 8)
 #include <linux/sched/task_stack.h>
 #include <linux/sched/mm.h>
-#endif
-#if (LINUX_VERSION_CODE >> 8) == (KERNEL_VERSION(4,9,0) >> 8)
-static inline void mmgrab(struct mm_struct *mm)
-{
-	atomic_inc(&mm->mm_count);
-}
-static inline void mmget(struct mm_struct *mm)
-{
-	atomic_inc(&mm->mm_users);
-}
-#endif
 #include <asm/irq.h>
 #include <asm/traps.h>
 #include <asm/sections.h>

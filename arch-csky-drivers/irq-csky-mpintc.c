@@ -74,12 +74,6 @@ static void csky_mpintc_eoi(struct irq_data *d)
 }
 
 #ifdef CONFIG_SMP
-#if (LINUX_VERSION_CODE >> 8) == (KERNEL_VERSION(4,9,0) >> 8)
-static inline void irq_data_update_effective_affinity(struct irq_data *d,
-						      const struct cpumask *m)
-{
-}
-#endif
 static int csky_irq_set_affinity(struct irq_data *d,
 				 const struct cpumask *mask_val,
 				 bool force)

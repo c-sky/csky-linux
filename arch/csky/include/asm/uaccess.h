@@ -369,16 +369,6 @@ do{                                                             \
 
 unsigned long raw_copy_from_user(void *to, const void *from, unsigned long n);
 unsigned long raw_copy_to_user(void *to, const void *from, unsigned long n);
-#if (LINUX_VERSION_CODE >> 8) == (KERNEL_VERSION(4,9,0) >> 8)
-#define __copy_from_user(to, from, n) raw_copy_from_user(to, from, n)
-#define __copy_to_user(to, from, n) raw_copy_to_user(to, from, n)
-
-#define __copy_from_user_inatomic	__copy_from_user
-#define __copy_to_user_inatomic		__copy_to_user
-
-#define copy_from_user			__copy_from_user
-#define copy_to_user			__copy_to_user
-#endif
 
 unsigned long clear_user(void *to, unsigned long n);
 unsigned long __clear_user(void __user *to, unsigned long n);

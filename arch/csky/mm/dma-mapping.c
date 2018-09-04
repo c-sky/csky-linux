@@ -127,12 +127,7 @@ static void *csky_dma_alloc_nonatomic(
 		BUG();
 
 	if (IS_ENABLED(CONFIG_DMA_CMA))
-#if (LINUX_VERSION_CODE >> 8) == (KERNEL_VERSION(4,9,0) >> 8)
-		page = dma_alloc_from_contiguous(dev, count, get_order(size));
-#endif
-#if (LINUX_VERSION_CODE >> 8) != (KERNEL_VERSION(4,9,0) >> 8)
 		page = dma_alloc_from_contiguous(dev, count, get_order(size), gfp);
-#endif
 	else
 		page = alloc_pages(gfp, get_order(size));
 
