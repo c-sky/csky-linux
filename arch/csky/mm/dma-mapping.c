@@ -4,6 +4,7 @@
 #include <linux/cache.h>
 #include <linux/dma-mapping.h>
 #include <linux/dma-contiguous.h>
+#include <linux/dma-noncoherent.h>
 #include <linux/genalloc.h>
 #include <linux/highmem.h>
 #include <linux/io.h>
@@ -175,7 +176,7 @@ static void csky_dma_free_nonatomic(
 		__free_pages(page, get_order(size));
 }
 
-static void *csky_dma_alloc(
+void *arch_dma_alloc(
 	struct device *dev,
 	size_t size,
 	dma_addr_t *dma_handle,
@@ -189,7 +190,7 @@ static void *csky_dma_alloc(
 		return csky_dma_alloc_atomic(dev, size, dma_handle);
 }
 
-static void csky_dma_free(
+void arch_dma_free(
 	struct device *dev,
 	size_t size,
 	void *vaddr,
@@ -203,22 +204,48 @@ static void csky_dma_free(
 		csky_dma_free_atomic(dev, size, vaddr, dma_handle, attrs);
 }
 
-static void __dma_sync(
-	void *va,
-	struct page *page,
-	unsigned long offset,
-	size_t size,
-	enum dma_data_direction direction)
+void arch_sync_dma_for_device(struct device *dev, phys_addr_t paddr,
+			      size_t size, enum dma_data_direction dir)
 {
-	unsigned long vaddr = (unsigned long) va;
+	struct page *page = pfn_to_page(paddr >> PAGE_SHIFT);
+	unsigned long offset = paddr & ~PAGE_MASK;
+	unsigned long vaddr;
 
-	if (va == NULL && PageHighMem(page))
+	if (PageHighMem(page))
 		vaddr = (unsigned long) kmap_atomic(page);
+	else
+		vaddr = (unsigned long) page_address(page);
 
-	switch (direction) {
+	switch (dir) {
 	case DMA_TO_DEVICE:
 		dma_wb_range(vaddr + offset, vaddr + offset + size);
 		break;
+	case DMA_FROM_DEVICE:
+	case DMA_BIDIRECTIONAL:
+		BUG();
+	default:
+		BUG();
+	}
+
+	if (PageHighMem(page))
+		kunmap_atomic((void *) vaddr);
+}
+
+void arch_sync_dma_for_cpu(struct device *dev, phys_addr_t paddr,
+			   size_t size, enum dma_data_direction dir)
+{
+	struct page *page = pfn_to_page(paddr >> PAGE_SHIFT);
+	unsigned long offset = paddr & ~PAGE_MASK;
+	unsigned long vaddr;
+
+	if (PageHighMem(page))
+		vaddr = (unsigned long) kmap_atomic(page);
+	else
+		vaddr = (unsigned long) page_address(page);
+
+	switch (dir) {
+	case DMA_TO_DEVICE:
+		BUG();
 	case DMA_FROM_DEVICE:
 	case DMA_BIDIRECTIONAL:
 		dma_wbinv_range(vaddr + offset, vaddr + offset + size);
@@ -227,140 +254,6 @@ static void __dma_sync(
 		BUG();
 	}
 
-	if (va == NULL && PageHighMem(page))
+	if (PageHighMem(page))
 		kunmap_atomic((void *) vaddr);
 }
-
-static dma_addr_t csky_dma_map_page(
-	struct device *dev,
-	struct page *page,
-	unsigned long offset,
-	size_t size,
-	enum dma_data_direction direction,
-	unsigned long attrs
-	)
-{
-	__dma_sync(page_address(page), page, offset, size, direction);
-
-	return page_to_phys(page) + offset;
-}
-
-static void csky_dma_unmap_page(
-	struct device *dev,
-	dma_addr_t handle,
-	size_t size,
-	enum dma_data_direction direction,
-	unsigned long attrs
-	)
-{
-	unsigned long offset = handle & ~PAGE_MASK;
-	struct page *page = pfn_to_page(__phys_to_pfn(handle));
-
-	__dma_sync(page_address(page), page, offset, size, direction);
-}
-
-static int csky_dma_map_sg(
-	struct device *dev,
-	struct scatterlist *sglist,
-	int nelems,
-	enum dma_data_direction dir,
-	unsigned long attrs
-	)
-{
-	struct scatterlist *sg;
-	int i;
-
-	for_each_sg(sglist, sg, nelems, i)
-		sg->dma_address = csky_dma_map_page(dev, sg_page(sg), sg->offset, sg->length, dir, attrs);
-
-	return nelems;
-}
-
-static void csky_dma_unmap_sg(
-	struct device *dev,
-	struct scatterlist *sglist,
-	int nelems,
-	enum dma_data_direction dir,
-	unsigned long attrs
-	)
-{
-	struct scatterlist *sg;
-	int i;
-
-	for_each_sg(sglist, sg, nelems, i)
-		csky_dma_unmap_page(dev, sg_dma_address(sg), sg_dma_len(sg), dir, attrs);
-}
-
-static void csky_dma_sync_single_for_all(
-	struct device *dev,
-	dma_addr_t handle,
-	size_t size,
-	enum dma_data_direction dir
-	)
-{
-	unsigned int offset = handle & ~PAGE_MASK;
-	struct page *page = pfn_to_page(__phys_to_pfn(handle));
-
-	__dma_sync(page_address(page), page, offset, size, dir);
-}
-
-static void csky_dma_sync_sg_for_cpu(
-	struct device *dev,
-	struct scatterlist *sglist,
-	int nelems,
-	enum dma_data_direction direction
-	)
-{
-	int i;
-	struct scatterlist *sg;
-
-	for_each_sg(sglist, sg, nelems, i)
-		__dma_sync(page_address(sg_page(sg)), sg_page(sg), 0,
-			   sg->length, direction);
-}
-
-static void csky_dma_sync_sg_for_device(
-	struct device *dev,
-	struct scatterlist *sglist,
-	int nelems,
-	enum dma_data_direction direction
-	)
-{
-	int i;
-	struct scatterlist *sg;
-
-	for_each_sg(sglist, sg, nelems, i)
-		__dma_sync(page_address(sg_page(sg)), sg_page(sg), 0,
-			   sg->length, direction);
-}
-
-int csky_dma_mapping_error(struct device *dev, dma_addr_t dma_addr)
-{
-	return 0;
-}
-
-int csky_dma_supported(struct device *dev, u64 mask)
-{
-	return DMA_BIT_MASK(32);
-}
-
-struct dma_map_ops csky_dma_map_ops = {
-	.alloc			= csky_dma_alloc,
-	.free			= csky_dma_free,
-	.mmap			= NULL,
-	.get_sgtable		= NULL,
-	.map_page		= csky_dma_map_page,
-	.unmap_page		= csky_dma_unmap_page,
-
-	.map_sg			= csky_dma_map_sg,
-	.unmap_sg		= csky_dma_unmap_sg,
-	.sync_single_for_cpu	= csky_dma_sync_single_for_all,
-	.sync_single_for_device	= csky_dma_sync_single_for_all,
-	.sync_sg_for_cpu	= csky_dma_sync_sg_for_cpu,
-	.sync_sg_for_device	= csky_dma_sync_sg_for_device,
-
-	.mapping_error		= csky_dma_mapping_error,
-	.dma_supported		= csky_dma_supported,
-};
-EXPORT_SYMBOL(csky_dma_map_ops);
-
