@@ -10,7 +10,7 @@
 #include <asm/ptrace.h>
 #include <abi/regdef.h>
 
-#define ELF_ARCH 39
+#define ELF_ARCH 252
 
 /* CSKY Relocations */
 #define R_CSKY_NONE               0
