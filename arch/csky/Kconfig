@@ -209,6 +209,10 @@ endmenu
 
 source "mm/Kconfig"
 
+config FORCE_MAX_ZONEORDER
+	int "Maximum zone order"
+	default "11"
+
 source "fs/Kconfig.binfmt"
 
 source "kernel/Kconfig.preempt"
