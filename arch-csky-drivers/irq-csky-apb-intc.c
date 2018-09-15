@@ -20,8 +20,6 @@
 #define CK_INTC_PEN63_32	0x2c
 #define CK_INTC_NEN31_00	0x10
 #define CK_INTC_NEN63_32	0x28
-#define CK_INTC_IFR31_00	0x08
-#define CK_INTC_IFR63_32	0x20
 #define CK_INTC_SOURCE		0x40
 #define CK_INTC_DUAL_BASE	0x100
 
@@ -38,7 +36,29 @@ static struct irq_domain *root_domain;
 
 static int nr_irq = INTC_IRQS;
 
-static void __init ck_set_gc(void __iomem *reg_base, u32 mask_reg, u32 irq_base)
+/*
+ * When controller support pulse signal, the PEN_reg will hold on signal
+ * without software trigger.
+ *
+ * So, to support pulse signal we need to clear IFR_reg and the address of
+ * IFR_offset is NEN_offset - 8.
+ */
+static void irq_ck_mask_set_bit(struct irq_data *d)
+{
+	struct irq_chip_generic *gc = irq_data_get_irq_chip_data(d);
+	struct irq_chip_type *ct = irq_data_get_chip_type(d);
+	unsigned long ifr = ct->regs.mask - 8;
+	u32 mask = d->mask;
+
+	irq_gc_lock(gc);
+	*ct->mask_cache |= mask;
+	irq_reg_writel(gc, *ct->mask_cache, ct->regs.mask);
+	irq_reg_writel(gc, irq_reg_readl(gc, ifr) & ~mask, ifr);
+	irq_gc_unlock(gc);
+}
+
+static void __init ck_set_gc(struct device_node *node, void __iomem *reg_base,
+			     u32 mask_reg, u32 irq_base)
 {
 	struct irq_chip_generic *gc;
 
@@ -47,6 +67,9 @@ static void __init ck_set_gc(void __iomem *reg_base, u32 mask_reg, u32 irq_base)
 	gc->chip_types[0].regs.mask = mask_reg;
 	gc->chip_types[0].chip.irq_mask = irq_gc_mask_clr_bit;
 	gc->chip_types[0].chip.irq_unmask = irq_gc_mask_set_bit;
+
+	if (of_find_property(node, "support-pulse-signal", NULL))
+		gc->chip_types[0].chip.irq_unmask = irq_ck_mask_set_bit;
 }
 
 static inline u32 build_channel_val(u32 idx, u32 magic)
@@ -155,8 +178,8 @@ gx_intc_init(struct device_node *node, struct device_node *parent)
 
 	setup_irq_channel(0x03020100, reg_base + GX_INTC_SOURCE);
 
-	ck_set_gc(reg_base, GX_INTC_NEN31_00, 0);
-	ck_set_gc(reg_base, GX_INTC_NEN63_32, 32);
+	ck_set_gc(node, reg_base, GX_INTC_NEN31_00, 0);
+	ck_set_gc(node, reg_base, GX_INTC_NEN63_32, 32);
 
 	set_handle_irq(gx_irq_handler);
 
@@ -174,9 +197,6 @@ static void ck_irq_handler(struct pt_regs *regs)
 		ret  = handle_irq_perbit(regs, readl_relaxed(reg_base + CK_INTC_PEN31_00), 0);
 		ret |= handle_irq_perbit(regs, readl_relaxed(reg_base + CK_INTC_PEN63_32), 32);
 
-		writel_relaxed(0, reg_base + CK_INTC_IFR31_00);
-		writel_relaxed(0, reg_base + CK_INTC_IFR63_32);
-
 		if (nr_irq == INTC_IRQS) continue;
 
 		/* handle 64 - 127 irqs */
@@ -184,9 +204,6 @@ static void ck_irq_handler(struct pt_regs *regs)
 			   readl_relaxed(reg_base + CK_INTC_PEN31_00 + CK_INTC_DUAL_BASE), 64);
 		ret |= handle_irq_perbit(regs,
 			   readl_relaxed(reg_base + CK_INTC_PEN63_32 + CK_INTC_DUAL_BASE), 96);
-
-		writel_relaxed(0, reg_base + CK_INTC_IFR63_32 + CK_INTC_DUAL_BASE);
-		writel_relaxed(0, reg_base + CK_INTC_IFR31_00 + CK_INTC_DUAL_BASE);
 	} while(ret);
 }
 
@@ -206,8 +223,8 @@ ck_intc_init(struct device_node *node, struct device_node *parent)
 	/* Enable irq intc */
 	writel_relaxed(BIT(31), reg_base + CK_INTC_ICR);
 
-	ck_set_gc(reg_base, CK_INTC_NEN31_00, 0);
-	ck_set_gc(reg_base, CK_INTC_NEN63_32, 32);
+	ck_set_gc(node, reg_base, CK_INTC_NEN31_00, 0);
+	ck_set_gc(node, reg_base, CK_INTC_NEN63_32, 32);
 
 	setup_irq_channel(0x00010203, reg_base + CK_INTC_SOURCE);
 
@@ -233,8 +250,8 @@ ck_dual_intc_init(struct device_node *node, struct device_node *parent)
 	writel_relaxed(0, reg_base + CK_INTC_NEN31_00 + CK_INTC_DUAL_BASE);
 	writel_relaxed(0, reg_base + CK_INTC_NEN63_32 + CK_INTC_DUAL_BASE);
 
-	ck_set_gc(reg_base + CK_INTC_DUAL_BASE, CK_INTC_NEN31_00, 64);
-	ck_set_gc(reg_base + CK_INTC_DUAL_BASE, CK_INTC_NEN63_32, 96);
+	ck_set_gc(node, reg_base + CK_INTC_DUAL_BASE, CK_INTC_NEN31_00, 64);
+	ck_set_gc(node, reg_base + CK_INTC_DUAL_BASE, CK_INTC_NEN63_32, 96);
 
 	setup_irq_channel(0x00010203, reg_base + CK_INTC_SOURCE + CK_INTC_DUAL_BASE);
 
