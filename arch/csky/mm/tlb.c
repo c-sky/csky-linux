@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 // Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
+
 #include <linux/init.h>
 #include <linux/mm.h>
 #include <linux/module.h>
@@ -212,4 +213,3 @@ void show_jtlb_table(void)
 	write_mmu_entryhi(oldpid);
 	local_irq_restore(flags);
 }
-

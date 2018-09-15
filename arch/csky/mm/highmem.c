@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 // Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
+
 #include <linux/module.h>
 #include <linux/highmem.h>
 #include <linux/smp.h>
@@ -64,7 +65,7 @@ void __kunmap_atomic(void *kvaddr)
 
 	if (vaddr < FIXADDR_START)
 		goto out;
-	
+
 #ifdef CONFIG_DEBUG_HIGHMEM
 	int idx = KM_TYPE_NR*smp_processor_id() + kmap_atomic_idx();
 

@@ -91,4 +91,3 @@ define archhelp
   echo  '  Image        - Uncompressed kernel image (arch/$(ARCH)/boot/Image)'
   echo  '  uImage       - U-Boot wrapped zImage'
 endef
-

@@ -279,4 +279,3 @@ void restore_from_user_fp(struct user_fp *user_fp)
 
 	local_irq_restore(flg);
 }
-

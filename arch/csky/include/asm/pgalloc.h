@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 // Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
+
 #ifndef __ASM_CSKY_PGALLOC_H
 #define __ASM_CSKY_PGALLOC_H
 
@@ -24,9 +25,9 @@ static inline void pmd_populate(struct mm_struct *mm, pmd_t *pmd,
 extern void pgd_init(unsigned long *p);
 
 static inline pte_t *pte_alloc_one_kernel(struct mm_struct *mm,
-        unsigned long address)
+					   unsigned long address)
 {
-        pte_t *pte;
+	pte_t *pte;
 	unsigned long *kaddr, i;
 
 	pte = (pte_t *) __get_free_pages(GFP_KERNEL | __GFP_RETRY_MAYFAIL, PTE_ORDER);
@@ -37,17 +38,17 @@ static inline pte_t *pte_alloc_one_kernel(struct mm_struct *mm,
 	else
 		clear_page(kaddr);
 
-        return pte;
+	return pte;
 }
 
 static inline struct page *pte_alloc_one(struct mm_struct *mm,
-                                            unsigned long address)
+					  unsigned long address)
 {
 	struct page *pte;
 	unsigned long *kaddr, i;
 
-        pte = alloc_pages(GFP_KERNEL | __GFP_RETRY_MAYFAIL, PTE_ORDER);
-        if (pte) {
+	pte = alloc_pages(GFP_KERNEL | __GFP_RETRY_MAYFAIL, PTE_ORDER);
+	if (pte) {
 		kaddr = kmap_atomic(pte);
 		if (address & 0x80000000) {
 			for(i=0; i<(PAGE_SIZE/4); i++)
@@ -56,8 +57,8 @@ static inline struct page *pte_alloc_one(struct mm_struct *mm,
 			clear_page(kaddr);
 		kunmap_atomic(kaddr);
 		pgtable_page_ctor(pte);
-        }
-        return pte;
+	}
+	return pte;
 }
 
 static inline void pte_free_kernel(struct mm_struct *mm, pte_t *pte)
@@ -106,4 +107,3 @@ do {                                                    \
 extern void pagetable_init(void);
 
 #endif /* __ASM_CSKY_PGALLOC_H */
-

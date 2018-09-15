@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 // Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
+
 #include <linux/console.h>
 #include <linux/memblock.h>
 #include <linux/bootmem.h>
@@ -148,4 +149,3 @@ asmlinkage __visible void __init csky_start(
 
 	while(1);
 }
-

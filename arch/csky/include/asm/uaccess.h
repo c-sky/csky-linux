@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 // Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
+
 #ifndef __ASM_CSKY_UACCESS_H
 #define __ASM_CSKY_UACCESS_H
 
@@ -20,13 +21,13 @@
 
 static inline int access_ok(int type, const void * addr, unsigned long size)
 {
-    return (((unsigned long)addr < current_thread_info()->addr_limit.seg) &&
-              ((unsigned long)(addr + size) < current_thread_info()->addr_limit.seg));
+	return (((unsigned long)addr < current_thread_info()->addr_limit.seg) &&
+		((unsigned long)(addr + size) < current_thread_info()->addr_limit.seg));
 }
 
 static inline int verify_area(int type, const void * addr, unsigned long size)
 {
-    return access_ok(type, addr, size) ? 0 : -EFAULT;
+	return access_ok(type, addr, size) ? 0 : -EFAULT;
 }
 
 #define __addr_ok(addr) (access_ok(VERIFY_READ, addr,0))
@@ -59,34 +60,34 @@ extern int __put_user_bad(void);
  */
 
 #define put_user(x,ptr) \
-  __put_user_check((x), (ptr), sizeof(*(ptr)))
+	__put_user_check((x), (ptr), sizeof(*(ptr)))
 
 #define __put_user(x,ptr) \
-  __put_user_nocheck((x), (ptr), sizeof(*(ptr)))
+	__put_user_nocheck((x), (ptr), sizeof(*(ptr)))
 
 #define __ptr(x) ((unsigned long *)(x))
 
 #define get_user(x,ptr) \
-  __get_user_check((x), (ptr), sizeof(*(ptr)))
+	__get_user_check((x), (ptr), sizeof(*(ptr)))
 
 #define __get_user(x,ptr) \
-  __get_user_nocheck((x), (ptr), sizeof(*(ptr)))
+	__get_user_nocheck((x), (ptr), sizeof(*(ptr)))
 
-#define __put_user_nocheck(x, ptr, size)                                \
-({                                                                      \
-	long __pu_err=0;                                                \
-	typeof(*(ptr)) *__pu_addr = (ptr);                              \
-	typeof(*(ptr)) __pu_val = (typeof(*(ptr)))(x);                  \
-	if(__pu_addr){                                                  \
-	    __put_user_size(__pu_val, (__pu_addr), (size), __pu_err);   \
-	}                                                               \
-	__pu_err;                                                       \
+#define __put_user_nocheck(x, ptr, size)				\
+({									\
+	long __pu_err=0;						\
+	typeof(*(ptr)) *__pu_addr = (ptr);				\
+	typeof(*(ptr)) __pu_val = (typeof(*(ptr)))(x);			\
+	if(__pu_addr){							\
+	    __put_user_size(__pu_val, (__pu_addr), (size), __pu_err);	\
+	}								\
+	__pu_err;							\
 })
 
-#define __put_user_check(x,ptr,size)                                    \
-({                                                                      \
-	long __pu_err = -EFAULT;                                        \
-	typeof(*(ptr)) *__pu_addr = (ptr);                              \
+#define __put_user_check(x,ptr,size)					\
+({									\
+	long __pu_err = -EFAULT;					\
+	typeof(*(ptr)) *__pu_addr = (ptr);				\
 	typeof(*(ptr)) __pu_val = (typeof(*(ptr)))(x);                  \
 	if (access_ok(VERIFY_WRITE, __pu_addr, size) && __pu_addr)      \
 		__put_user_size(__pu_val, __pu_addr, (size), __pu_err); \
@@ -189,7 +190,7 @@ do{                                                             \
 	        ".previous                    \n"               \
 	        "4:                           \n"               \
 	        :"=r"(err),"=r"(psrc),"=r"(ptr),"=r"(tmp),"=r"(errcode) \
-	        : "0"(err), "1"(psrc), "2"(ptr), "3"(0), "4"(-EFAULT) \
+	        : "0"(err), "1"(psrc), "2"(ptr), "3"(0), "4"(-EFAULT)   \
 	        : "memory" );                                   \
 }while (0)
 
@@ -212,9 +213,9 @@ do{                                                             \
 #define __get_user_size(x, ptr, size, retval)                   \
 do {                                                            \
 	switch (size) {                                         \
-		case 1: __get_user_asm_common((x),ptr,"ldb",retval); break; \
-		case 2: __get_user_asm_common((x),ptr,"ldh",retval); break; \
-		case 4: __get_user_asm_common((x),ptr,"ldw",retval); break; \
+		case 1: __get_user_asm_common((x),ptr,"ldb",retval);break;\
+		case 2: __get_user_asm_common((x),ptr,"ldh",retval);break;\
+		case 4: __get_user_asm_common((x),ptr,"ldw",retval);break;\
 		default:                                        \
 			x=0;                                    \
 			(retval) = __get_user_bad();            \
@@ -294,77 +295,79 @@ do{                                                             \
 		".long   11b, 7b                \n"             \
 		".long    4b, 7b                \n"             \
 		".long    6b, 7b                \n"             \
-		".previous                      \n"             \
-		"8:                             \n"             \
-	        : "=r"(n), "=r"(to), "=r"(from), "=r"(w0), "=r"(w1), "=r"(w2), "=r"(w3)   \
+		".previous                      \n"		\
+		"8:                             \n"		\
+	        : "=r"(n), "=r"(to), "=r"(from), "=r"(w0),	\
+		  "=r"(w1), "=r"(w2), "=r"(w3)			\
 		: "0"(n), "1"(to), "2"(from)                    \
 		: "memory" );                                   \
 } while (0)
 
 #define __copy_user_zeroing(to, from, n) \
-do{                                                             \
-	int tmp;                                                \
-	int nsave;                                              \
-	asm volatile(                                           \
-		"0:     cmpnei  %1, 0           \n"             \
-		"       bf      7f              \n"             \
-		"       mov     %3, %1          \n"             \
-		"       or      %3, %2          \n"             \
-		"       andi    %3, 3           \n"             \
-		"       cmpnei  %3, 0           \n"             \
-		"       bf      1f              \n"             \
-		"       br      5f              \n"             \
-		"1:     cmplti  %0, 16          \n"   /* 4W */  \
-		"       bt      3f              \n"             \
-		"2:     ldw     %3, (%2, 0)     \n"             \
-		"10:    ldw     %4, (%2, 4)     \n"             \
-		"       stw     %3, (%1, 0)     \n"             \
-		"       stw     %4, (%1, 4)     \n"             \
-		"11:    ldw     %3, (%2, 8)     \n"             \
-		"12:    ldw     %4, (%2, 12)    \n"             \
-		"       stw     %3, (%1, 8)     \n"             \
-		"       stw     %4, (%1, 12)    \n"             \
-		"       addi    %2, 16          \n"             \
-		"       addi    %1, 16          \n"             \
-		"       subi    %0, 16          \n"             \
-		"       br      1b              \n"             \
-		"3:     cmplti  %0, 4           \n"  /* 1W */   \
-		"       bt      5f              \n"             \
-		"4:     ldw     %3, (%2, 0)     \n"             \
-		"       stw     %3, (%1, 0)     \n"             \
-		"       addi    %2, 4           \n"             \
-		"       addi    %1, 4           \n"             \
-		"       subi    %0, 4           \n"             \
-		"       br      3b              \n"             \
-		"5:     cmpnei  %0, 0           \n"  /* 1B */   \
-		"       bf      7f              \n"             \
-		"6:     ldb     %3, (%2, 0)     \n"             \
-		"       stb     %3, (%1, 0)     \n"             \
-		"       addi    %2,  1          \n"             \
-		"       addi    %1,  1          \n"             \
-		"       subi    %0,  1          \n"             \
-		"       br      5b              \n"             \
-		"8:     mov     %3, %0          \n" /* zero */  \
-		"       movi    %4, 0           \n"             \
-		"9:     stb     %4, (%1, 0)     \n"             \
-		"       addi    %1, 1           \n"             \
-		"       subi    %3, 1           \n"             \
-		"       cmpnei  %3, 0           \n"             \
-		"       bt      9b              \n"             \
-		"       br      7f              \n"             \
-		".section __ex_table, \"a\"     \n"             \
-		".align   2                     \n"             \
-		".long    2b, 8b                \n"             \
-		".long   10b, 8b                \n"             \
-		".long   11b, 8b                \n"             \
-		".long   12b, 8b                \n"             \
-		".long    4b, 8b                \n"             \
-		".long    6b, 8b                \n"             \
-		".previous                      \n"             \
-		"7:                             \n"             \
-		: "=r"(n), "=r"(to), "=r"(from), "=r"(nsave), "=r"(tmp)   \
-		: "0"(n), "1"(to), "2"(from)                    \
-		: "memory" );                                   \
+do{								\
+	int tmp;						\
+	int nsave;						\
+	asm volatile(						\
+		"0:     cmpnei  %1, 0           \n"		\
+		"       bf      7f              \n"		\
+		"       mov     %3, %1          \n"		\
+		"       or      %3, %2          \n"		\
+		"       andi    %3, 3           \n"		\
+		"       cmpnei  %3, 0           \n"		\
+		"       bf      1f              \n"		\
+		"       br      5f              \n"		\
+		"1:     cmplti  %0, 16          \n"		\
+		"       bt      3f              \n"		\
+		"2:     ldw     %3, (%2, 0)     \n"		\
+		"10:    ldw     %4, (%2, 4)     \n"		\
+		"       stw     %3, (%1, 0)     \n"		\
+		"       stw     %4, (%1, 4)     \n"		\
+		"11:    ldw     %3, (%2, 8)     \n"		\
+		"12:    ldw     %4, (%2, 12)    \n"		\
+		"       stw     %3, (%1, 8)     \n"		\
+		"       stw     %4, (%1, 12)    \n"		\
+		"       addi    %2, 16          \n"		\
+		"       addi    %1, 16          \n"		\
+		"       subi    %0, 16          \n"		\
+		"       br      1b              \n"		\
+		"3:     cmplti  %0, 4           \n"		\
+		"       bt      5f              \n"		\
+		"4:     ldw     %3, (%2, 0)     \n"		\
+		"       stw     %3, (%1, 0)     \n"		\
+		"       addi    %2, 4           \n"		\
+		"       addi    %1, 4           \n"		\
+		"       subi    %0, 4           \n"		\
+		"       br      3b              \n"		\
+		"5:     cmpnei  %0, 0           \n"		\
+		"       bf      7f              \n"		\
+		"6:     ldb     %3, (%2, 0)     \n"		\
+		"       stb     %3, (%1, 0)     \n"		\
+		"       addi    %2,  1          \n"		\
+		"       addi    %1,  1          \n"		\
+		"       subi    %0,  1          \n"		\
+		"       br      5b              \n"		\
+		"8:     mov     %3, %0          \n"		\
+		"       movi    %4, 0           \n"		\
+		"9:     stb     %4, (%1, 0)     \n"		\
+		"       addi    %1, 1           \n"		\
+		"       subi    %3, 1           \n"		\
+		"       cmpnei  %3, 0           \n"		\
+		"       bt      9b              \n"		\
+		"       br      7f              \n"		\
+		".section __ex_table, \"a\"     \n"		\
+		".align   2                     \n"		\
+		".long    2b, 8b                \n"		\
+		".long   10b, 8b                \n"		\
+		".long   11b, 8b                \n"		\
+		".long   12b, 8b                \n"		\
+		".long    4b, 8b                \n"		\
+		".long    6b, 8b                \n"		\
+		".previous                      \n"		\
+		"7:                             \n"		\
+		: "=r"(n), "=r"(to), "=r"(from), "=r"(nsave),	\
+		  "=r"(tmp)					\
+		: "0"(n), "1"(to), "2"(from)			\
+		: "memory" );					\
 } while (0)
 
 unsigned long raw_copy_from_user(void *to, const void *from, unsigned long n);

@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 // Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
+
 #ifndef __ASM_CSKY_BITOPS_H
 #define __ASM_CSKY_BITOPS_H
 
@@ -279,4 +280,3 @@ static inline int test_and_change_bit(int nr, volatile unsigned long *addr)
 #include <asm-generic/bitops/le.h>
 #include <asm-generic/bitops/ext2-atomic.h>
 #endif /* __ASM_CSKY_BITOPS_H */
-

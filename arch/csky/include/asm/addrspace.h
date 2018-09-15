@@ -8,4 +8,3 @@
 #define KSEG0ADDR(a)	(((unsigned long)a & 0x1fffffff) | KSEG0)
 
 #endif /* __ASM_CSKY_ADDRSPACE_H */
-

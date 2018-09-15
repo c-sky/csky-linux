@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 // Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
+
 #include <linux/spinlock.h>
 #include <asm/cache.h>
 #include <abi/reg_ops.h>
@@ -14,9 +15,9 @@
 #define CACHE_LICF		(1 << 31)
 
 /* for L2-cache */
-#define CR22_LEVEL_SHIFT        (1)
+#define CR22_LEVEL_SHIFT	(1)
 #define CR22_SET_SHIFT		(7)
-#define CR22_WAY_SHIFT          (30)
+#define CR22_WAY_SHIFT		(30)
 #define CR22_WAY_SHIFT_L2	(29)
 
 #define SYNC asm volatile("sync\n")
@@ -124,4 +125,3 @@ void dma_wb_range(unsigned long start, unsigned long end)
 {
 	cache_op_range(start, end, DATA_CACHE|CACHE_INV, 1);
 }
-

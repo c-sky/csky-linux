@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 // Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
+
 #include <linux/ptrace.h>
 
 int kstack_depth_to_print = 48;
@@ -10,7 +11,7 @@ void show_trace(unsigned long *stack)
 	unsigned long addr;
 	int i;
 
-	pr_info("Call Trace:");
+	pr_info("Call Trace:\n");
 	addr = (unsigned long)stack + THREAD_SIZE - 1;
 	endstack = (unsigned long *)(addr & -THREAD_SIZE);
 	i = 0;
@@ -62,4 +63,3 @@ void show_stack(struct task_struct *task, unsigned long *stack)
 	pr_cont("\n");
 	show_trace(stack);
 }
-

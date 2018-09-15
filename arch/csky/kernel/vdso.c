@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 // Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
+
 #include <linux/kernel.h>
 #include <linux/err.h>
 #include <linux/sched.h>
@@ -31,10 +32,6 @@ static int __init init_vdso(void)
 
 	clear_page(vdso);
 
-	/*
-	 * __NR_rt_sigreturn must be 173
-	 * Because gcc/config/csky/linux-unwind.h use hard code to parse rt_sigframe.
-	 */
 	err = setup_vdso_page(vdso->rt_signal_retcode);
 	if (err) panic("Cannot set signal return code, err: %x.", err);
 
@@ -86,4 +83,3 @@ const char *arch_vma_name(struct vm_area_struct *vma)
 	else
 		return NULL;
 }
-

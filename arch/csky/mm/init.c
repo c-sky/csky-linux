@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 // Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
+
 #include <linux/bug.h>
 #include <linux/module.h>
 #include <linux/init.h>
@@ -62,14 +63,14 @@ void free_initrd_mem(unsigned long start, unsigned long end)
 {
 	if (start < end)
 		pr_info("Freeing initrd memory: %ldk freed\n",
-                     (end - start) >> 10);
+			(end - start) >> 10);
 
 	for (; start < end; start += PAGE_SIZE) {
-	ClearPageReserved(virt_to_page(start));
-	init_page_count(virt_to_page(start));
-	free_page(start);
-	totalram_pages++;
-    }
+		ClearPageReserved(virt_to_page(start));
+		init_page_count(virt_to_page(start));
+		free_page(start);
+		totalram_pages++;
+	}
 }
 #endif
 
@@ -81,6 +82,7 @@ void free_initmem(void)
 	unsigned long addr;
 
 	addr = (unsigned long) &__init_begin;
+
 	while (addr < (unsigned long) &__init_end) {
 	        ClearPageReserved(virt_to_page(addr));
 	        init_page_count(virt_to_page(addr));
@@ -88,6 +90,7 @@ void free_initmem(void)
 	        totalram_pages++;
 	        addr += PAGE_SIZE;
 	}
+
 	pr_info("Freeing unused kernel memory: %dk freed\n",
 	        ((unsigned int)&__init_end - (unsigned int)&__init_begin) >> 10);
 }

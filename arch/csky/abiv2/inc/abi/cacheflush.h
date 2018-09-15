@@ -32,10 +32,9 @@ void flush_icache_user_range(struct vm_area_struct *vma, struct page *page,
 #define copy_to_user_page(vma, page, vaddr, dst, src, len) \
 	do { \
 		memcpy(dst, src, len); \
-		cache_wbinv_range(dst, dst + len); \
+		cache_wbinv_range((unsigned long)dst, (unsigned long)dst + len); \
 	} while (0)
 #define copy_from_user_page(vma, page, vaddr, dst, src, len) \
 	memcpy(dst, src, len)
 
 #endif /* __ABI_CSKY_CACHEFLUSH_H */
-

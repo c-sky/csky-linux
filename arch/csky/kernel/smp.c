@@ -232,4 +232,3 @@ void csky_start_secondary(void)
 	preempt_disable();
 	cpu_startup_entry(CPUHP_AP_ONLINE_IDLE);
 }
-

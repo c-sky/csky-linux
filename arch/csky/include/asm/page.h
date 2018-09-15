@@ -53,7 +53,7 @@ struct vm_area_struct;
  * These are used to make use of C type-checking..
  */
 typedef struct { unsigned long pte_low; } pte_t;
-#define pte_val(x)    ((x).pte_low)
+#define pte_val(x)	((x).pte_low)
 
 typedef struct { unsigned long pgd; } pgd_t;
 typedef struct { unsigned long pgprot; } pgprot_t;
@@ -79,7 +79,7 @@ typedef struct page *pgtable_t;
 
 #define __pa(x)		((unsigned long)(x) - PAGE_OFFSET + PHYS_OFFSET)
 #define __va(x)		((void *)((unsigned long)(x) + PAGE_OFFSET - PHYS_OFFSET))
-#define __pa_symbol(x)  __pa(RELOC_HIDE((unsigned long)(x), 0))
+#define __pa_symbol(x)		__pa(RELOC_HIDE((unsigned long)(x), 0))
 
 #define MAP_NR(x)	PFN_DOWN((unsigned long)(x) - PAGE_OFFSET - PHYS_OFFSET_OFFSET)
 #define virt_to_page(x)		(mem_map + MAP_NR(x))
@@ -93,7 +93,7 @@ typedef struct page *pgtable_t;
  * - these mappings are fixed in the MMU
  */
 
-#define pfn_to_kaddr(x)       __va(PFN_PHYS(x))
+#define pfn_to_kaddr(x)	__va(PFN_PHYS(x))
 
 #include <asm-generic/memory_model.h>
 #include <asm-generic/getorder.h>

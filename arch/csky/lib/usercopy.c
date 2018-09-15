@@ -11,7 +11,7 @@ raw_copy_from_user(
 		unsigned long n)
 {
 	if (access_ok(VERIFY_READ, from, n))
-		__copy_user_zeroing(to,from,n); 
+		__copy_user_zeroing(to,from,n);
 	else
 		memset(to,0, n);
 	return n;
@@ -32,7 +32,7 @@ EXPORT_SYMBOL(raw_copy_to_user);
 
 
 /*
- * copy a null terminated string from userspace.	
+ * copy a null terminated string from userspace.
  */
 #define __do_strncpy_from_user(dst,src,count,res)       \
 do{                                                     \
@@ -63,7 +63,7 @@ do{                                                     \
           :"=r"(res),"=r"(count),"=r"(dst),"=r"(src), "=r"(tmp),"=r"(faultres) \
           : "5"(-EFAULT),"0"(count), "1"(count), "2"(dst),"3"(src)     	       \
           : "memory" );	                                \
-} while(0)		
+} while(0)
 
 /*
  * __strncpy_from_user: - Copy a NUL terminated string from userspace, with less checking.
@@ -71,7 +71,7 @@ do{                                                     \
  *         least @count bytes long.
  * @src:   Source address, in user space.
  * @count: Maximum number of bytes to copy, including the trailing NUL.
- * 
+ *
  * Copies a NUL-terminated string from userspace to kernel space.
  * Caller must check the specified block with access_ok() before calling
  * this function.
@@ -103,7 +103,7 @@ EXPORT_SYMBOL(__strncpy_from_user);
  *         least @count bytes long.
  * @src:   Source address, in user space.
  * @count: Maximum number of bytes to copy, including the trailing NUL.
- * 
+ *
  * Copies a NUL-terminated string from userspace to kernel space.
  *
  * On success, returns the length of the string (not including the trailing
@@ -147,30 +147,30 @@ long strnlen_user(const char *s, long n)
 	asm volatile(
         "       cmpnei  %1, 0           \n"
         "       bf      3f              \n"
-        "1:     cmpnei  %0, 0           \n"              
+        "1:     cmpnei  %0, 0           \n"
         "       bf      3f              \n"
-        "2:     ldb     %3, (%1, 0)     \n"             
-        "       cmpnei  %3, 0           \n"             
-        "       bf      3f              \n"             
-        "       subi    %0,  1          \n"             
-        "       addi    %1,  1          \n"             
+        "2:     ldb     %3, (%1, 0)     \n"
+        "       cmpnei  %3, 0           \n"
+        "       bf      3f              \n"
+        "       subi    %0,  1          \n"
+        "       addi    %1,  1          \n"
         "       br      1b              \n"
         "3:     subu    %2, %0          \n"
-        "       addi    %2,  1          \n"             
-        "       br      5f              \n"             
-        "4:     movi    %0, 0           \n"             
-        "       br      5f              \n"             
-        ".section __ex_table, \"a\"     \n"             
+        "       addi    %2,  1          \n"
+        "       br      5f              \n"
+        "4:     movi    %0, 0           \n"
+        "       br      5f              \n"
+        ".section __ex_table, \"a\"     \n"
         ".align   2                     \n"
-        ".long    2b, 4b                \n"             
-        ".previous                      \n"             
-        "5:                             \n"             
-        :"=r"(n),"=r"(s), "=r"(res), "=r"(tmp)   
-        : "0"(n), "1"(s), "2"(n)      
+        ".long    2b, 4b                \n"
+        ".previous                      \n"
+        "5:                             \n"
+        :"=r"(n),"=r"(s), "=r"(res), "=r"(tmp)
+        : "0"(n), "1"(s), "2"(n)
         : "memory", "cc" );
-		return res;     
+		return res;
 	}
-	return 0;     
+	return 0;
 }
 EXPORT_SYMBOL(strnlen_user);
 
@@ -241,8 +241,8 @@ do {                                                            \
  *
  * Returns number of bytes that could not be cleared.
  * On success, this will be zero.
- */	
-unsigned long 
+ */
+unsigned long
 clear_user(void __user *to, unsigned long n)
 {
 	if (access_ok(VERIFY_WRITE, to, n))
@@ -269,4 +269,3 @@ __clear_user(void __user *to, unsigned long n)
 	return n;
 }
 EXPORT_SYMBOL(__clear_user);
-

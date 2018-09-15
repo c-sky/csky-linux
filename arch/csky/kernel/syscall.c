@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 // Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
+
 #include <linux/syscalls.h>
 
 SYSCALL_DEFINE1(set_thread_area, unsigned long, addr)
@@ -23,31 +24,9 @@ SYSCALL_DEFINE6(mmap2,
 {
 	if (unlikely(offset & (~PAGE_MASK >> 12)))
 		return -EINVAL;
-	return sys_mmap_pgoff(addr, len, prot, flags, fd,
-		offset >> (PAGE_SHIFT - 12));
-}
 
-struct mmap_arg_struct {
-	unsigned long addr;
-	unsigned long len;
-	unsigned long prot;
-	unsigned long flags;
-	unsigned long fd;
-	unsigned long offset;
-};
-
-SYSCALL_DEFINE1(mmap,
-	struct mmap_arg_struct *, arg)
-{
-	struct mmap_arg_struct a;
-
-	if (copy_from_user(&a, arg, sizeof(a)))
-		return -EINVAL;
-
-	if (unlikely(a.offset & ~PAGE_MASK))
-		return -EINVAL;
-
-	return sys_mmap_pgoff(a.addr, a.len, a.prot, a.flags, a.fd, a.offset >> PAGE_SHIFT);
+	return ksys_mmap_pgoff(addr, len, prot, flags, fd,
+			       offset >> (PAGE_SHIFT - 12));
 }
 
 /*
@@ -59,5 +38,5 @@ SYSCALL_DEFINE4(csky_fadvise64_64,
 	loff_t, offset,
 	loff_t, len)
 {
-	return sys_fadvise64_64(fd, offset, len, advice);
+	return ksys_fadvise64_64(fd, offset, len, advice);
 }

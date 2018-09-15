@@ -7,37 +7,37 @@
 #include <abi/reg_ops.h>
 #include <asm/barrier.h>
 
-static inline int  read_mmu_index(void)
+static inline int read_mmu_index(void)
 {
 	return mfcr("cr<0, 15>");
 }
 
-static inline void  write_mmu_index(int value)
+static inline void write_mmu_index(int value)
 {
 	mtcr("cr<0, 15>", value);
 }
 
-static inline int  read_mmu_entrylo0(void)
+static inline int read_mmu_entrylo0(void)
 {
 	return mfcr("cr<2, 15>");
 }
 
-static inline int  read_mmu_entrylo1(void)
+static inline int read_mmu_entrylo1(void)
 {
 	return mfcr("cr<3, 15>");
 }
 
-static inline void  write_mmu_pagemask(int value)
+static inline void write_mmu_pagemask(int value)
 {
 	mtcr("cr<6, 15>", value);
 }
 
-static inline int  read_mmu_entryhi(void)
+static inline int read_mmu_entryhi(void)
 {
 	return mfcr("cr<4, 15>");
 }
 
-static inline void  write_mmu_entryhi(int value)
+static inline void write_mmu_entryhi(int value)
 {
 	mtcr("cr<4, 15>", value);
 }

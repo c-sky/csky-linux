@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 // Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
+
 #include <linux/linkage.h>
 #include <abi/entry.h>
 #include <abi/pgtable-bits.h>
@@ -44,7 +45,7 @@ ENTRY(csky_\name)
 	bseti	r6, 31
 
 	mov     a2, a3
-   	lsri    a2, _PGDIR_SHIFT
+	lsri    a2, _PGDIR_SHIFT
 	lsli    a2, 2
 	addu    r6, a2
 	ldw     r6, (r6)

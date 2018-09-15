@@ -11,4 +11,3 @@ endif
 
 always += $(dtb-y)
 clean-files += *.dtb *.dtb.S
-

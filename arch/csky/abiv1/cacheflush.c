@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 // Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
+
 #include <linux/kernel.h>
 #include <linux/mm.h>
 #include <linux/fs.h>
@@ -48,4 +49,3 @@ void update_mmu_cache(struct vm_area_struct *vma, unsigned long address, pte_t *
 
 	clear_bit(PG_arch_1, &(page)->flags);
 }
-

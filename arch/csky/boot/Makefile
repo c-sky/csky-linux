@@ -22,4 +22,3 @@ UIMAGE_LOADADDR		= $(shell $(NM) vmlinux | awk '$$NF == "_start" {print $$1}')
 $(obj)/uImage: $(obj)/zImage
 	$(call if_changed,uimage)
 	@echo 'Image: $@ is ready'
-

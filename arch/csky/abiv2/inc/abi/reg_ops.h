@@ -15,4 +15,3 @@ static inline unsigned int mfcr_ccr2(void)
 	return mfcr("cr23");
 }
 #endif /* __ABI_REG_OPS_H */
-

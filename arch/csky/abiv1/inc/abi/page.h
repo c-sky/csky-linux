@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 // Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
+
 extern unsigned long shm_align_mask;
 extern void flush_dcache_page(struct page *);
 

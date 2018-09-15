@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 // Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
+
 #include <linux/linkage.h>
 #include <abi/entry.h>
 
@@ -84,4 +85,3 @@ ENTRY(csky_cmpxchg_fixup)
 	rts
 END(csky_cmpxchg_fixup)
 #endif
-

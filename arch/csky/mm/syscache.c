@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 // Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
+
 #include <linux/syscalls.h>
 #include <asm/page.h>
 #include <asm/cache.h>
@@ -26,4 +27,3 @@ SYSCALL_DEFINE3(cacheflush,
 
 	return 0;
 }
-
