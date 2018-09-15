@@ -41,7 +41,6 @@ static inline void atomic_##op(int i, atomic_t *v)			\
 {									\
 	unsigned long tmp;						\
 									\
-	smp_mb();							\
 	asm volatile (							\
 	"1:	ldex.w		%0, (%2) \n"				\
 	"	" #op "		%0, %1   \n"				\
@@ -50,7 +49,6 @@ static inline void atomic_##op(int i, atomic_t *v)			\
 		: "=&r" (tmp)						\
 		: "r" (i), "r"(&v->counter)				\
 		: "memory");						\
-	smp_mb();							\
 }
 
 #define ATOMIC_OP_RETURN(op, c_op)					\

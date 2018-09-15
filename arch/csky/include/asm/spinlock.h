@@ -16,8 +16,6 @@ static inline void arch_spin_lock(arch_spinlock_t *lock)
 	u32 *p = &lock->lock;
 	u32 tmp;
 
-	smp_mb();
-
 	asm volatile (
 		"1:	ldex.w		%0, (%2) \n"
 		"	mov		%1, %0	 \n"
@@ -40,8 +38,6 @@ static inline int arch_spin_trylock(arch_spinlock_t *lock)
 	u32 tmp, contended, res;
 	u32 ticket_next = 1 << TICKET_NEXT;
 	u32 *p = &lock->lock;
-
-	smp_mb();
 
 	do {
 		asm volatile (
@@ -69,7 +65,6 @@ static inline void arch_spin_unlock(arch_spinlock_t *lock)
 {
 	smp_mb();
 	lock->tickets.owner++;
-	smp_mb();
 }
 
 static inline int arch_spin_value_unlocked(arch_spinlock_t lock)
@@ -104,7 +99,6 @@ static inline void arch_spin_lock(arch_spinlock_t *lock)
 	u32 *p = &lock->lock;
 	u32 tmp;
 
-	smp_mb();
 	asm volatile (
 		"1:	ldex.w		%0, (%1) \n"
 		"	bnez		%0, 1b   \n"
@@ -129,7 +123,6 @@ static inline void arch_spin_unlock(arch_spinlock_t *lock)
 		: "=&r" (tmp)
 		: "r"(p)
 		: "cc");
-	smp_mb();
 }
 
 static inline int arch_spin_trylock(arch_spinlock_t *lock)
@@ -137,7 +130,6 @@ static inline int arch_spin_trylock(arch_spinlock_t *lock)
 	u32 *p = &lock->lock;
 	u32 tmp;
 
-	smp_mb();
 	asm volatile (
 		"1:	ldex.w		%0, (%1) \n"
 		"	bnez		%0, 2f   \n"
@@ -166,7 +158,6 @@ static inline void arch_read_lock(arch_rwlock_t *lock)
 	u32 *p = &lock->lock;
 	u32 tmp;
 
-	smp_mb();
 	asm volatile (
 		"1:	ldex.w		%0, (%1) \n"
 		"	blz		%0, 1b   \n"
@@ -193,7 +184,6 @@ static inline void arch_read_unlock(arch_rwlock_t *lock)
 		: "=&r" (tmp)
 		: "r"(p)
 		: "cc");
-	smp_mb();
 }
 
 static inline int arch_read_trylock(arch_rwlock_t *lock)
@@ -201,7 +191,6 @@ static inline int arch_read_trylock(arch_rwlock_t *lock)
 	u32 *p = &lock->lock;
 	u32 tmp;
 
-	smp_mb();
 	asm volatile (
 		"1:	ldex.w		%0, (%1) \n"
 		"	blz		%0, 2f   \n"
@@ -228,7 +217,6 @@ static inline void arch_write_lock(arch_rwlock_t *lock)
 	u32 *p = &lock->lock;
 	u32 tmp;
 
-	smp_mb();
 	asm volatile (
 		"1:	ldex.w		%0, (%1) \n"
 		"	bnez		%0, 1b   \n"
@@ -255,7 +243,6 @@ static inline void arch_write_unlock(arch_rwlock_t *lock)
 		: "=&r" (tmp)
 		: "r"(p)
 		: "cc");
-	smp_mb();
 }
 
 static inline int arch_write_trylock(arch_rwlock_t *lock)
@@ -263,7 +250,6 @@ static inline int arch_write_trylock(arch_rwlock_t *lock)
 	u32 *p = &lock->lock;
 	u32 tmp;
 
-	smp_mb();
 	asm volatile (
 		"1:	ldex.w		%0, (%1) \n"
 		"	bnez		%0, 2f   \n"
