@@ -26,13 +26,14 @@ extern void flush_dcache_page(struct page *);
 do{ \
 	cache_wbinv_all(); \
 	memcpy(dst, src, len); \
-	icache_inv_all(); \
+	cache_wbinv_all(); \
 }while(0)
 
 #define copy_to_user_page(vma, page, vaddr, dst, src, len) \
 do{ \
 	cache_wbinv_all(); \
 	memcpy(dst, src, len); \
+	cache_wbinv_all(); \
 }while(0)
 
 #define flush_dcache_mmap_lock(mapping)		do{}while(0)

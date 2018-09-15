@@ -7,21 +7,25 @@
 
 void flush_icache_page(struct vm_area_struct *vma, struct page *page)
 {
-	void *va;
-	unsigned long start, end;
+	unsigned long start;
 
-	va = page_address(page);
-	start = (unsigned long) va;
+	start = (unsigned long) kmap_atomic(page);
 
-	if (va == NULL && PageHighMem(page))
-		start = (unsigned long) kmap_atomic(page);
+	cache_wbinv_range(start, start + PAGE_SIZE);
 
-	end = start + PAGE_SIZE;
+	kunmap_atomic((void *)start);
+}
 
-	cache_wbinv_range(start, end);
+void flush_icache_user_range(struct vm_area_struct *vma, struct page *page,
+			     unsigned long vaddr, int len)
+{
+	unsigned long kaddr;
 
-	if (va == NULL && PageHighMem(page))
-		kunmap_atomic((void *)start);
+	kaddr = (unsigned long) kmap_atomic(page) + (vaddr & ~PAGE_MASK);
+
+	cache_wbinv_range(kaddr, kaddr + len);
+
+	kunmap_atomic((void *)kaddr);
 }
 
 void update_mmu_cache(struct vm_area_struct *vma, unsigned long address, pte_t *pte)
