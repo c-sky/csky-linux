@@ -133,7 +133,7 @@ ck_intc_init_comm(struct device_node *node, struct device_node *parent)
 	return 0;
 }
 
-static inline int handle_irq_perbit(struct pt_regs *regs, u32 hwirq, u32 irq_base)
+static inline bool handle_irq_perbit(struct pt_regs *regs, u32 hwirq, u32 irq_base)
 {
 	u32 irq;
 
@@ -151,7 +151,7 @@ static inline int handle_irq_perbit(struct pt_regs *regs, u32 hwirq, u32 irq_bas
 /* gx6605s 64 irqs interrupt controller */
 static void gx_irq_handler(struct pt_regs *regs)
 {
-	int ret;
+	bool ret;
 
 	do {
 		ret  = handle_irq_perbit(regs ,readl_relaxed(reg_base + GX_INTC_PEN31_00), 0);
@@ -190,7 +190,7 @@ IRQCHIP_DECLARE(csky_gx6605s_intc, "csky,gx6605s-intc", gx_intc_init);
 /* C-SKY simple 64 irqs interrupt controller, dual-together could support 128 irqs */
 static void ck_irq_handler(struct pt_regs *regs)
 {
-	int ret;
+	bool ret;
 
 	do {
 		/* handle 0 - 31 irqs */
