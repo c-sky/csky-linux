@@ -16,9 +16,12 @@
 #include <asm/reg_ops.h>
 #include <asm/smp.h>
 
+static struct irq_domain *root_domain;
 static void __iomem *INTCG_base;
 static void __iomem *INTCL_base;
 
+#define IPI_IRQ		15
+#define INTC_IRQS	256
 #define COMM_IRQ_BASE	32
 
 #define INTCG_SIZE	0x8000
@@ -37,8 +40,6 @@ static void __iomem *INTCL_base;
 #define INTCL_CENR	0xa4
 #define INTCL_CACR	0xb4
 
-#define INTC_IRQS	256
-
 static DEFINE_PER_CPU(void __iomem *, intcl_reg);
 
 static void csky_mpintc_handler(struct pt_regs *regs)
@@ -46,7 +47,7 @@ static void csky_mpintc_handler(struct pt_regs *regs)
 	void __iomem *reg_base = this_cpu_read(intcl_reg);
 
 	do {
-		handle_domain_irq(NULL,
+		handle_domain_irq(root_domain,
 				  readl_relaxed(reg_base + INTCL_RDYIR),
 				  regs);
 	} while (readl_relaxed(reg_base + INTCL_HPPIR) & BIT(31));
@@ -101,7 +102,7 @@ static int csky_irq_set_affinity(struct irq_data *d,
 #endif
 
 static struct irq_chip csky_irq_chip = {
-	.name           = "C-SKY SMP Intc V2",
+	.name           = "C-SKY SMP Intc",
 	.irq_eoi	= csky_mpintc_eoi,
 	.irq_enable	= csky_mpintc_enable,
 	.irq_disable	= csky_mpintc_disable,
@@ -129,7 +130,7 @@ static const struct irq_domain_ops csky_irqdomain_ops = {
 };
 
 #ifdef CONFIG_SMP
-static void csky_mpintc_send_ipi(const unsigned long *mask, unsigned long irq)
+static void csky_mpintc_send_ipi(const unsigned long *mask)
 {
 	void __iomem *reg_base = this_cpu_read(intcl_reg);
 
@@ -137,7 +138,12 @@ static void csky_mpintc_send_ipi(const unsigned long *mask, unsigned long irq)
 	 * INTCL_SIGR[3:0] INTID
 	 * INTCL_SIGR[8:15] CPUMASK
 	 */
-	writel_relaxed((*mask) << 8 | irq, reg_base + INTCL_SIGR);
+	writel_relaxed((*mask) << 8 | IPI_IRQ, reg_base + INTCL_SIGR);
+}
+
+static int csky_mpintc_ipi_irq_mapping(void)
+{
+	return irq_create_mapping(root_domain, IPI_IRQ);
 }
 #endif
 
@@ -145,7 +151,6 @@ static void csky_mpintc_send_ipi(const unsigned long *mask, unsigned long irq)
 static int __init
 csky_mpintc_init(struct device_node *node, struct device_node *parent)
 {
-	struct irq_domain *root_domain;
 	unsigned int cpu, nr_irq;
 	int ret;
 
@@ -153,9 +158,8 @@ csky_mpintc_init(struct device_node *node, struct device_node *parent)
 		return 0;
 
 	ret = of_property_read_u32(node, "csky,num-irqs", &nr_irq);
-	if (ret < 0) {
+	if (ret < 0)
 		nr_irq = INTC_IRQS;
-	}
 
 	if (INTCG_base == NULL) {
 		INTCG_base = ioremap(mfcr("cr<31, 14>"), INTC_SIZE);
@@ -172,8 +176,6 @@ csky_mpintc_init(struct device_node *node, struct device_node *parent)
 	if (!root_domain)
 		return -ENXIO;
 
-	irq_set_default_host(root_domain);
-
 	/* for every cpu */
 	for_each_present_cpu(cpu) {
 		per_cpu(intcl_reg, cpu) = INTCL_base + (INTCL_SIZE * cpu);
@@ -184,6 +186,8 @@ csky_mpintc_init(struct device_node *node, struct device_node *parent)
 
 #ifdef CONFIG_SMP
 	set_send_ipi(&csky_mpintc_send_ipi);
+
+	set_ipi_irq_mapping(&csky_mpintc_ipi_irq_mapping);
 #endif
 
 	return 0;
