@@ -9,12 +9,23 @@ static int align_count  = 0;
 
 static inline uint32_t get_ptreg(struct pt_regs *regs, uint32_t rx)
 {
-	return *((int *)&(regs->a0) - 2 + rx);
+	uint32_t val;
+
+	if (rx == 15)
+		val = regs->lr;
+	else
+		val = *((uint32_t *)&(regs->a0) - 2 + rx);
+
+	return val;
 }
 
 static inline void put_ptreg(struct pt_regs *regs, uint32_t rx, uint32_t val)
 {
-	*((int *)&(regs->a0) - 2 + rx) = val;
+	if (rx == 15)
+		regs->lr = val;
+	else
+		*((uint32_t *)&(regs->a0) - 2 + rx) = val;
+	return;
 }
 
 /*
@@ -239,7 +250,7 @@ void csky_alignment(struct pt_regs *regs)
 	rz  = (opcode >> 8) & 0xf;
 	opcode &= 0xf000;
 
-	if (rx == 0 || rx == 15 || rz == 0 || rz == 15)
+	if (rx == 0 || rx == 1 || rz == 0 || rz == 1)
 		goto bad_area;
 
 	switch(opcode) {
