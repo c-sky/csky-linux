@@ -30,10 +30,10 @@ void flush_icache_user_range(struct vm_area_struct *vma, struct page *page,
 #define flush_cache_vunmap(start, end)		do { } while (0)
 
 #define copy_to_user_page(vma, page, vaddr, dst, src, len) \
-	do { \
-		memcpy(dst, src, len); \
-		cache_wbinv_range(dst, dst + len); \
-	} while (0)
+do { \
+	memcpy(dst, src, len); \
+	cache_wbinv_range((unsigned long)dst, (unsigned long)dst + len); \
+} while (0)
 #define copy_from_user_page(vma, page, vaddr, dst, src, len) \
 	memcpy(dst, src, len)
 
