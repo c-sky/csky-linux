@@ -127,22 +127,22 @@ choice
 	default CPU_CK610
 
 config CPU_CK610
-	bool "CSKY CPU ck610"
+	bool "C-SKY CPU 610"
 	select CPU_NEED_TLBSYNC
 	select CPU_NEED_SOFTALIGN
 	select CPU_NO_USER_BKPT
 
 config CPU_CK810
-	bool "CSKY CPU ck810"
+	bool "C-SKY CPU 810"
 	select CPU_HAS_HILO
 	select CPU_NEED_TLBSYNC
 
 config CPU_CK807
-	bool "CSKY CPU ck807"
+	bool "C-SKY CPU 807"
 	select CPU_HAS_HILO
 
 config CPU_CK860
-	bool "CSKY CPU ck860"
+	bool "C-SKY CPU 860"
 	select CPU_HAS_TLBI
 	select CPU_HAS_CACHEV2
 	select CPU_HAS_LDSTEX
