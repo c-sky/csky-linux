@@ -34,9 +34,6 @@ void update_mmu_cache(struct vm_area_struct *vma, unsigned long address, pte_t *
 	struct page *page;
 	void *va;
 
-	if (!(vma->vm_flags & VM_EXEC))
-		return;
-
 	pfn = pte_pfn(*pte);
 	if (unlikely(!pfn_valid(pfn)))
 		return;
