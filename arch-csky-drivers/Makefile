@@ -1,3 +1,4 @@
+obj-y += irq-csky-apb.o
 obj-y += irq-csky-apb-intc.o
 obj-y += timer-gx6605s.o
 ifeq ($(CONFIG_CPU_CK860),y)
