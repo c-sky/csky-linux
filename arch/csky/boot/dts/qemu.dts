@@ -79,6 +79,10 @@
 			compatible = "csky,qemu-exit";
 			reg = <0xffffc000 0x1000>;
 		};
+
+		pmu {
+			compatible = "csky,pmu-v1";
+		};
 	};
 
 	chosen {
