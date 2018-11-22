@@ -8,15 +8,38 @@
 #include <linux/perf_event.h>
 #include <linux/platform_device.h>
 
+#define CSKY_PMU_MAX_EVENTS 32
+static uint64_t (*hw_raw_read_mapping[CSKY_PMU_MAX_EVENTS])(void);
+static void (*hw_raw_write_mapping[CSKY_PMU_MAX_EVENTS])(uint64_t val);
+
 struct csky_pmu_t {
 	struct pmu	pmu;
-	unsigned int	config;
+	uint32_t	config;
 } csky_pmu;
 
 #define cprgr(reg)				\
 ({						\
 	unsigned int tmp;			\
 	asm volatile("cprgr %0, "reg"\n"	\
+		     :"=r"(tmp)			\
+		     :				\
+		     :"memory");		\
+	tmp;					\
+})
+
+#define cpwgr(reg, val)		\
+({				\
+	asm volatile(		\
+	"cpwgr %0, "reg"\n"	\
+	:			\
+	: "r"(val)		\
+	: "memory");		\
+})
+
+#define cprcr(reg)				\
+({						\
+	unsigned int tmp;			\
+	asm volatile("cprcr %0, "reg"\n"	\
 		     :"=r"(tmp)			\
 		     :				\
 		     :"memory");		\
@@ -32,7 +55,31 @@ struct csky_pmu_t {
 	: "memory");		\
 })
 
-/* read cycle counter */
+/* hardware profiling cycle counter */
+static uint64_t csky_pmu_read_hpcc(void)
+{
+	uint32_t lo, hi, tmp;
+	uint64_t result;
+
+	do {
+		tmp = cprgr("<0, 0x1>");
+		lo  = cprgr("<0, 0x0>");
+		hi  = cprgr("<0, 0x1>");
+	} while (hi != tmp);
+
+	result = (uint64_t) (hi) << 32;
+	result |= lo;
+
+	return result;
+}
+
+static void csky_pmu_write_hpcc(uint64_t val)
+{
+	cpwgr("<0, 0x0>", (uint32_t)  val);
+	cpwgr("<0, 0x1>", (uint32_t) (val >> 32));
+}
+
+/* cycle counter */
 static uint64_t csky_pmu_read_cc(void)
 {
 	uint32_t lo, hi, tmp;
@@ -50,7 +97,13 @@ static uint64_t csky_pmu_read_cc(void)
 	return result;
 }
 
-/* read instruction counter */
+static void csky_pmu_write_cc(uint64_t val)
+{
+	cpwgr("<0, 0x2>", (uint32_t)  val);
+	cpwgr("<0, 0x3>", (uint32_t) (val >> 32));
+}
+
+/* instruction counter */
 static uint64_t csky_pmu_read_ic(void)
 {
 	uint32_t lo, hi, tmp;
@@ -68,7 +121,13 @@ static uint64_t csky_pmu_read_ic(void)
 	return result;
 }
 
-/* read l1 icache access counter */
+static void csky_pmu_write_ic(uint64_t val)
+{
+	cpwgr("<0, 0x4>", (uint32_t)  val);
+	cpwgr("<0, 0x5>", (uint32_t) (val >> 32));
+}
+
+/* l1 icache access counter */
 static uint64_t csky_pmu_read_icac(void)
 {
 	uint32_t lo, hi, tmp;
@@ -86,7 +145,13 @@ static uint64_t csky_pmu_read_icac(void)
 	return result;
 }
 
-/* read l1 icache miss counter */
+static void csky_pmu_write_icac(uint64_t val)
+{
+	cpwgr("<0, 0x6>", (uint32_t)  val);
+	cpwgr("<0, 0x7>", (uint32_t) (val >> 32));
+}
+
+/* l1 icache miss counter */
 static uint64_t csky_pmu_read_icmc(void)
 {
 	uint32_t lo, hi, tmp;
@@ -104,7 +169,13 @@ static uint64_t csky_pmu_read_icmc(void)
 	return result;
 }
 
-/* read l1 dcache access counter */
+static void csky_pmu_write_icmc(uint64_t val)
+{
+	cpwgr("<0, 0x8>", (uint32_t)  val);
+	cpwgr("<0, 0x9>", (uint32_t) (val >> 32));
+}
+
+/* l1 dcache access counter */
 static uint64_t csky_pmu_read_dcac(void)
 {
 	uint32_t lo, hi, tmp;
@@ -122,7 +193,13 @@ static uint64_t csky_pmu_read_dcac(void)
 	return result;
 }
 
-/* read l1 dcache miss counter */
+static void csky_pmu_write_dcac(uint64_t val)
+{
+	cpwgr("<0, 0xa>", (uint32_t)  val);
+	cpwgr("<0, 0xb>", (uint32_t) (val >> 32));
+}
+
+/* l1 dcache miss counter */
 static uint64_t csky_pmu_read_dcmc(void)
 {
 	uint32_t lo, hi, tmp;
@@ -140,7 +217,13 @@ static uint64_t csky_pmu_read_dcmc(void)
 	return result;
 }
 
-/* read l2 cache acess counter */
+static void csky_pmu_write_dcmc(uint64_t val)
+{
+	cpwgr("<0, 0xc>", (uint32_t)  val);
+	cpwgr("<0, 0xd>", (uint32_t) (val >> 32));
+}
+
+/* l2 cache acess counter */
 static uint64_t csky_pmu_read_l2ac(void)
 {
 	uint32_t lo, hi, tmp;
@@ -158,7 +241,13 @@ static uint64_t csky_pmu_read_l2ac(void)
 	return result;
 }
 
-/* read l2 cache miss counter */
+static void csky_pmu_write_l2ac(uint64_t val)
+{
+	cpwgr("<0, 0xe>", (uint32_t)  val);
+	cpwgr("<0, 0xf>", (uint32_t) (val >> 32));
+}
+
+/* l2 cache miss counter */
 static uint64_t csky_pmu_read_l2mc(void)
 {
 	uint32_t lo, hi, tmp;
@@ -176,14 +265,452 @@ static uint64_t csky_pmu_read_l2mc(void)
 	return result;
 }
 
+static void csky_pmu_write_l2mc(uint64_t val)
+{
+	cpwgr("<0, 0x10>", (uint32_t)  val);
+	cpwgr("<0, 0x11>", (uint32_t) (val >> 32));
+}
+
+/* I-UTLB miss counter */
+static uint64_t csky_pmu_read_iutlbmc(void)
+{
+	uint32_t lo, hi, tmp;
+	uint64_t result;
+
+	do {
+		tmp = cprgr("<0, 0x15>");
+		lo  = cprgr("<0, 0x14>");
+		hi  = cprgr("<0, 0x15>");
+	} while (hi != tmp);
+
+	result = (uint64_t) (hi) << 32;
+	result |= lo;
+
+	return result;
+}
+
+static void csky_pmu_write_iutlbmc(uint64_t val)
+{
+	cpwgr("<0, 0x14>", (uint32_t)  val);
+	cpwgr("<0, 0x15>", (uint32_t) (val >> 32));
+}
+
+/* D-UTLB miss counter */
+static uint64_t csky_pmu_read_dutlbmc(void)
+{
+	uint32_t lo, hi, tmp;
+	uint64_t result;
+
+	do {
+		tmp = cprgr("<0, 0x17>");
+		lo  = cprgr("<0, 0x16>");
+		hi  = cprgr("<0, 0x17>");
+	} while (hi != tmp);
+
+	result = (uint64_t) (hi) << 32;
+	result |= lo;
+
+	return result;
+}
+
+static void csky_pmu_write_dutlbmc(uint64_t val)
+{
+	cpwgr("<0, 0x16>", (uint32_t)  val);
+	cpwgr("<0, 0x17>", (uint32_t) (val >> 32));
+}
+
+/* JTLB miss counter */
+static uint64_t csky_pmu_read_jtlbmc(void)
+{
+	uint32_t lo, hi, tmp;
+	uint64_t result;
+
+	do {
+		tmp = cprgr("<0, 0x19>");
+		lo  = cprgr("<0, 0x18>");
+		hi  = cprgr("<0, 0x19>");
+	} while (hi != tmp);
+
+	result = (uint64_t) (hi) << 32;
+	result |= lo;
+
+	return result;
+}
+
+static void csky_pmu_write_jtlbmc(uint64_t val)
+{
+	cpwgr("<0, 0x18>", (uint32_t)  val);
+	cpwgr("<0, 0x19>", (uint32_t) (val >> 32));
+}
+
+/* software counter */
+static uint64_t csky_pmu_read_softc(void)
+{
+	uint32_t lo, hi, tmp;
+	uint64_t result;
+
+	do {
+		tmp = cprgr("<0, 0x1b>");
+		lo  = cprgr("<0, 0x1a>");
+		hi  = cprgr("<0, 0x1b>");
+	} while (hi != tmp);
+
+	result = (uint64_t) (hi) << 32;
+	result |= lo;
+
+	return result;
+}
+
+static void csky_pmu_write_softc(uint64_t val)
+{
+	cpwgr("<0, 0x1a>", (uint32_t)  val);
+	cpwgr("<0, 0x1b>", (uint32_t) (val >> 32));
+}
+
+/* conditional branch mispredict counter */
+static uint64_t csky_pmu_read_cbmc(void)
+{
+	uint32_t lo, hi, tmp;
+	uint64_t result;
+
+	do {
+		tmp = cprgr("<0, 0x1d>");
+		lo  = cprgr("<0, 0x1c>");
+		hi  = cprgr("<0, 0x1d>");
+	} while (hi != tmp);
+
+	result = (uint64_t) (hi) << 32;
+	result |= lo;
+
+	return result;
+}
+
+static void csky_pmu_write_cbmc(uint64_t val)
+{
+	cpwgr("<0, 0x1c>", (uint32_t)  val);
+	cpwgr("<0, 0x1d>", (uint32_t) (val >> 32));
+}
+
+/* conditional branch instruction counter */
+static uint64_t csky_pmu_read_cbic(void)
+{
+	uint32_t lo, hi, tmp;
+	uint64_t result;
+
+	do {
+		tmp = cprgr("<0, 0x1f>");
+		lo  = cprgr("<0, 0x1e>");
+		hi  = cprgr("<0, 0x1f>");
+	} while (hi != tmp);
+
+	result = (uint64_t) (hi) << 32;
+	result |= lo;
+
+	return result;
+}
+
+static void csky_pmu_write_cbic(uint64_t val)
+{
+	cpwgr("<0, 0x1e>", (uint32_t)  val);
+	cpwgr("<0, 0x1f>", (uint32_t) (val >> 32));
+}
+
+/* indirect branch mispredict counter */
+static uint64_t csky_pmu_read_ibmc(void)
+{
+	uint32_t lo, hi, tmp;
+	uint64_t result;
+
+	do {
+		tmp = cprgr("<0, 0x21>");
+		lo  = cprgr("<0, 0x20>");
+		hi  = cprgr("<0, 0x21>");
+	} while (hi != tmp);
+
+	result = (uint64_t) (hi) << 32;
+	result |= lo;
+
+	return result;
+}
+
+static void csky_pmu_write_ibmc(uint64_t val)
+{
+	cpwgr("<0, 0x20>", (uint32_t)  val);
+	cpwgr("<0, 0x21>", (uint32_t) (val >> 32));
+}
+
+/* indirect branch instruction counter */
+static uint64_t csky_pmu_read_ibic(void)
+{
+	uint32_t lo, hi, tmp;
+	uint64_t result;
+
+	do {
+		tmp = cprgr("<0, 0x23>");
+		lo  = cprgr("<0, 0x22>");
+		hi  = cprgr("<0, 0x23>");
+	} while (hi != tmp);
+
+	result = (uint64_t) (hi) << 32;
+	result |= lo;
+
+	return result;
+}
+
+static void csky_pmu_write_ibic(uint64_t val)
+{
+	cpwgr("<0, 0x22>", (uint32_t)  val);
+	cpwgr("<0, 0x23>", (uint32_t) (val >> 32));
+}
+
+/* LSU spec fail counter */
+static uint64_t csky_pmu_read_lsfc(void)
+{
+	uint32_t lo, hi, tmp;
+	uint64_t result;
+
+	do {
+		tmp = cprgr("<0, 0x25>");
+		lo  = cprgr("<0, 0x24>");
+		hi  = cprgr("<0, 0x25>");
+	} while (hi != tmp);
+
+	result = (uint64_t) (hi) << 32;
+	result |= lo;
+
+	return result;
+}
+
+static void csky_pmu_write_lsfc(uint64_t val)
+{
+	cpwgr("<0, 0x24>", (uint32_t)  val);
+	cpwgr("<0, 0x25>", (uint32_t) (val >> 32));
+}
+
+/* store instruction counter */
+static uint64_t csky_pmu_read_sic(void)
+{
+	uint32_t lo, hi, tmp;
+	uint64_t result;
+
+	do {
+		tmp = cprgr("<0, 0x27>");
+		lo  = cprgr("<0, 0x26>");
+		hi  = cprgr("<0, 0x27>");
+	} while (hi != tmp);
+
+	result = (uint64_t) (hi) << 32;
+	result |= lo;
+
+	return result;
+}
+
+static void csky_pmu_write_sic(uint64_t val)
+{
+	cpwgr("<0, 0x26>", (uint32_t)  val);
+	cpwgr("<0, 0x27>", (uint32_t) (val >> 32));
+}
+
+/* dcache read access counter */
+static uint64_t csky_pmu_read_dcrac(void)
+{
+	uint32_t lo, hi, tmp;
+	uint64_t result;
+
+	do {
+		tmp = cprgr("<0, 0x29>");
+		lo  = cprgr("<0, 0x28>");
+		hi  = cprgr("<0, 0x29>");
+	} while (hi != tmp);
+
+	result = (uint64_t) (hi) << 32;
+	result |= lo;
+
+	return result;
+}
+
+static void csky_pmu_write_dcrac(uint64_t val)
+{
+	cpwgr("<0, 0x28>", (uint32_t)  val);
+	cpwgr("<0, 0x29>", (uint32_t) (val >> 32));
+}
+
+/* dcache read miss counter */
+static uint64_t csky_pmu_read_dcrmc(void)
+{
+	uint32_t lo, hi, tmp;
+	uint64_t result;
+
+	do {
+		tmp = cprgr("<0, 0x2b>");
+		lo  = cprgr("<0, 0x2a>");
+		hi  = cprgr("<0, 0x2b>");
+	} while (hi != tmp);
+
+	result = (uint64_t) (hi) << 32;
+	result |= lo;
+
+	return result;
+}
+
+static void csky_pmu_write_dcrmc(uint64_t val)
+{
+	cpwgr("<0, 0x2a>", (uint32_t)  val);
+	cpwgr("<0, 0x2b>", (uint32_t) (val >> 32));
+}
+
+/* dcache write access counter */
+static uint64_t csky_pmu_read_dcwac(void)
+{
+	uint32_t lo, hi, tmp;
+	uint64_t result;
+
+	do {
+		tmp = cprgr("<0, 0x2d>");
+		lo  = cprgr("<0, 0x2c>");
+		hi  = cprgr("<0, 0x2d>");
+	} while (hi != tmp);
+
+	result = (uint64_t) (hi) << 32;
+	result |= lo;
+
+	return result;
+}
+
+static void csky_pmu_write_dcwac(uint64_t val)
+{
+	cpwgr("<0, 0x2c>", (uint32_t)  val);
+	cpwgr("<0, 0x2d>", (uint32_t) (val >> 32));
+}
+
+/* dcache write miss counter */
+static uint64_t csky_pmu_read_dcwmc(void)
+{
+	uint32_t lo, hi, tmp;
+	uint64_t result;
+
+	do {
+		tmp = cprgr("<0, 0x2f>");
+		lo  = cprgr("<0, 0x2e>");
+		hi  = cprgr("<0, 0x2f>");
+	} while (hi != tmp);
+
+	result = (uint64_t) (hi) << 32;
+	result |= lo;
+
+	return result;
+}
+
+static void csky_pmu_write_dcwmc(uint64_t val)
+{
+	cpwgr("<0, 0x2e>", (uint32_t)  val);
+	cpwgr("<0, 0x2f>", (uint32_t) (val >> 32));
+}
+
+/* l2cache read access counter */
+static uint64_t csky_pmu_read_l2rac(void)
+{
+	uint32_t lo, hi, tmp;
+	uint64_t result;
+
+	do {
+		tmp = cprgr("<0, 0x31>");
+		lo  = cprgr("<0, 0x30>");
+		hi  = cprgr("<0, 0x31>");
+	} while (hi != tmp);
+
+	result = (uint64_t) (hi) << 32;
+	result |= lo;
+
+	return result;
+}
+
+static void csky_pmu_write_l2rac(uint64_t val)
+{
+	cpwgr("<0, 0x30>", (uint32_t)  val);
+	cpwgr("<0, 0x31>", (uint32_t) (val >> 32));
+}
+
+/* l2cache read miss counter */
+static uint64_t csky_pmu_read_l2rmc(void)
+{
+	uint32_t lo, hi, tmp;
+	uint64_t result;
+
+	do {
+		tmp = cprgr("<0, 0x33>");
+		lo  = cprgr("<0, 0x32>");
+		hi  = cprgr("<0, 0x33>");
+	} while (hi != tmp);
+
+	result = (uint64_t) (hi) << 32;
+	result |= lo;
+
+	return result;
+}
+
+static void csky_pmu_write_l2rmc(uint64_t val)
+{
+	cpwgr("<0, 0x32>", (uint32_t)  val);
+	cpwgr("<0, 0x33>", (uint32_t) (val >> 32));
+}
+
+/* l2cache write access counter */
+static uint64_t csky_pmu_read_l2wac(void)
+{
+	uint32_t lo, hi, tmp;
+	uint64_t result;
+
+	do {
+		tmp = cprgr("<0, 0x35>");
+		lo  = cprgr("<0, 0x34>");
+		hi  = cprgr("<0, 0x35>");
+	} while (hi != tmp);
+
+	result = (uint64_t) (hi) << 32;
+	result |= lo;
+
+	return result;
+}
+
+static void csky_pmu_write_l2wac(uint64_t val)
+{
+	cpwgr("<0, 0x34>", (uint32_t)  val);
+	cpwgr("<0, 0x35>", (uint32_t) (val >> 32));
+}
+
+/* l2cache write miss counter */
+static uint64_t csky_pmu_read_l2wmc(void)
+{
+	uint32_t lo, hi, tmp;
+	uint64_t result;
+
+	do {
+		tmp = cprgr("<0, 0x37>");
+		lo  = cprgr("<0, 0x36>");
+		hi  = cprgr("<0, 0x37>");
+	} while (hi != tmp);
+
+	result = (uint64_t) (hi) << 32;
+	result |= lo;
+
+	return result;
+}
+
+static void csky_pmu_write_l2wmc(uint64_t val)
+{
+	cpwgr("<0, 0x36>", (uint32_t)  val);
+	cpwgr("<0, 0x37>", (uint32_t) (val >> 32));
+}
+
 #define HW_OP_UNSUPPORTED	0xffff
-static const unsigned csky_pmu_hw_map[PERF_COUNT_HW_MAX] = {
-	[PERF_COUNT_HW_CPU_CYCLES]		= (unsigned) csky_pmu_read_cc,
-	[PERF_COUNT_HW_INSTRUCTIONS]		= (unsigned) csky_pmu_read_ic,
+static const int csky_pmu_hw_map[PERF_COUNT_HW_MAX] = {
+	[PERF_COUNT_HW_CPU_CYCLES]		= 0x1,
+	[PERF_COUNT_HW_INSTRUCTIONS]		= 0x2,
 	[PERF_COUNT_HW_CACHE_REFERENCES]	= HW_OP_UNSUPPORTED,
 	[PERF_COUNT_HW_CACHE_MISSES]		= HW_OP_UNSUPPORTED,
-	[PERF_COUNT_HW_BRANCH_INSTRUCTIONS]	= HW_OP_UNSUPPORTED,
-	[PERF_COUNT_HW_BRANCH_MISSES]		= HW_OP_UNSUPPORTED,
+	[PERF_COUNT_HW_BRANCH_INSTRUCTIONS]	= 0xf,
+	[PERF_COUNT_HW_BRANCH_MISSES]		= 0xe,
 	[PERF_COUNT_HW_BUS_CYCLES]		= HW_OP_UNSUPPORTED,
 	[PERF_COUNT_HW_STALLED_CYCLES_FRONTEND]	= HW_OP_UNSUPPORTED,
 	[PERF_COUNT_HW_STALLED_CYCLES_BACKEND]	= HW_OP_UNSUPPORTED,
@@ -192,25 +719,25 @@ static const unsigned csky_pmu_hw_map[PERF_COUNT_HW_MAX] = {
 
 #define C(_x)			PERF_COUNT_HW_CACHE_##_x
 #define CACHE_OP_UNSUPPORTED	0xffff
-static const unsigned csky_pmu_cache_map[C(MAX)][C(OP_MAX)][C(RESULT_MAX)] = {
+static const int csky_pmu_cache_map[C(MAX)][C(OP_MAX)][C(RESULT_MAX)] = {
 	[C(L1D)] = {
 		[C(OP_READ)] = {
-			[C(RESULT_ACCESS)]	= (unsigned) csky_pmu_read_dcac,
-			[C(RESULT_MISS)]	= (unsigned) csky_pmu_read_dcmc,
+			[C(RESULT_ACCESS)]	= 0x14,
+			[C(RESULT_MISS)]	= 0x15,
 		},
 		[C(OP_WRITE)] = {
-			[C(RESULT_ACCESS)]	= CACHE_OP_UNSUPPORTED,
-			[C(RESULT_MISS)]	= CACHE_OP_UNSUPPORTED,
+			[C(RESULT_ACCESS)]	= 0x16,
+			[C(RESULT_MISS)]	= 0x17,
 		},
 		[C(OP_PREFETCH)] = {
-			[C(RESULT_ACCESS)]	= CACHE_OP_UNSUPPORTED,
-			[C(RESULT_MISS)]	= CACHE_OP_UNSUPPORTED,
+			[C(RESULT_ACCESS)]	= 0x5,
+			[C(RESULT_MISS)]	= 0x6,
 		},
 	},
 	[C(L1I)] = {
 		[C(OP_READ)] = {
-			[C(RESULT_ACCESS)]	= (unsigned) csky_pmu_read_icac,
-			[C(RESULT_MISS)]	= (unsigned) csky_pmu_read_icmc,
+			[C(RESULT_ACCESS)]	= 0x3,
+			[C(RESULT_MISS)]	= 0x4,
 		},
 		[C(OP_WRITE)] = {
 			[C(RESULT_ACCESS)]	= CACHE_OP_UNSUPPORTED,
@@ -223,22 +750,22 @@ static const unsigned csky_pmu_cache_map[C(MAX)][C(OP_MAX)][C(RESULT_MAX)] = {
 	},
 	[C(LL)] = {
 		[C(OP_READ)] = {
-			[C(RESULT_ACCESS)]	= (unsigned) csky_pmu_read_l2ac,
-			[C(RESULT_MISS)]	= (unsigned) csky_pmu_read_l2mc,
+			[C(RESULT_ACCESS)]	= 0x18,
+			[C(RESULT_MISS)]	= 0x19,
 		},
 		[C(OP_WRITE)] = {
-			[C(RESULT_ACCESS)]	= CACHE_OP_UNSUPPORTED,
-			[C(RESULT_MISS)]	= CACHE_OP_UNSUPPORTED,
+			[C(RESULT_ACCESS)]	= 0x1a,
+			[C(RESULT_MISS)]	= 0x1b,
 		},
 		[C(OP_PREFETCH)] = {
-			[C(RESULT_ACCESS)]	= CACHE_OP_UNSUPPORTED,
-			[C(RESULT_MISS)]	= CACHE_OP_UNSUPPORTED,
+			[C(RESULT_ACCESS)]	= 0x7,
+			[C(RESULT_MISS)]	= 0x8,
 		},
 	},
 	[C(DTLB)] = {
 		[C(OP_READ)] = {
-			[C(RESULT_ACCESS)]	= CACHE_OP_UNSUPPORTED,
-			[C(RESULT_MISS)]	= CACHE_OP_UNSUPPORTED,
+			[C(RESULT_ACCESS)]	= 0x5,
+			[C(RESULT_MISS)]	= 0xb,
 		},
 		[C(OP_WRITE)] = {
 			[C(RESULT_ACCESS)]	= CACHE_OP_UNSUPPORTED,
@@ -251,8 +778,8 @@ static const unsigned csky_pmu_cache_map[C(MAX)][C(OP_MAX)][C(RESULT_MAX)] = {
 	},
 	[C(ITLB)] = {
 		[C(OP_READ)] = {
-			[C(RESULT_ACCESS)]	= CACHE_OP_UNSUPPORTED,
-			[C(RESULT_MISS)]	= CACHE_OP_UNSUPPORTED,
+			[C(RESULT_ACCESS)]	= 0x3,
+			[C(RESULT_MISS)]	= 0xa,
 		},
 		[C(OP_WRITE)] = {
 			[C(RESULT_ACCESS)]	= CACHE_OP_UNSUPPORTED,
@@ -294,11 +821,10 @@ static const unsigned csky_pmu_cache_map[C(MAX)][C(OP_MAX)][C(RESULT_MAX)] = {
 };
 
 static void csky_perf_event_update(struct perf_event *event,
-				  struct hw_perf_event *hwc)
+				   struct hw_perf_event *hwc)
 {
 	uint64_t prev_raw_count = local64_read(&hwc->prev_count);
-	uint64_t (*fn)(void) = (void *)hwc->idx;
-	uint64_t new_raw_count = fn();
+	uint64_t new_raw_count = hw_raw_read_mapping[hwc->idx]();
 	int64_t delta = new_raw_count - prev_raw_count;
 
 	/*
@@ -343,7 +869,7 @@ static int csky_pmu_event_init(struct perf_event *event)
 	else if (event->attr.exclude_kernel)
 		csky_pmu.config = 0x8;
 	else
-		csky_pmu.config = 0xc;
+		csky_pmu.config = 0x4 | 0x8;
 
 	switch (event->attr.type) {
 	case PERF_TYPE_HARDWARE:
@@ -360,6 +886,11 @@ static int csky_pmu_event_init(struct perf_event *event)
 			return -ENOENT;
 		hwc->idx = ret;
 		return 0;
+	case PERF_TYPE_RAW:
+		if (hw_raw_read_mapping[event->attr.config] == NULL)
+			return -ENOENT;
+		hwc->idx = event->attr.config;
+		return 0;
 	default:
 		return -ENOENT;
 	}
@@ -368,6 +899,7 @@ static int csky_pmu_event_init(struct perf_event *event)
 /* starts all counters */
 static void csky_pmu_enable(struct pmu *pmu)
 {
+	cpwcr("<0, 0x0>", csky_pmu.config | 0x3);
 }
 
 /* stops all counters */
@@ -384,18 +916,22 @@ static void csky_pmu_start(struct perf_event *event, int flags)
 	if (WARN_ON_ONCE(idx == -1))
 		return;
 
-	if (flags & PERF_EF_RELOAD)
+	if (flags & PERF_EF_RELOAD) {
 		WARN_ON_ONCE(!(hwc->state & PERF_HES_UPTODATE));
+	}
 
 	hwc->state = 0;
 
-	cpwcr("<0, 0x0>", csky_pmu.config | 0x3);
+	cpwcr("<0, 0x4>", (0x1 << idx) | cprcr("<0, 0x4>"));
 }
 
 static void csky_pmu_stop(struct perf_event *event, int flags)
 {
+	struct hw_perf_event *hwc = &event->hw;
+	int idx = hwc->idx;
+
 	if (!(event->hw.state & PERF_HES_STOPPED)) {
-		cpwcr("<0, 0x0>", 0);
+		cpwcr("<0, 0x4>", ~(0x1 << idx) & cprcr("<0, 0x4>"));
 		event->hw.state |= PERF_HES_STOPPED;
 	}
 
@@ -418,8 +954,9 @@ static int csky_pmu_add(struct perf_event *event, int flags)
 {
 	struct hw_perf_event *hwc = &event->hw;
 
-	cpwcr("<0, 0x0>", 0xc0000000);
 	local64_set(&hwc->prev_count, 0);
+
+	hw_raw_write_mapping[hwc->idx](0);
 
 	hwc->state = PERF_HES_UPTODATE | PERF_HES_STOPPED;
 	if (flags & PERF_EF_START)
@@ -443,7 +980,69 @@ static int csky_pmu_device_probe(struct platform_device *pdev)
 		.read		= csky_pmu_read,
 	};
 
+	memset((void *)hw_raw_read_mapping, 0,
+	       sizeof(hw_raw_read_mapping[CSKY_PMU_MAX_EVENTS]));
+	hw_raw_read_mapping[0x0]  = csky_pmu_read_hpcc;
+	hw_raw_read_mapping[0x1]  = csky_pmu_read_cc;
+	hw_raw_read_mapping[0x2]  = csky_pmu_read_ic;
+	hw_raw_read_mapping[0x3]  = csky_pmu_read_icac;
+	hw_raw_read_mapping[0x4]  = csky_pmu_read_icmc;
+	hw_raw_read_mapping[0x5]  = csky_pmu_read_dcac;
+	hw_raw_read_mapping[0x6]  = csky_pmu_read_dcmc;
+	hw_raw_read_mapping[0x7]  = csky_pmu_read_l2ac;
+	hw_raw_read_mapping[0x8]  = csky_pmu_read_l2mc;
+	hw_raw_read_mapping[0xa]  = csky_pmu_read_iutlbmc;
+	hw_raw_read_mapping[0xb]  = csky_pmu_read_dutlbmc;
+	hw_raw_read_mapping[0xc]  = csky_pmu_read_jtlbmc;
+	hw_raw_read_mapping[0xd]  = csky_pmu_read_softc;
+	hw_raw_read_mapping[0xe]  = csky_pmu_read_cbmc;
+	hw_raw_read_mapping[0xf]  = csky_pmu_read_cbic;
+	hw_raw_read_mapping[0x10] = csky_pmu_read_ibmc;
+	hw_raw_read_mapping[0x11] = csky_pmu_read_ibic;
+	hw_raw_read_mapping[0x12] = csky_pmu_read_lsfc;
+	hw_raw_read_mapping[0x13] = csky_pmu_read_sic;
+	hw_raw_read_mapping[0x14] = csky_pmu_read_dcrac;
+	hw_raw_read_mapping[0x15] = csky_pmu_read_dcrmc;
+	hw_raw_read_mapping[0x16] = csky_pmu_read_dcwac;
+	hw_raw_read_mapping[0x17] = csky_pmu_read_dcwmc;
+	hw_raw_read_mapping[0x18] = csky_pmu_read_l2rac;
+	hw_raw_read_mapping[0x19] = csky_pmu_read_l2rmc;
+	hw_raw_read_mapping[0x1a] = csky_pmu_read_l2wac;
+	hw_raw_read_mapping[0x1b] = csky_pmu_read_l2wmc;
+
+	memset((void *)hw_raw_write_mapping, 0,
+	       sizeof(hw_raw_write_mapping[CSKY_PMU_MAX_EVENTS]));
+	hw_raw_write_mapping[0x0]  = csky_pmu_write_hpcc;
+	hw_raw_write_mapping[0x1]  = csky_pmu_write_cc;
+	hw_raw_write_mapping[0x2]  = csky_pmu_write_ic;
+	hw_raw_write_mapping[0x3]  = csky_pmu_write_icac;
+	hw_raw_write_mapping[0x4]  = csky_pmu_write_icmc;
+	hw_raw_write_mapping[0x5]  = csky_pmu_write_dcac;
+	hw_raw_write_mapping[0x6]  = csky_pmu_write_dcmc;
+	hw_raw_write_mapping[0x7]  = csky_pmu_write_l2ac;
+	hw_raw_write_mapping[0x8]  = csky_pmu_write_l2mc;
+	hw_raw_write_mapping[0xa]  = csky_pmu_write_iutlbmc;
+	hw_raw_write_mapping[0xb]  = csky_pmu_write_dutlbmc;
+	hw_raw_write_mapping[0xc]  = csky_pmu_write_jtlbmc;
+	hw_raw_write_mapping[0xd]  = csky_pmu_write_softc;
+	hw_raw_write_mapping[0xe]  = csky_pmu_write_cbmc;
+	hw_raw_write_mapping[0xf]  = csky_pmu_write_cbic;
+	hw_raw_write_mapping[0x10] = csky_pmu_write_ibmc;
+	hw_raw_write_mapping[0x11] = csky_pmu_write_ibic;
+	hw_raw_write_mapping[0x12] = csky_pmu_write_lsfc;
+	hw_raw_write_mapping[0x13] = csky_pmu_write_sic;
+	hw_raw_write_mapping[0x14] = csky_pmu_write_dcrac;
+	hw_raw_write_mapping[0x15] = csky_pmu_write_dcrmc;
+	hw_raw_write_mapping[0x16] = csky_pmu_write_dcwac;
+	hw_raw_write_mapping[0x17] = csky_pmu_write_dcwmc;
+	hw_raw_write_mapping[0x18] = csky_pmu_write_l2rac;
+	hw_raw_write_mapping[0x19] = csky_pmu_write_l2rmc;
+	hw_raw_write_mapping[0x1a] = csky_pmu_write_l2wac;
+	hw_raw_write_mapping[0x1b] = csky_pmu_write_l2wmc;
+
 	csky_pmu.pmu.capabilities |= PERF_PMU_CAP_NO_INTERRUPT;
+
+	cpwcr("<0, 0x0>", 0xc0000000);
 
 	return perf_pmu_register(&csky_pmu.pmu, pdev->name, PERF_TYPE_RAW);
 }
@@ -461,6 +1060,6 @@ static struct platform_driver csky_pmu_driver = {
 		.name		= "csky-pmu",
 		.of_match_table = of_match_ptr(csky_pmu_match),
 	},
-	.probe		= csky_pmu_device_probe,
+	.probe	= csky_pmu_device_probe,
 };
 module_platform_driver(csky_pmu_driver);
