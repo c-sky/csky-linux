@@ -283,7 +283,7 @@ static inline int arch_write_trylock(arch_rwlock_t *lock)
 }
 
 #endif /* CONFIG_QUEUED_RWLOCKS */
-#if (LINUX_VERSION_CODE >> 8) == (KERNEL_VERSION(4,9,0) >> 8)
+#if ((LINUX_VERSION_CODE >> 8) == (KERNEL_VERSION(4,9,0) >> 8)) || ((LINUX_VERSION_CODE >> 8) == (KERNEL_VERSION(4,14,0) >> 8))
 #define arch_spin_lock_flags(lock, flags)  arch_spin_lock(lock)
 #define arch_read_lock_flags(lock, flags)  arch_read_lock(lock)
 #define arch_write_lock_flags(lock, flags) arch_write_lock(lock)
