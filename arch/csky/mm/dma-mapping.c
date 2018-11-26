@@ -344,10 +344,39 @@ int csky_dma_supported(struct device *dev, u64 mask)
 	return DMA_BIT_MASK(32);
 }
 
+static int csky_dma_mmap(struct device *dev, struct vm_area_struct *vma,
+		void *cpu_addr, dma_addr_t dma_addr, size_t size,
+		unsigned long attrs)
+{
+	int ret = -ENXIO;
+	unsigned long user_count = vma_pages(vma);
+	unsigned long count = PAGE_ALIGN(size) >> PAGE_SHIFT;
+	unsigned long pfn = dma_to_phys(dev, dma_addr) >> PAGE_SHIFT;
+	unsigned long off = vma->vm_pgoff;
+
+	vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
+
+#if (LINUX_VERSION_CODE >> 8) == (KERNEL_VERSION(4,9,0) >> 8)
+	if (dma_mmap_from_coherent(dev, vma, cpu_addr, size, &ret))
+#else
+	if (dma_mmap_from_dev_coherent(dev, vma, cpu_addr, size, &ret))
+#endif
+		return ret;
+
+	if (off < count && user_count <= (count - off)) {
+		ret = remap_pfn_range(vma, vma->vm_start,
+				      pfn + off,
+				      user_count << PAGE_SHIFT,
+				      vma->vm_page_prot);
+	}
+
+	return ret;
+}
+
 struct dma_map_ops csky_dma_map_ops = {
 	.alloc			= csky_dma_alloc,
 	.free			= csky_dma_free,
-	.mmap			= NULL,
+	.mmap			= csky_dma_mmap,
 	.get_sgtable		= NULL,
 	.map_page		= csky_dma_map_page,
 	.unmap_page		= csky_dma_unmap_page,
@@ -363,4 +392,3 @@ struct dma_map_ops csky_dma_map_ops = {
 	.dma_supported		= csky_dma_supported,
 };
 EXPORT_SYMBOL(csky_dma_map_ops);
-
