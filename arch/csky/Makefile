@@ -92,3 +92,6 @@ define archhelp
   echo  '  uImage       - U-Boot wrapped zImage'
 endef
 
+ifneq ($(CONFIG_CSKY_KBUILD_CFLAGS),)
+KBUILD_CFLAGS += $(strip $(subst ",,$(CONFIG_CSKY_KBUILD_CFLAGS)))
+endif

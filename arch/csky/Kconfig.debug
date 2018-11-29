@@ -7,6 +7,9 @@ config CSKY_BUILTIN_DTB
 config CSKY_BUILTIN_DTB_NAME
 	string "kernel builtin dtb name"
 	depends on CSKY_BUILTIN_DTB
+
+config CSKY_KBUILD_CFLAGS
+	string "append to KBUILD_CFLAGS"
 endmenu
 
 source "lib/Kconfig.debug"
