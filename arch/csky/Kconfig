@@ -197,6 +197,11 @@ config HIGHMEM
 config RAM_BASE
 	hex "DRAM start addr (the same with memory-section in dts)"
 	default 0x0
+
+config CSKY_NR_IRQS
+	int "NR_IRQS to max virtual interrupt numbers of the whole system"
+	range 64 8192
+	default "128"
 endmenu
 
 menu "Power management options"
