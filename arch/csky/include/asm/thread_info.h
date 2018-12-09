@@ -9,6 +9,7 @@
 #include <asm/types.h>
 #include <asm/page.h>
 #include <asm/processor.h>
+#include <abi/switch_context.h>
 
 struct thread_info {
 	struct task_struct	*task;
@@ -38,6 +39,9 @@ struct thread_info {
 #define init_thread_info	(init_thread_union.thread_info)
 #define init_stack		(init_thread_union.stack)
 #endif
+
+#define thread_saved_fp(tsk) \
+	((unsigned long)(((struct switch_stack *)(tsk->thread.ksp))->r8))
 
 static inline struct thread_info *current_thread_info(void)
 {

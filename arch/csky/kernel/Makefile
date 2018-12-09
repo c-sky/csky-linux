@@ -10,3 +10,4 @@ ifndef CONFIG_CPU_CK610
 obj-$(CONFIG_PERF_EVENTS)		+= perf_event.o
 endif
 obj-y					+= libgcc_ksyms.o
+obj-$(CONFIG_STACKTRACE)		+= stacktrace.o
