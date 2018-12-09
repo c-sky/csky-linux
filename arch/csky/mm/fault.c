@@ -189,9 +189,8 @@ no_context:
          * terminate things with extreme prejudice.
          */
         bust_spinlocks(1);
-        pr_alert("Unable to handle kernel paging request at virtual "
-               "address %08lx, epc == %08lx\n",
-               address, regs->pc);
+	pr_alert("Unable to handle kernel paging request at virtual"
+		 " address 0x%08lx, pc: 0x%08lx\n", address, regs->pc);
 	die_if_kernel("Oops", regs, write);
 
 out_of_memory:
