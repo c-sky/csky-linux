@@ -118,19 +118,7 @@ tlbop_end 1
 
 ENTRY(csky_systemcall)
 	SAVE_ALL EPC_INCREASE
-
 	psrset  ee, ie
-
-	/* Stack frame for syscall, origin call set_esp0 */
-	mov     r12, sp
-
-	bmaski  r11, 13
-	andn    r12, r11
-	ldw	r12, (r12, 0)
-	lrw	r11, TASK_THREAD
-	addi	r11, THREAD_ESP0
-	addu    r12, r11
-	st      sp, (r12, 0)
 
 	lrw     r11, __NR_syscalls
 	cmphs   syscallid, r11                 /* Check nr of syscall */
@@ -229,8 +217,6 @@ resume_userspace:
 1:  RESTORE_ALL
 
 exit_work:
-	mov      a0, sp                 /* Stack address is arg[0] */
-	jbsr     set_esp0               /* Call C level */
 	btsti    r8, TIF_NEED_RESCHED
 	bt       work_resched
 	cmpnei   r8, 0		/* If thread_info->flag is empty, RESTORE_ALL. */

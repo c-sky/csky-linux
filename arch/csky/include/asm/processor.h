@@ -22,14 +22,7 @@
 #endif
 
 struct cpuinfo_csky {
-	unsigned long udelay_val;
 	unsigned long asid_cache;
-	/*
-	 * Capability and feature descriptor structure for CSKY CPU
-	 */
-	unsigned long options;
-	unsigned int processor_id[4];
-	unsigned int fpu_id;
 } __attribute__((aligned(SMP_CACHE_BYTES)));
 
 extern struct cpuinfo_csky cpu_data[];
@@ -55,11 +48,6 @@ extern struct cpuinfo_csky cpu_data[];
 struct thread_struct {
 	unsigned long  ksp;       /* kernel stack pointer */
 	unsigned long  sr;        /* saved status register */
-	unsigned long  esp0;      /* points to SR of stack frame */
-
-	/* Other stuff associated with the thread. */
-	unsigned long address;      /* Last user fault */
-	unsigned long error_code;
 
 	/* FPU regs */
 	struct user_fp __attribute__((aligned(16))) user_fp;

@@ -105,7 +105,6 @@ void buserr(struct pt_regs *regs)
 	pr_err("User mode Bus Error\n");
 	show_regs(regs);
 
-	current->thread.esp0 = (unsigned long) regs;
 	info.si_signo = SIGSEGV;
 	info.si_errno = 0;
 	force_sig_info(SIGSEGV, &info, current);
@@ -160,9 +159,4 @@ asmlinkage void trap_c(struct pt_regs *regs)
 			break;
 	}
 	send_sig(sig, current, 0);
-}
-
-asmlinkage void set_esp0 (unsigned long ssp)
-{
-	current->thread.esp0 = ssp;
 }

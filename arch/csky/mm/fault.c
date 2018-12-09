@@ -170,8 +170,6 @@ bad_area:
 bad_area_nosemaphore:
         /* User mode accesses just cause a SIGSEGV */
         if (user_mode(regs)) {
-                tsk->thread.address = address;
-                tsk->thread.error_code = write;
                 info.si_signo = SIGSEGV;
                 info.si_errno = 0;
                 /* info.si_code has been set above */
@@ -208,7 +206,6 @@ do_sigbus:
         if (!user_mode(regs))
                 goto no_context;
 
-        tsk->thread.address = address;
         info.si_signo = SIGBUS;
         info.si_errno = 0;
         info.si_code = BUS_ADRERR;
