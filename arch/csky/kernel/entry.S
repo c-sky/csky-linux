@@ -126,8 +126,9 @@ ENTRY(csky_systemcall)
 
 	bmaski  r11, 13
 	andn    r12, r11
-	bgeni   r11, 9
-	addi    r11, 32
+	ldw	r12, (r12, 0)
+	lrw	r11, TASK_THREAD
+	addi	r11, THREAD_ESP0
 	addu    r12, r11
 	st      sp, (r12, 0)
 
