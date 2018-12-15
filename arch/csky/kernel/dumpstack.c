@@ -42,4 +42,3 @@ void show_stack(struct task_struct *task, unsigned long *stack)
 
 	show_trace(stack);
 }
-
