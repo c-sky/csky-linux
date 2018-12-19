@@ -4,11 +4,6 @@
 
 #include <linux/clockchips.h>
 
-#ifndef TIMER_OF_DECLARE
-#define TIMER_OF_DECLARE(name, compat, fn) \
-	OF_DECLARE_1_RET(clksrc, name, compat, fn)
-#endif
-
 #define TIMER_OF_BASE	0x1
 #define TIMER_OF_CLOCK	0x2
 #define TIMER_OF_IRQ	0x4
@@ -38,6 +33,7 @@ struct of_timer_clk {
 
 struct timer_of {
 	unsigned int flags;
+	struct device_node *np;
 	struct clock_event_device clkevt;
 	struct of_timer_base of_base;
 	struct of_timer_irq  of_irq;

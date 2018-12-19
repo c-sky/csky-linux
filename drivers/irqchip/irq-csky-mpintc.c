@@ -10,11 +10,11 @@
 #include <linux/irqchip.h>
 #include <linux/irq.h>
 #include <linux/interrupt.h>
+#include <linux/smp.h>
+#include <linux/io.h>
 #include <asm/irq.h>
-#include <asm/io.h>
 #include <asm/traps.h>
 #include <asm/reg_ops.h>
-#include <asm/smp.h>
 
 static struct irq_domain *root_domain;
 static void __iomem *INTCG_base;
@@ -26,7 +26,6 @@ static void __iomem *INTCL_base;
 
 #define INTCG_SIZE	0x8000
 #define INTCL_SIZE	0x1000
-#define INTC_SIZE	INTCL_SIZE*nr_cpu_ids + INTCG_SIZE
 
 #define INTCG_ICTLR	0x0
 #define INTCG_CICFGR	0x100
@@ -114,11 +113,13 @@ static struct irq_chip csky_irq_chip = {
 static int csky_irqdomain_map(struct irq_domain *d, unsigned int irq,
 			      irq_hw_number_t hwirq)
 {
-	if(hwirq < COMM_IRQ_BASE) {
+	if (hwirq < COMM_IRQ_BASE) {
 		irq_set_percpu_devid(irq);
-		irq_set_chip_and_handler(irq, &csky_irq_chip, handle_percpu_irq);
+		irq_set_chip_and_handler(irq, &csky_irq_chip,
+					 handle_percpu_irq);
 	} else {
-		irq_set_chip_and_handler(irq, &csky_irq_chip, handle_fasteoi_irq);
+		irq_set_chip_and_handler(irq, &csky_irq_chip,
+					 handle_fasteoi_irq);
 	}
 
 	return 0;
@@ -130,7 +131,7 @@ static const struct irq_domain_ops csky_irqdomain_ops = {
 };
 
 #ifdef CONFIG_SMP
-static void csky_mpintc_send_ipi(const unsigned long *mask)
+static void csky_mpintc_send_ipi(const struct cpumask *mask)
 {
 	void __iomem *reg_base = this_cpu_read(intcl_reg);
 
@@ -138,12 +139,8 @@ static void csky_mpintc_send_ipi(const unsigned long *mask)
 	 * INTCL_SIGR[3:0] INTID
 	 * INTCL_SIGR[8:15] CPUMASK
 	 */
-	writel_relaxed((*mask) << 8 | IPI_IRQ, reg_base + INTCL_SIGR);
-}
-
-static int csky_mpintc_ipi_irq_mapping(void)
-{
-	return irq_create_mapping(root_domain, IPI_IRQ);
+	writel_relaxed((*cpumask_bits(mask)) << 8 | IPI_IRQ,
+					reg_base + INTCL_SIGR);
 }
 #endif
 
@@ -151,8 +148,11 @@ static int csky_mpintc_ipi_irq_mapping(void)
 static int __init
 csky_mpintc_init(struct device_node *node, struct device_node *parent)
 {
-	unsigned int cpu, nr_irq;
 	int ret;
+	unsigned int cpu, nr_irq;
+#ifdef CONFIG_SMP
+	unsigned int ipi_irq;
+#endif
 
 	if (parent)
 		return 0;
@@ -162,7 +162,8 @@ csky_mpintc_init(struct device_node *node, struct device_node *parent)
 		nr_irq = INTC_IRQS;
 
 	if (INTCG_base == NULL) {
-		INTCG_base = ioremap(mfcr("cr<31, 14>"), INTC_SIZE);
+		INTCG_base = ioremap(mfcr("cr<31, 14>"),
+				     INTCL_SIZE*nr_cpu_ids + INTCG_SIZE);
 		if (INTCG_base == NULL)
 			return -EIO;
 
@@ -185,12 +186,13 @@ csky_mpintc_init(struct device_node *node, struct device_node *parent)
 	set_handle_irq(&csky_mpintc_handler);
 
 #ifdef CONFIG_SMP
-	set_send_ipi(&csky_mpintc_send_ipi);
+	ipi_irq = irq_create_mapping(root_domain, IPI_IRQ);
+	if (!ipi_irq)
+		return -EIO;
 
-	set_ipi_irq_mapping(&csky_mpintc_ipi_irq_mapping);
+	set_send_ipi(&csky_mpintc_send_ipi, ipi_irq);
 #endif
 
 	return 0;
 }
 IRQCHIP_DECLARE(csky_mpintc, "csky,mpintc", csky_mpintc_init);
-
