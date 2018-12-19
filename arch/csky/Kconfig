@@ -208,6 +208,17 @@ config CSKY_NR_IRQS
 	int "NR_IRQS to max virtual interrupt numbers of the whole system"
 	range 64 8192
 	default "128"
+
+config HOTPLUG_CPU
+	bool "Support for hot-pluggable CPUs"
+	select GENERIC_IRQ_MIGRATION
+	depends on SMP
+	help
+	  Say Y here to allow turning CPUs off and on. CPUs can be
+	  controlled through /sys/devices/system/cpu/cpu1/hotplug/target.
+
+	  Say N if you want to disable CPU hotplug.
+
 endmenu
 
 menu "Power management options"
