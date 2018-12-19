@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-2.0
+/* SPDX-License-Identifier: GPL-2.0 */
 // Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
 
 #ifndef __SYSDEP_H
@@ -6,7 +6,7 @@
 
 #ifdef __ASSEMBLER__
 
-#if defined (__CK860__)
+#if defined(__CK860__)
 #define LABLE_ALIGN	\
 	.balignw 16, 0x6c03
 

@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-2.0
+/* SPDX-License-Identifier: GPL-2.0 */
 // Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
 
 #include <linux/linkage.h>
@@ -9,7 +9,7 @@ ENTRY(memcpy)
 	/* Test if len less than 4 bytes.  */
 	mov	r12, r0
 	cmplti	r2, 4
-	jbt	.L_copy_by_byte
+	bt	.L_copy_by_byte
 
 	andi	r13, r0, 3
 	movi	r19, 4
@@ -103,7 +103,7 @@ ENTRY(memcpy)
 	addi	r0, 1
 	BNEZAD (r13, .L_dest_not_aligned_loop)
 	cmplti	r2, 4
-	jbt	.L_copy_by_byte
+	bt	.L_copy_by_byte
 
 	/* Check whether the src is aligned.  */
 	jbr	.L_dest_aligned

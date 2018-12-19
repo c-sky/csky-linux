@@ -47,10 +47,11 @@ void __init pre_trap_init(void)
 
 	mtcr("vbr", vec_base);
 
-	for(i=1;i<128;i++) VEC_INIT(i, csky_trap);
+	for (i = 1; i < 128; i++)
+		VEC_INIT(i, csky_trap);
 }
 
-void __init trap_init (void)
+void __init trap_init(void)
 {
 	VEC_INIT(VEC_AUTOVEC, csky_irq);
 
@@ -75,20 +76,20 @@ void __init trap_init (void)
 #endif
 }
 
-void die_if_kernel (char *str, struct pt_regs *regs, int nr)
+void die_if_kernel(char *str, struct pt_regs *regs, int nr)
 {
-	if (user_mode(regs)) return;
+	if (user_mode(regs))
+		return;
 
 	console_verbose();
-	pr_err("%s: %08x\n",str,nr);
-        show_regs(regs);
-        add_taint(TAINT_DIE, LOCKDEP_NOW_UNRELIABLE);
+	pr_err("%s: %08x\n", str, nr);
+	show_regs(regs);
+	add_taint(TAINT_DIE, LOCKDEP_NOW_UNRELIABLE);
 	do_exit(SIGSEGV);
 }
 
 void buserr(struct pt_regs *regs)
 {
-	siginfo_t info;
 #ifdef CONFIG_CPU_CK810
 	static unsigned long prev_pc;
 
@@ -106,11 +107,10 @@ void buserr(struct pt_regs *regs)
 	show_regs(regs);
 
 	current->thread.esp0 = (unsigned long) regs;
-	info.si_signo = SIGSEGV;
-	info.si_errno = 0;
-	force_sig_info(SIGSEGV, &info, current);
+	force_sig_fault(SIGSEGV, 0, (void __user *)regs->pc, current);
 }
 
+#define USR_BKPT 0x1464
 asmlinkage void trap_c(struct pt_regs *regs)
 {
 	int sig;
@@ -120,49 +120,50 @@ asmlinkage void trap_c(struct pt_regs *regs)
 	vector = (mfcr("psr") >> 16) & 0xff;
 
 	switch (vector) {
-		case VEC_ZERODIV:
-			sig = SIGFPE;
-			break;
-		/* ptrace */
-		case VEC_TRACE:
-			info.si_code = TRAP_TRACE;
-			sig = SIGTRAP;
-			break;
-		case VEC_ILLEGAL:
+	case VEC_ZERODIV:
+		sig = SIGFPE;
+		break;
+	/* ptrace */
+	case VEC_TRACE:
+		info.si_code = TRAP_TRACE;
+		sig = SIGTRAP;
+		break;
+	case VEC_ILLEGAL:
 #ifndef CONFIG_CPU_NO_USER_BKPT
-		if (*(uint16_t *)instruction_pointer(regs) != 0x1464)
+		if (*(uint16_t *)instruction_pointer(regs) != USR_BKPT)
 #endif
 		{
 			sig = SIGILL;
 			break;
 		}
-		/* gdbserver  breakpoint */
-		case VEC_TRAP1:
-		/* jtagserver breakpoint */
-		case VEC_BREAKPOINT:
-			info.si_code = TRAP_BRKPT;
-			sig = SIGTRAP;
-			break;
-		case VEC_ACCESS:
-			return buserr(regs);
+	/* gdbserver  breakpoint */
+	case VEC_TRAP1:
+	/* jtagserver breakpoint */
+	case VEC_BREAKPOINT:
+		info.si_code = TRAP_BRKPT;
+		sig = SIGTRAP;
+		break;
+	case VEC_ACCESS:
+		return buserr(regs);
 #ifdef CONFIG_CPU_NEED_SOFTALIGN
-		case VEC_ALIGN:
-			return csky_alignment(regs);
+	case VEC_ALIGN:
+		return csky_alignment(regs);
 #endif
 #ifdef CONFIG_CPU_HAS_FPU
-		case VEC_FPE:
-			return fpu_fpe(regs);
-		case VEC_PRIV:
-			if(fpu_libc_helper(regs)) return;
+	case VEC_FPE:
+		return fpu_fpe(regs);
+	case VEC_PRIV:
+		if (fpu_libc_helper(regs))
+			return;
 #endif
-		default:
-			sig = SIGSEGV;
-			break;
+	default:
+		sig = SIGSEGV;
+		break;
 	}
 	send_sig(sig, current, 0);
 }
 
-asmlinkage void set_esp0 (unsigned long ssp)
+asmlinkage void set_esp0(unsigned long ssp)
 {
 	current->thread.esp0 = ssp;
 }

@@ -74,7 +74,7 @@ int copy_thread(unsigned long clone_flags,
 }
 
 /* Fill in the fpu structure for a core dump.  */
-int dump_fpu (struct pt_regs *regs, struct user_fp *fpu)
+int dump_fpu(struct pt_regs *regs, struct user_fp *fpu)
 {
 	memcpy(fpu, &current->thread.user_fp, sizeof(*fpu));
 	return 1;
@@ -86,7 +86,7 @@ int dump_task_regs(struct task_struct *tsk, elf_gregset_t *pr_regs)
 	struct pt_regs *regs = task_pt_regs(tsk);
 
 	/* NOTE: usp is error value. */
-	ELF_CORE_COPY_REGS ((*pr_regs), regs)
+	ELF_CORE_COPY_REGS((*pr_regs), regs)
 
 	return 1;
 }
@@ -96,6 +96,7 @@ unsigned long get_wchan(struct task_struct *p)
 	unsigned long esp, pc;
 	unsigned long stack_page;
 	int count = 0;
+
 	if (!p || p == current || p->state == TASK_RUNNING)
 		return 0;
 

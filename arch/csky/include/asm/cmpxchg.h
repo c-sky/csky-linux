@@ -1,9 +1,12 @@
+/* SPDX-License-Identifier: GPL-2.0 */
+
 #ifndef __ASM_CSKY_CMPXCHG_H
 #define __ASM_CSKY_CMPXCHG_H
 
 #ifdef CONFIG_CPU_HAS_LDSTEX
-#include <linux/bug.h>
 #include <asm/barrier.h>
+
+extern void __bad_xchg(void);
 
 #define __xchg(new, ptr, size)					\
 ({								\
@@ -25,7 +28,7 @@
 		smp_mb();					\
 		break;						\
 	default:						\
-		BUILD_BUG();					\
+		__bad_xchg();					\
 	}							\
 	__ret;							\
 })
@@ -56,7 +59,7 @@
 		smp_mb();					\
 		break;						\
 	default:						\
-		BUILD_BUG();					\
+		__bad_xchg();					\
 	}							\
 	__ret;							\
 })

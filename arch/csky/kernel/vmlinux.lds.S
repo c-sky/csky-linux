@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: GPL-2.0 */
+
 #include <asm/vmlinux.lds.h>
 #include <asm/page.h>
 
@@ -12,7 +14,7 @@ jiffies = jiffies_64 + 4;
 
 #define VBR_BASE \
 	. = ALIGN(1024); \
-	VMLINUX_SYMBOL(vec_base) = .; \
+	vec_base = .; \
 	. += 512;
 
 SECTIONS

@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: GPL-2.0 */
+
 #ifndef __ASM_CSKY_CACHE_H
 #define __ASM_CSKY_CACHE_H
 

@@ -1,8 +1,9 @@
-// SPDX-License-Identifier: GPL-2.0
+/* SPDX-License-Identifier: GPL-2.0 */
 // Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
 
 #ifndef __ASM_TLBFLUSH_H
 #define __ASM_TLBFLUSH_H
+
 /*
  * TLB flushing:
  *
@@ -15,7 +16,8 @@
 extern void flush_tlb_all(void);
 extern void flush_tlb_mm(struct mm_struct *mm);
 extern void flush_tlb_page(struct vm_area_struct *vma, unsigned long page);
-extern void flush_tlb_range(struct vm_area_struct *vma, unsigned long start, unsigned long end);
+extern void flush_tlb_range(struct vm_area_struct *vma, unsigned long start,
+			    unsigned long end);
 extern void flush_tlb_kernel_range(unsigned long start, unsigned long end);
 
 extern void flush_tlb_one(unsigned long vaddr);

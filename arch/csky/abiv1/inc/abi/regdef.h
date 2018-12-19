@@ -1,8 +1,8 @@
-// SPDX-License-Identifier: GPL-2.0
+/* SPDX-License-Identifier: GPL-2.0 */
 // Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
 
-#ifndef  __ASM_CSKY_REGDEF_H
-#define  __ASM_CSKY_REGDEF_H
+#ifndef __ASM_CSKY_REGDEF_H
+#define __ASM_CSKY_REGDEF_H
 
 #define syscallid	r1
 #define r11_sig		r11

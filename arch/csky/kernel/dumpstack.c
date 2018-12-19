@@ -49,7 +49,8 @@ void show_stack(struct task_struct *task, unsigned long *stack)
 		else
 			stack = (unsigned long *)&stack;
 	}
-	endstack = (unsigned long *)(((unsigned long)stack + THREAD_SIZE - 1) & -THREAD_SIZE);
+	endstack = (unsigned long *)
+		(((unsigned long)stack + THREAD_SIZE - 1) & -THREAD_SIZE);
 
 	pr_info("Stack from %08lx:", (unsigned long)stack);
 	p = stack;

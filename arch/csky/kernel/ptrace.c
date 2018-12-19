@@ -22,7 +22,7 @@
 #include <abi/regdef.h>
 
 /* sets the trace bits. */
-#define TRACE_MODE_SI      1 << 14
+#define TRACE_MODE_SI      (1 << 14)
 #define TRACE_MODE_RUN     0
 #define TRACE_MODE_MASK    ~(0x3 << 14)
 
@@ -50,13 +50,15 @@ static void singlestep_enable(struct task_struct *tsk)
  */
 void user_enable_single_step(struct task_struct *child)
 {
-	if (child->thread.esp0 == 0) return;
+	if (child->thread.esp0 == 0)
+		return;
 	singlestep_enable(child);
 }
 
 void user_disable_single_step(struct task_struct *child)
 {
-	if (child->thread.esp0 == 0) return;
+	if (child->thread.esp0 == 0)
+		return;
 	singlestep_disable(child);
 }
 
@@ -117,9 +119,8 @@ static int fpr_get(struct task_struct *target,
 		tmp.vr[i*4 + 1] = regs->vr[i*2 + 1];
 	}
 
-	for (i = 0; i < 32; i++) {
+	for (i = 0; i < 32; i++)
 		tmp.vr[64 + i] = regs->vr[32 + i];
-	}
 
 	return user_regset_copyout(&pos, &count, &kbuf, &ubuf, &tmp, 0, -1);
 #else
@@ -148,9 +149,8 @@ static int fpr_set(struct task_struct *target,
 		regs->vr[i*2 + 1] = tmp.vr[i*4 + 1];
 	}
 
-	for (i = 0; i < 32; i++) {
+	for (i = 0; i < 32; i++)
 		regs->vr[32 + i] = tmp.vr[64 + i];
-	}
 #else
 	ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf, regs, 0, -1);
 #endif
@@ -210,10 +210,10 @@ long arch_ptrace(struct task_struct *child, long request,
 
 /*
  * If process's system calls is traces, do some corresponding handles in this
- * fuction before entering system call function and after exiting system call
- * fuction.
+ * function before entering system call function and after exiting system call
+ * function.
  */
-asmlinkage void syscall_trace(int why, struct pt_regs * regs)
+asmlinkage void syscall_trace(int why, struct pt_regs *regs)
 {
 	long saved_why;
 	/*
@@ -223,10 +223,9 @@ asmlinkage void syscall_trace(int why, struct pt_regs * regs)
 	saved_why = regs->regs[SYSTRACE_SAVENUM];
 	regs->regs[SYSTRACE_SAVENUM] = why;
 
-	/* the 0x80 provides a way for the tracing parent to distinguish
-	   between a syscall stop and SIGTRAP delivery */
 	ptrace_notify(SIGTRAP | ((current->ptrace & PT_TRACESYSGOOD)
-				? 0x80 : 0));
+					? 0x80 : 0));
+
 	/*
 	 * this isn't the same as continuing with a signal, but it will do
 	 * for normal use.  strace only continues with a signal if the
@@ -238,7 +237,6 @@ asmlinkage void syscall_trace(int why, struct pt_regs * regs)
 	}
 
 	regs->regs[SYSTRACE_SAVENUM] = saved_why;
-	return;
 }
 
 void show_regs(struct pt_regs *fp)
@@ -271,28 +269,28 @@ void show_regs(struct pt_regs *fp)
 	       fp->a0, fp->a1, fp->a2, fp->a3);
 #if defined(__CSKYABIV2__)
 	pr_info("r4: 0x%08lx  r5: 0x%08lx    r6: 0x%08lx    r7: 0x%08lx\n",
-	       fp->regs[0], fp->regs[1], fp->regs[2], fp->regs[3]);
+		fp->regs[0], fp->regs[1], fp->regs[2], fp->regs[3]);
 	pr_info("r8: 0x%08lx  r9: 0x%08lx   r10: 0x%08lx   r11: 0x%08lx\n",
-	       fp->regs[4], fp->regs[5], fp->regs[6], fp->regs[7]);
+		fp->regs[4], fp->regs[5], fp->regs[6], fp->regs[7]);
 	pr_info("r12 0x%08lx  r13: 0x%08lx   r15: 0x%08lx\n",
-	       fp->regs[8], fp->regs[9], fp->lr);
+		fp->regs[8], fp->regs[9], fp->lr);
 	pr_info("r16:0x%08lx   r17: 0x%08lx   r18: 0x%08lx    r19: 0x%08lx\n",
-	       fp->exregs[0], fp->exregs[1], fp->exregs[2], fp->exregs[3]);
+		fp->exregs[0], fp->exregs[1], fp->exregs[2], fp->exregs[3]);
 	pr_info("r20 0x%08lx   r21: 0x%08lx   r22: 0x%08lx    r23: 0x%08lx\n",
-	       fp->exregs[4], fp->exregs[5], fp->exregs[6], fp->exregs[7]);
+		fp->exregs[4], fp->exregs[5], fp->exregs[6], fp->exregs[7]);
 	pr_info("r24 0x%08lx   r25: 0x%08lx   r26: 0x%08lx    r27: 0x%08lx\n",
-	       fp->exregs[8], fp->exregs[9], fp->exregs[10], fp->exregs[11]);
+		fp->exregs[8], fp->exregs[9], fp->exregs[10], fp->exregs[11]);
 	pr_info("r28 0x%08lx   r29: 0x%08lx   r30: 0x%08lx    tls: 0x%08lx\n",
-	       fp->exregs[12], fp->exregs[13], fp->exregs[14], fp->tls);
-	pr_info("hi 0x%08lx     lo: 0x%08lx \n",
-	       fp->rhi, fp->rlo);
+		fp->exregs[12], fp->exregs[13], fp->exregs[14], fp->tls);
+	pr_info("hi 0x%08lx    lo: 0x%08lx\n",
+		fp->rhi, fp->rlo);
 #else
 	pr_info("r6: 0x%08lx   r7: 0x%08lx   r8: 0x%08lx   r9: 0x%08lx\n",
-	       fp->regs[0], fp->regs[1], fp->regs[2], fp->regs[3]);
+		fp->regs[0], fp->regs[1], fp->regs[2], fp->regs[3]);
 	pr_info("r10: 0x%08lx   r11: 0x%08lx   r12: 0x%08lx   r13: 0x%08lx\n",
-	       fp->regs[4], fp->regs[5], fp->regs[6], fp->regs[7]);
+		fp->regs[4], fp->regs[5], fp->regs[6], fp->regs[7]);
 	pr_info("r14 0x%08lx   r1: 0x%08lx   r15: 0x%08lx\n",
-	       fp->regs[8], fp->regs[9], fp->lr);
+		fp->regs[8], fp->regs[9], fp->lr);
 #endif
 
 	pr_info("\nCODE:");
@@ -313,6 +311,4 @@ void show_regs(struct pt_regs *fp)
 		pr_cont("%08x ", (int) *sp++);
 	}
 	pr_cont("\n");
-
-	return;
 }

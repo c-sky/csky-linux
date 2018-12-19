@@ -7,6 +7,7 @@ config CSKY
 	select COMMON_CLK
 	select CLKSRC_MMIO
 	select CLKSRC_OF
+	select DMA_DIRECT_OPS
 	select DMA_NONCOHERENT_OPS
 	select IRQ_DOMAIN
 	select HANDLE_DOMAIN_IRQ
@@ -117,15 +118,11 @@ config L1_CACHE_SHIFT
 	default "5"	if (CPU_CK807 || CPU_CK810)
 	default "6"	if (CPU_CK860)
 
-source "init/Kconfig"
-
-source "kernel/Kconfig.freezer"
-
 menu "Processor type and features"
 
 choice
 	prompt "CPU MODEL"
-	default CPU_CK610
+	default CPU_CK807
 
 config CPU_CK610
 	bool "CSKY CPU ck610"
@@ -195,41 +192,14 @@ config HIGHMEM
 	depends on !CPU_CK610
 	default y
 
-config RAM_BASE
-	hex "DRAM start addr (the same with memory-section in dts)"
-	default 0x0
-endmenu
-
-menu "Power management options"
-
-source "kernel/power/Kconfig"
-
-config ARCH_SUSPEND_POSSIBLE
-	def_bool y
-endmenu
-
-source "mm/Kconfig"
-
 config FORCE_MAX_ZONEORDER
 	int "Maximum zone order"
 	default "11"
 
-source "fs/Kconfig.binfmt"
+config RAM_BASE
+	hex "DRAM start addr (the same with memory-section in dts)"
+	default 0x0
 
-source "kernel/Kconfig.preempt"
+endmenu
 
 source "kernel/Kconfig.hz"
-
-source "net/Kconfig"
-
-source "drivers/Kconfig"
-
-source "fs/Kconfig"
-
-source "arch/csky/Kconfig.debug"
-
-source "security/Kconfig"
-
-source "crypto/Kconfig"
-
-source "lib/Kconfig"

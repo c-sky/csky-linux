@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-2.0
+/* SPDX-License-Identifier: GPL-2.0 */
 // Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
 
 #ifndef __ABI_REG_OPS_H
@@ -22,6 +22,6 @@ static inline unsigned int mfcr_hint(void)
 	return mfcr("cr30");
 }
 
-static inline unsigned int mfcr_ccr2(void){return 0;}
+static inline unsigned int mfcr_ccr2(void) { return 0; }
 
 #endif /* __ABI_REG_OPS_H */

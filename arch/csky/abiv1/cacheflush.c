@@ -30,7 +30,8 @@ void flush_dcache_page(struct page *page)
 	dcache_wb_range(addr, addr + PAGE_SIZE);
 }
 
-void update_mmu_cache(struct vm_area_struct *vma, unsigned long address, pte_t *pte)
+void update_mmu_cache(struct vm_area_struct *vma, unsigned long address,
+		      pte_t *pte)
 {
 	unsigned long addr;
 	struct page *page;

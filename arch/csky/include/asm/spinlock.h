@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: GPL-2.0 */
+
 #ifndef __ASM_CSKY_SPINLOCK_H
 #define __ASM_CSKY_SPINLOCK_H
 
@@ -26,9 +28,8 @@ static inline void arch_spin_lock(arch_spinlock_t *lock)
 		: "r"(p), "r"(ticket_next)
 		: "cc");
 
-	while (lockval.tickets.next != lockval.tickets.owner) {
+	while (lockval.tickets.next != lockval.tickets.owner)
 		lockval.tickets.owner = READ_ONCE(lock->tickets.owner);
-	}
 
 	smp_mb();
 }
@@ -64,7 +65,7 @@ static inline int arch_spin_trylock(arch_spinlock_t *lock)
 static inline void arch_spin_unlock(arch_spinlock_t *lock)
 {
 	smp_mb();
-	lock->tickets.owner++;
+	WRITE_ONCE(lock->tickets.owner, lock->tickets.owner + 1);
 }
 
 static inline int arch_spin_value_unlocked(arch_spinlock_t lock)
@@ -80,6 +81,7 @@ static inline int arch_spin_is_locked(arch_spinlock_t *lock)
 static inline int arch_spin_is_contended(arch_spinlock_t *lock)
 {
 	struct __raw_tickets tickets = READ_ONCE(lock->tickets);
+
 	return (tickets.next - tickets.owner) > 1;
 }
 #define arch_spin_is_contended	arch_spin_is_contended
@@ -113,16 +115,8 @@ static inline void arch_spin_lock(arch_spinlock_t *lock)
 
 static inline void arch_spin_unlock(arch_spinlock_t *lock)
 {
-	u32 *p = &lock->lock;
-	u32 tmp;
-
 	smp_mb();
-	asm volatile (
-		"	movi		%0, 0    \n"
-		"	stw		%0, (%1) \n"
-		: "=&r" (tmp)
-		: "r"(p)
-		: "cc");
+	WRITE_ONCE(lock->lock, 0);
 }
 
 static inline int arch_spin_trylock(arch_spinlock_t *lock)
@@ -231,18 +225,8 @@ static inline void arch_write_lock(arch_rwlock_t *lock)
 
 static inline void arch_write_unlock(arch_rwlock_t *lock)
 {
-	u32 *p = &lock->lock;
-	u32 tmp;
-
 	smp_mb();
-	asm volatile (
-		"1:	ldex.w		%0, (%1) \n"
-		"	movi		%0, 0    \n"
-		"	stex.w		%0, (%1) \n"
-		"	bez		%0, 1b   \n"
-		: "=&r" (tmp)
-		: "r"(p)
-		: "cc");
+	WRITE_ONCE(lock->lock, 0);
 }
 
 static inline int arch_write_trylock(arch_rwlock_t *lock)

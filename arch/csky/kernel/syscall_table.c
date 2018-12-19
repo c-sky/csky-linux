@@ -5,7 +5,7 @@
 #include <asm/syscalls.h>
 
 #undef __SYSCALL
-#define __SYSCALL(nr, call) [nr] = (call),
+#define __SYSCALL(nr, call)[nr] = (call),
 
 #define sys_fadvise64_64 sys_csky_fadvise64_64
 void * const sys_call_table[__NR_syscalls] __page_aligned_data = {

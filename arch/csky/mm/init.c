@@ -32,12 +32,15 @@
 
 pgd_t swapper_pg_dir[PTRS_PER_PGD] __page_aligned_bss;
 pte_t invalid_pte_table[PTRS_PER_PTE] __page_aligned_bss;
-unsigned long empty_zero_page[PAGE_SIZE / sizeof(unsigned long)] __page_aligned_bss;
+unsigned long empty_zero_page[PAGE_SIZE / sizeof(unsigned long)]
+						__page_aligned_bss;
+EXPORT_SYMBOL(empty_zero_page);
 
 void __init mem_init(void)
 {
 #ifdef CONFIG_HIGHMEM
 	unsigned long tmp;
+
 	max_mapnr = highend_pfn;
 #else
 	max_mapnr = max_low_pfn;
@@ -75,7 +78,6 @@ void free_initrd_mem(unsigned long start, unsigned long end)
 #endif
 
 extern char __init_begin[], __init_end[];
-extern void __init prom_free_prom_memory(void);
 
 void free_initmem(void)
 {
@@ -84,21 +86,22 @@ void free_initmem(void)
 	addr = (unsigned long) &__init_begin;
 
 	while (addr < (unsigned long) &__init_end) {
-	        ClearPageReserved(virt_to_page(addr));
-	        init_page_count(virt_to_page(addr));
-	        free_page(addr);
-	        totalram_pages++;
-	        addr += PAGE_SIZE;
+		ClearPageReserved(virt_to_page(addr));
+		init_page_count(virt_to_page(addr));
+		free_page(addr);
+		totalram_pages++;
+		addr += PAGE_SIZE;
 	}
 
 	pr_info("Freeing unused kernel memory: %dk freed\n",
-	        ((unsigned int)&__init_end - (unsigned int)&__init_begin) >> 10);
+	((unsigned int)&__init_end - (unsigned int)&__init_begin) >> 10);
 }
 
 void pgd_init(unsigned long *p)
 {
 	int i;
-	for (i = 0; i<PTRS_PER_PGD; i++)
+
+	for (i = 0; i < PTRS_PER_PGD; i++)
 		p[i] = __pa(invalid_pte_table);
 }
 

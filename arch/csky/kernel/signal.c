@@ -51,12 +51,11 @@ static int save_fpu_state(struct sigcontext *sc)
 	return copy_to_user(&sc->sc_user_fp, &user_fp, sizeof(user_fp));
 }
 #else
-static inline int restore_fpu_state(struct sigcontext *sc){return 0;}
-static inline int save_fpu_state(struct sigcontext *sc){return 0;}
+static inline int restore_fpu_state(struct sigcontext *sc) { return 0; }
+static inline int save_fpu_state(struct sigcontext *sc) { return 0; }
 #endif
 
-struct rt_sigframe
-{
+struct rt_sigframe {
 	int sig;
 	struct siginfo *pinfo;
 	void *puc;
@@ -97,7 +96,7 @@ do_rt_sigreturn(void)
 	sigdelsetmask(&set, (sigmask(SIGKILL) | sigmask(SIGSTOP)));
 	spin_lock_irq(&current->sighand->siglock);
 	current->blocked = set;
-	recalc_sigpending( );
+	recalc_sigpending();
 	spin_unlock_irq(&current->sighand->siglock);
 
 	if (restore_sigframe(regs, &frame->uc.uc_mcontext, &a0))
@@ -136,22 +135,22 @@ get_sigframe(struct k_sigaction *ka, struct pt_regs *regs, size_t frame_size)
 	return (void *)((usp - frame_size) & -8UL);
 }
 
-static int setup_rt_frame (int sig, struct k_sigaction *ka, siginfo_t *info,
-		sigset_t *set, struct pt_regs *regs)
+static int
+setup_rt_frame(struct ksignal *ksig, sigset_t *set, struct pt_regs *regs)
 {
 	struct rt_sigframe *frame;
 	int err = 0;
 
 	struct csky_vdso *vdso = current->mm->context.vdso;
 
-	frame = get_sigframe(ka, regs, sizeof(*frame));
+	frame = get_sigframe(&ksig->ka, regs, sizeof(*frame));
 	if (!frame)
 		return 1;
 
-	err |= __put_user(sig, &frame->sig);
+	err |= __put_user(ksig->sig, &frame->sig);
 	err |= __put_user(&frame->info, &frame->pinfo);
 	err |= __put_user(&frame->uc, &frame->puc);
-	err |= copy_siginfo_to_user(&frame->info, info);
+	err |= copy_siginfo_to_user(&frame->info, &ksig->info);
 
 	/* Create the ucontext.  */
 	err |= __put_user(0, &frame->uc.uc_flags);
@@ -162,25 +161,25 @@ static int setup_rt_frame (int sig, struct k_sigaction *ka, siginfo_t *info,
 			&frame->uc.uc_stack.ss_flags);
 	err |= __put_user(current->sas_ss_size, &frame->uc.uc_stack.ss_size);
 	err |= setup_sigframe(&frame->uc.uc_mcontext, regs);
-	err |= copy_to_user (&frame->uc.uc_sigmask, set, sizeof(*set));
+	err |= copy_to_user(&frame->uc.uc_sigmask, set, sizeof(*set));
 
 	if (err)
 		goto give_sigsegv;
 
 	/* Set up registers for signal handler */
-	regs->usp = (unsigned long) frame;
-	regs->pc = (unsigned long) ka->sa.sa_handler;
+	regs->usp = (unsigned long)frame;
+	regs->pc = (unsigned long)ksig->ka.sa.sa_handler;
 	regs->lr = (unsigned long)vdso->rt_signal_retcode;
 
 adjust_stack:
-	regs->a0 = sig; /* first arg is signo */
-	regs->a1 = (unsigned long)(&(frame->info)); /* second arg is (siginfo_t*) */
-	regs->a2 = (unsigned long)(&(frame->uc));/* third arg pointer to ucontext */
+	regs->a0 = ksig->sig; /* first arg is signo */
+	regs->a1 = (unsigned long)(&(frame->info));
+	regs->a2 = (unsigned long)(&(frame->uc));
 	return err;
 
 give_sigsegv:
-	if (sig == SIGSEGV)
-		ka->sa.sa_handler = SIG_DFL;
+	if (ksig->sig == SIGSEGV)
+		ksig->ka.sa.sa_handler = SIG_DFL;
 	force_sig(SIGSEGV, current);
 	goto adjust_stack;
 }
@@ -189,25 +188,27 @@ give_sigsegv:
  * OK, we're invoking a handler
  */
 static int
-handle_signal(int sig, struct k_sigaction *ka, siginfo_t *info,
-		sigset_t *oldset, struct pt_regs *regs)
+handle_signal(struct ksignal *ksig, struct pt_regs *regs)
 {
-	struct task_struct *tsk = current;
 	int ret;
+	sigset_t *oldset = sigmask_to_save();
 
-	/* set up the stack frame, regardless of SA_SIGINFO, and pass info anyway. */
-	ret = setup_rt_frame(sig, ka, info, oldset, regs);
+	/*
+	 * set up the stack frame, regardless of SA_SIGINFO,
+	 * and pass info anyway.
+	 */
+	ret = setup_rt_frame(ksig, oldset, regs);
 
 	if (ret != 0) {
-		force_sigsegv(sig, tsk);
+		force_sigsegv(ksig->sig, current);
 		return ret;
 	}
 
 	/* Block the signal if we were successful. */
 	spin_lock_irq(&current->sighand->siglock);
-	sigorsets(&current->blocked, &current->blocked, &ka->sa.sa_mask);
-	if (!(ka->sa.sa_flags & SA_NODEFER))
-		sigaddset(&current->blocked, sig);
+	sigorsets(&current->blocked, &current->blocked, &ksig->ka.sa.sa_mask);
+	if (!(ksig->ka.sa.sa_flags & SA_NODEFER))
+		sigaddset(&current->blocked, ksig->sig);
 	recalc_sigpending();
 	spin_unlock_irq(&current->sighand->siglock);
 
@@ -276,28 +277,22 @@ static void do_signal(struct pt_regs *regs, int syscall)
 	 * point the debugger may change all our registers ...
 	 */
 	if (get_signal(&ksig)) {
-		sigset_t *oldset;
-
 		/*
 		 * Depending on the signal settings we may need to revert the
 		 * decision to restart the system call.  But skip this if a
 		 * debugger has chosen to restart at a different PC.
 		 */
 		if (regs->pc == restart_addr) {
-			if (retval == -ERESTARTNOHAND
-					|| (retval == -ERESTARTSYS
-						&& !(ksig.ka.sa.sa_flags & SA_RESTART))) {
+			if (retval == -ERESTARTNOHAND ||
+			    (retval == -ERESTARTSYS &&
+			     !(ksig.ka.sa.sa_flags & SA_RESTART))) {
 				regs->a0 = -EINTR;
 				regs->pc = continue_addr;
 			}
 		}
 
-		if (test_thread_flag(TIF_RESTORE_SIGMASK))
-			oldset = &current->saved_sigmask;
-		else
-			oldset = &current->blocked;
 		/* Whee!  Actually deliver the signal.  */
-		if (handle_signal(ksig.sig, &ksig.ka, &ksig.info, oldset, regs) == 0) {
+		if (handle_signal(&ksig, regs) == 0) {
 			/*
 			 * A signal was successfully delivered; the saved
 			 * sigmask will have been stored in the signal frame,
@@ -328,8 +323,9 @@ no_signal:
 #endif
 		}
 
-		/* If there's no signal to deliver, we just put the saved sigmask
-		 * back.
+		/*
+		 * If there's no signal to deliver, we just put the saved
+		 * sigmask back.
 		 */
 		if (test_thread_flag(TIF_RESTORE_SIGMASK)) {
 			clear_thread_flag(TIF_RESTORE_SIGMASK);

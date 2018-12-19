@@ -11,15 +11,18 @@ SYSCALL_DEFINE3(cacheflush,
 		unsigned long, bytes,
 		int, cache)
 {
-	switch(cache) {
+	switch (cache) {
 	case ICACHE:
-		icache_inv_range((unsigned long)addr, (unsigned long)addr + bytes);
+		icache_inv_range((unsigned long)addr,
+				 (unsigned long)addr + bytes);
 		break;
 	case DCACHE:
-		dcache_wb_range((unsigned long)addr, (unsigned long)addr + bytes);
+		dcache_wb_range((unsigned long)addr,
+				(unsigned long)addr + bytes);
 		break;
 	case BCACHE:
-		cache_wbinv_range((unsigned long)addr, (unsigned long)addr + bytes);
+		cache_wbinv_range((unsigned long)addr,
+				  (unsigned long)addr + bytes);
 		break;
 	default:
 		return -EINVAL;

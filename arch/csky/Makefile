@@ -1,5 +1,6 @@
-OBJCOPYFLAGS	:=-O binary
-GZFLAGS		:=-9
+OBJCOPYFLAGS		:=-O binary
+GZFLAGS			:=-9
+KBUILD_DEFCONFIG	:= defconfig
 
 ifdef CONFIG_CPU_HAS_FPU
 FPUEXT = f
@@ -63,13 +64,13 @@ core-y += arch/csky/$(CSKYABI)/
 libs-y += arch/csky/lib/ \
 	$(shell $(CC) $(KBUILD_CFLAGS) $(KCFLAGS) -print-libgcc-file-name)
 
-ifdef CONFIG_CSKY_BUILTIN_DTB
-core-y += arch/csky/boot/dts/
+boot := arch/csky/boot
+ifneq '$(CONFIG_CSKY_BUILTIN_DTB)' '""'
+core-y += $(boot)/dts/
 endif
 
 all: zImage
 
-boot := arch/csky/boot
 
 dtbs: scripts
 	$(Q)$(MAKE) $(build)=$(boot)/dts
@@ -80,10 +81,9 @@ dtbs: scripts
 zImage Image uImage: vmlinux dtbs
 	$(Q)$(MAKE) $(build)=$(boot) $(boot)/$@
 
-archmrproper:
-
 archclean:
 	$(Q)$(MAKE) $(clean)=$(boot)
+	$(Q)$(MAKE) $(clean)=$(boot)/dts
 	rm -rf arch/csky/include/generated
 
 define archhelp

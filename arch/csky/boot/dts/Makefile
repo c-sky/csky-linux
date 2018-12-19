@@ -1,7 +1,7 @@
 dtstree	:= $(srctree)/$(src)
 
-ifdef CONFIG_CSKY_BUILTIN_DTB
-builtindtb-y := $(patsubst "%",%,$(CONFIG_CSKY_BUILTIN_DTB_NAME))
+ifneq '$(CONFIG_CSKY_BUILTIN_DTB)' '""'
+builtindtb-y := $(patsubst "%",%,$(CONFIG_CSKY_BUILTIN_DTB))
 dtb-y += $(builtindtb-y).dtb
 obj-y += $(builtindtb-y).dtb.o
 .SECONDARY: $(obj)/$(builtindtb-y).dtb.S

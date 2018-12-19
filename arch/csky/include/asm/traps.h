@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-2.0
+/* SPDX-License-Identifier: GPL-2.0 */
 // Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
 
 #ifndef __ASM_CSKY_TRAPS_H
@@ -32,9 +32,13 @@
 #define VEC_PRFL	29
 #define VEC_FPE		30
 
-extern void * vec_base[];
-#define VEC_INIT(i, func) vec_base[i] = (void *)func
+extern void *vec_base[];
 
-void csky_alignment(struct pt_regs*);
+#define VEC_INIT(i, func) \
+do { \
+	vec_base[i] = (void *)func; \
+} while (0)
+
+void csky_alignment(struct pt_regs *regs);
 
 #endif /* __ASM_CSKY_TRAPS_H */

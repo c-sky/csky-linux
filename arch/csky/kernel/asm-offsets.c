@@ -75,8 +75,10 @@ int main(void)
 	DEFINE(PT_RLO,            offsetof(struct pt_regs, rlo));
 #endif
 	DEFINE(PT_USP,            offsetof(struct pt_regs, usp));
+
 	/* offsets into the irq_cpustat_t struct */
-	DEFINE(CPUSTAT_SOFTIRQ_PENDING, offsetof(irq_cpustat_t, __softirq_pending));
+	DEFINE(CPUSTAT_SOFTIRQ_PENDING, offsetof(irq_cpustat_t,
+						__softirq_pending));
 
 	/* signal defines */
 	DEFINE(SIGSEGV, SIGSEGV);

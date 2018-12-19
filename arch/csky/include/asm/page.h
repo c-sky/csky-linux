@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: GPL-2.0 */
+
 #ifndef __ASM_CSKY_PAGE_H
 #define __ASM_CSKY_PAGE_H
 
@@ -12,7 +14,7 @@
 #define PAGE_SIZE	(_AC(1, UL) << PAGE_SHIFT)
 #define PAGE_MASK	(~(PAGE_SIZE - 1))
 #define THREAD_SIZE	(PAGE_SIZE * 2)
-#define THREAD_MASK	(~(THREAD_SIZE -1))
+#define THREAD_MASK	(~(THREAD_SIZE - 1))
 #define THREAD_SHIFT	(PAGE_SHIFT + 1)
 
 /*
@@ -30,15 +32,14 @@
 #define pfn_to_virt(pfn)        __va((pfn) << PAGE_SHIFT)
 
 #define virt_addr_valid(kaddr)  ((void *)(kaddr) >= (void *)PAGE_OFFSET && \
-                                 (void *)(kaddr) < high_memory)
-extern unsigned long min_low_pfn, max_pfn;
-#define pfn_valid(pfn)		((pfn >= min_low_pfn) && (pfn < max_pfn))
+			(void *)(kaddr) < high_memory)
+#define pfn_valid(pfn)		((pfn) >= ARCH_PFN_OFFSET && ((pfn) - ARCH_PFN_OFFSET) < max_mapnr)
 
 extern void *memset(void *dest, int c, size_t l);
-extern void *memcpy (void *to, const void *from, size_t l);
+extern void *memcpy(void *to, const void *from, size_t l);
 
-#define clear_page(page)        memset((page), 0, PAGE_SIZE)
-#define copy_page(to,from)      memcpy((to), (from), PAGE_SIZE)
+#define clear_page(page)	memset((page), 0, PAGE_SIZE)
+#define copy_page(to, from)	memcpy((to), (from), PAGE_SIZE)
 
 #define page_to_phys(page)	(page_to_pfn(page) << PAGE_SHIFT)
 #define phys_to_page(paddr)	(pfn_to_page(PFN_DOWN(paddr)))
@@ -64,9 +65,9 @@ typedef struct page *pgtable_t;
 
 #define ptep_buddy(x)	((pte_t *)((unsigned long)(x) ^ sizeof(pte_t)))
 
-#define __pte(x)	((pte_t) { (x) } )
-#define __pgd(x)	((pgd_t) { (x) } )
-#define __pgprot(x)	((pgprot_t) { (x) } )
+#define __pte(x)	((pte_t) { (x) })
+#define __pgd(x)	((pgd_t) { (x) })
+#define __pgprot(x)	((pgprot_t) { (x) })
 
 #endif /* !__ASSEMBLY__ */
 
@@ -78,14 +79,16 @@ typedef struct page *pgtable_t;
 #define LOWMEM_LIMIT	0x40000000
 
 #define __pa(x)		((unsigned long)(x) - PAGE_OFFSET + PHYS_OFFSET)
-#define __va(x)		((void *)((unsigned long)(x) + PAGE_OFFSET - PHYS_OFFSET))
-#define __pa_symbol(x)		__pa(RELOC_HIDE((unsigned long)(x), 0))
+#define __va(x)		((void *)((unsigned long)(x) + PAGE_OFFSET - \
+				  PHYS_OFFSET))
+#define __pa_symbol(x)	__pa(RELOC_HIDE((unsigned long)(x), 0))
 
-#define MAP_NR(x)	PFN_DOWN((unsigned long)(x) - PAGE_OFFSET - PHYS_OFFSET_OFFSET)
-#define virt_to_page(x)		(mem_map + MAP_NR(x))
+#define MAP_NR(x)	PFN_DOWN((unsigned long)(x) - PAGE_OFFSET - \
+				 PHYS_OFFSET_OFFSET)
+#define virt_to_page(x)	(mem_map + MAP_NR(x))
 
 #define VM_DATA_DEFAULT_FLAGS	(VM_READ | VM_WRITE | VM_EXEC | \
-				 VM_MAYREAD | VM_MAYWRITE | VM_MAYEXEC)
+				VM_MAYREAD | VM_MAYWRITE | VM_MAYEXEC)
 
 /*
  * main RAM and kernel working space are coincident at 0x80000000, but to make

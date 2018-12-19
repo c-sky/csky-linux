@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-2.0
+/* SPDX-License-Identifier: GPL-2.0 */
 // Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
 
 #ifndef __ASM_CSKY_ENTRY_H
@@ -51,7 +51,7 @@
 	stm	r4-r13, (sp)
 
 	addi    sp, 40
-	stm     r16-r30,(sp)
+	stm     r16-r30, (sp)
 #ifdef CONFIG_CPU_HAS_HILO
 	mfhi	lr
 	stw	lr, (sp, 60)
@@ -87,64 +87,64 @@
 	addi	sp, 40
 	ldm	r4-r13, (sp)
 	addi    sp, 40
-	ldm     r16-r30,(sp)
+	ldm     r16-r30, (sp)
 	addi    sp, 72
 	rte
 .endm
 
 .macro SAVE_SWITCH_STACK
-        subi    sp, 64
-        stm     r4-r11,(sp)
-        stw     r15, (sp, 32)
-        stw     r16, (sp, 36)
-        stw     r17, (sp, 40)
-        stw     r26, (sp, 44)
-        stw     r27, (sp, 48)
-        stw     r28, (sp, 52)
-        stw     r29, (sp, 56)
-        stw     r30, (sp, 60)
+	subi	sp, 64
+	stm	r4-r11, (sp)
+	stw	r15, (sp, 32)
+	stw	r16, (sp, 36)
+	stw	r17, (sp, 40)
+	stw	r26, (sp, 44)
+	stw	r27, (sp, 48)
+	stw	r28, (sp, 52)
+	stw	r29, (sp, 56)
+	stw	r30, (sp, 60)
 .endm
 
 .macro RESTORE_SWITCH_STACK
-        ldm     r4-r11,(sp)
-        ldw     r15, (sp, 32)
-        ldw     r16, (sp, 36)
-        ldw     r17, (sp, 40)
-        ldw     r26, (sp, 44)
-        ldw     r27, (sp, 48)
-        ldw     r28, (sp, 52)
-        ldw     r29, (sp, 56)
-        ldw     r30, (sp, 60)
-        addi    sp, 64
+	ldm	r4-r11, (sp)
+	ldw	r15, (sp, 32)
+	ldw	r16, (sp, 36)
+	ldw	r17, (sp, 40)
+	ldw	r26, (sp, 44)
+	ldw	r27, (sp, 48)
+	ldw	r28, (sp, 52)
+	ldw	r29, (sp, 56)
+	ldw	r30, (sp, 60)
+	addi	sp, 64
 .endm
 
 /* MMU registers operators. */
-.macro RD_MIR	rx
-	mfcr    \rx, cr<0, 15>
+.macro RD_MIR rx
+	mfcr	\rx, cr<0, 15>
 .endm
 
-.macro RD_MEH	rx
-	mfcr    \rx, cr<4, 15>
+.macro RD_MEH rx
+	mfcr	\rx, cr<4, 15>
 .endm
 
-.macro RD_MCIR	rx
-	mfcr    \rx, cr<8, 15>
+.macro RD_MCIR rx
+	mfcr	\rx, cr<8, 15>
 .endm
 
-.macro RD_PGDR  rx
-	mfcr    \rx, cr<29, 15>
+.macro RD_PGDR rx
+	mfcr	\rx, cr<29, 15>
 .endm
 
-.macro RD_PGDR_K  rx
-	mfcr    \rx, cr<28, 15>
+.macro RD_PGDR_K rx
+	mfcr	\rx, cr<28, 15>
 .endm
 
-.macro WR_MEH	rx
-	mtcr    \rx, cr<4, 15>
+.macro WR_MEH rx
+	mtcr	\rx, cr<4, 15>
 .endm
 
-.macro WR_MCIR	rx
-	mtcr    \rx, cr<8, 15>
+.macro WR_MCIR rx
+	mtcr	\rx, cr<8, 15>
 .endm
 
 .macro SETUP_MMU rx
@@ -153,5 +153,4 @@
 	lrw	\rx, (PHYS_OFFSET + 0x20000000) | 0xe
 	mtcr	\rx, cr<31, 15>
 .endm
-
 #endif /* __ASM_CSKY_ENTRY_H */

@@ -22,7 +22,7 @@ void __init init_fpu(void)
  *  - mtcr %a, cr<1, 2>
  *  - mtcr %a, cr<2, 2>
  */
-int fpu_libc_helper(struct pt_regs * regs)
+int fpu_libc_helper(struct pt_regs *regs)
 {
 	int fault;
 	unsigned long instrptr, regx = 0;
@@ -31,45 +31,52 @@ int fpu_libc_helper(struct pt_regs * regs)
 	u16 instr_hi, instr_low;
 
 	instrptr = instruction_pointer(regs);
-	if (instrptr & 1) return 0;
+	if (instrptr & 1)
+		return 0;
 
 	fault = __get_user(instr_low, (u16 *)instrptr);
-	if (fault) return 0;
+	if (fault)
+		return 0;
 
 	fault = __get_user(instr_hi, (u16 *)(instrptr + 2));
-	if (fault) return 0;
+	if (fault)
+		return 0;
 
 	tinstr = instr_hi | ((unsigned long)instr_low << 16);
 
-	if (((tinstr >> 21) & 0x1F) != 2) return 0;
+	if (((tinstr >> 21) & 0x1F) != 2)
+		return 0;
 
-	if ((tinstr & MTCR_MASK) == MTCR_DIST)
-	{
+	if ((tinstr & MTCR_MASK) == MTCR_DIST) {
 		index = (tinstr >> 16) & 0x1F;
-		if(index > 13) return 0;
+		if (index > 13)
+			return 0;
 
 		tmp = tinstr & 0x1F;
-		if (tmp > 2) return 0;
+		if (tmp > 2)
+			return 0;
 
 		regx =  *(&regs->a0 + index);
 
-		if(tmp == 1)
+		if (tmp == 1)
 			mtcr("cr<1, 2>", regx);
 		else if (tmp == 2)
 			mtcr("cr<2, 2>", regx);
 		else
 			return 0;
 
-		regs->pc +=4;
+		regs->pc += 4;
 		return 1;
 	}
 
 	if ((tinstr & MFCR_MASK) == MFCR_DIST) {
 		index = tinstr & 0x1F;
-		if(index > 13) return 0;
+		if (index > 13)
+			return 0;
 
 		tmp = ((tinstr >> 16) & 0x1F);
-		if (tmp > 2) return 0;
+		if (tmp > 2)
+			return 0;
 
 		if (tmp == 1)
 			regx = mfcr("cr<1, 2>");
@@ -80,83 +87,69 @@ int fpu_libc_helper(struct pt_regs * regs)
 
 		*(&regs->a0 + index) = regx;
 
-		regs->pc +=4;
+		regs->pc += 4;
 		return 1;
 	}
 
 	return 0;
 }
 
-void fpu_fpe(struct pt_regs * regs)
+void fpu_fpe(struct pt_regs *regs)
 {
-	int sig;
+	int sig, code;
 	unsigned int fesr;
-	siginfo_t info;
 
 	fesr = mfcr("cr<2, 2>");
 
-	if(fesr & FPE_ILLE){
-		info.si_code = ILL_ILLOPC;
+	sig = SIGFPE;
+	code = FPE_FLTUNK;
+
+	if (fesr & FPE_ILLE) {
 		sig = SIGILL;
-	}
-	else if(fesr & FPE_IDC){
-		info.si_code = ILL_ILLOPN;
+		code = ILL_ILLOPC;
+	} else if (fesr & FPE_IDC) {
 		sig = SIGILL;
-	}
-	else if(fesr & FPE_FEC){
+		code = ILL_ILLOPN;
+	} else if (fesr & FPE_FEC) {
 		sig = SIGFPE;
-		if(fesr & FPE_IOC){
-			info.si_code = FPE_FLTINV;
-		}
-		else if(fesr & FPE_DZC){
-			info.si_code = FPE_FLTDIV;
-		}
-		else if(fesr & FPE_UFC){
-			info.si_code = FPE_FLTUND;
-		}
-		else if(fesr & FPE_OFC){
-			info.si_code = FPE_FLTOVF;
-		}
-		else if(fesr & FPE_IXC){
-			info.si_code = FPE_FLTRES;
-		}
-		else {
-			info.si_code = NSIGFPE;
-		}
+		if (fesr & FPE_IOC)
+			code = FPE_FLTINV;
+		else if (fesr & FPE_DZC)
+			code = FPE_FLTDIV;
+		else if (fesr & FPE_UFC)
+			code = FPE_FLTUND;
+		else if (fesr & FPE_OFC)
+			code = FPE_FLTOVF;
+		else if (fesr & FPE_IXC)
+			code = FPE_FLTRES;
 	}
-	else {
-		info.si_code = NSIGFPE;
-		sig = SIGFPE;
-	}
-	info.si_signo = SIGFPE;
-	info.si_errno = 0;
-	info.si_addr = (void *)regs->pc;
-	force_sig_info(sig, &info, current);
+
+	force_sig_fault(sig, code, (void __user *)regs->pc, current);
 }
 
 #define FMFVR_FPU_REGS(vrx, vry)	\
-	"fmfvrl %0, "#vrx" \n"		\
-	"fmfvrh %1, "#vrx" \n"		\
-	"fmfvrl %2, "#vry" \n"		\
-	"fmfvrh %3, "#vry" \n"
+	"fmfvrl %0, "#vrx"\n"		\
+	"fmfvrh %1, "#vrx"\n"		\
+	"fmfvrl %2, "#vry"\n"		\
+	"fmfvrh %3, "#vry"\n"
 
 #define FMTVR_FPU_REGS(vrx, vry)	\
-	"fmtvrl "#vrx", %0 \n"		\
-	"fmtvrh "#vrx", %1 \n"		\
-	"fmtvrl "#vry", %2 \n"		\
-	"fmtvrh "#vry", %3 \n"
+	"fmtvrl "#vrx", %0\n"		\
+	"fmtvrh "#vrx", %1\n"		\
+	"fmtvrl "#vry", %2\n"		\
+	"fmtvrh "#vry", %3\n"
 
 #define STW_FPU_REGS(a, b, c, d)	\
-	"stw    %0, (%4, "#a") \n"	\
-	"stw    %1, (%4, "#b") \n"	\
-	"stw    %2, (%4, "#c") \n"	\
-	"stw    %3, (%4, "#d") \n"
+	"stw    %0, (%4, "#a")\n"	\
+	"stw    %1, (%4, "#b")\n"	\
+	"stw    %2, (%4, "#c")\n"	\
+	"stw    %3, (%4, "#d")\n"
 
 #define LDW_FPU_REGS(a, b, c, d)	\
-	"ldw    %0, (%4, "#a") \n"	\
-	"ldw    %1, (%4, "#b") \n"	\
-	"ldw    %2, (%4, "#c") \n"	\
-	"ldw    %3, (%4, "#d") \n"
+	"ldw    %0, (%4, "#a")\n"	\
+	"ldw    %1, (%4, "#b")\n"	\
+	"ldw    %2, (%4, "#c")\n"	\
+	"ldw    %3, (%4, "#d")\n"
 
 void save_to_user_fp(struct user_fp *user_fp)
 {
@@ -176,22 +169,23 @@ void save_to_user_fp(struct user_fp *user_fp)
 #ifdef CONFIG_CPU_HAS_FPUV2
 #ifdef CONFIG_CPU_HAS_VDSP
 	asm volatile(
-		"vstmu.32    vr0-vr3,   (%0) \n"
-		"vstmu.32    vr4-vr7,   (%0) \n"
-		"vstmu.32    vr8-vr11,  (%0) \n"
-		"vstmu.32    vr12-vr15, (%0) \n"
-		"fstmu.64    vr16-vr31, (%0) \n"
-		:"+a"(fpregs)
+		"vstmu.32    vr0-vr3,   (%0)\n"
+		"vstmu.32    vr4-vr7,   (%0)\n"
+		"vstmu.32    vr8-vr11,  (%0)\n"
+		"vstmu.32    vr12-vr15, (%0)\n"
+		"fstmu.64    vr16-vr31, (%0)\n"
+		: "+a"(fpregs)
 		::"memory");
 #else
 	asm volatile(
-		"fstmu.64    vr0-vr31,  (%0) \n"
-		:"+a"(fpregs)
+		"fstmu.64    vr0-vr31,  (%0)\n"
+		: "+a"(fpregs)
 		::"memory");
 #endif
 #else
 	{
 	unsigned long tmp3, tmp4;
+
 	asm volatile(
 		FMFVR_FPU_REGS(vr0, vr1)
 		STW_FPU_REGS(0, 4, 16, 20)
@@ -210,8 +204,8 @@ void save_to_user_fp(struct user_fp *user_fp)
 		STW_FPU_REGS(64, 68, 80, 84)
 		FMFVR_FPU_REGS(vr14, vr15)
 		STW_FPU_REGS(96, 100, 112, 116)
-		:"=a"(tmp1),"=a"(tmp2),"=a"(tmp3),
-		"=a"(tmp4),"+a"(fpregs)
+		: "=a"(tmp1), "=a"(tmp2), "=a"(tmp3),
+		  "=a"(tmp4), "+a"(fpregs)
 		::"memory");
 	}
 #endif
@@ -237,22 +231,23 @@ void restore_from_user_fp(struct user_fp *user_fp)
 #ifdef CONFIG_CPU_HAS_FPUV2
 #ifdef CONFIG_CPU_HAS_VDSP
 	asm volatile(
-		"vldmu.32    vr0-vr3,   (%0) \n"
-		"vldmu.32    vr4-vr7,   (%0) \n"
-		"vldmu.32    vr8-vr11,  (%0) \n"
-		"vldmu.32    vr12-vr15, (%0) \n"
-		"fldmu.64    vr16-vr31, (%0) \n"
-		:"+a"(fpregs)
+		"vldmu.32    vr0-vr3,   (%0)\n"
+		"vldmu.32    vr4-vr7,   (%0)\n"
+		"vldmu.32    vr8-vr11,  (%0)\n"
+		"vldmu.32    vr12-vr15, (%0)\n"
+		"fldmu.64    vr16-vr31, (%0)\n"
+		: "+a"(fpregs)
 		::"memory");
 #else
 	asm volatile(
-		"fldmu.64    vr0-vr31,  (%0) \n"
-		:"+a"(fpregs)
+		"fldmu.64    vr0-vr31,  (%0)\n"
+		: "+a"(fpregs)
 		::"memory");
 #endif
 #else
 	{
 	unsigned long tmp3, tmp4;
+
 	asm volatile(
 		LDW_FPU_REGS(0, 4, 16, 20)
 		FMTVR_FPU_REGS(vr0, vr1)
@@ -271,11 +266,10 @@ void restore_from_user_fp(struct user_fp *user_fp)
 		FMTVR_FPU_REGS(vr12, vr13)
 		LDW_FPU_REGS(96, 100, 112, 116)
 		FMTVR_FPU_REGS(vr14, vr15)
-		:"=a"(tmp1),"=a"(tmp2),"=a"(tmp3),
-		"=a"(tmp4),"+a"(fpregs)
+		: "=a"(tmp1), "=a"(tmp2), "=a"(tmp3),
+		  "=a"(tmp4), "+a"(fpregs)
 		::"memory");
 	}
 #endif
-
 	local_irq_restore(flg);
 }

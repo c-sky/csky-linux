@@ -6,16 +6,19 @@
 #include <linux/ptrace.h>
 
 static int align_enable = 1;
-static int align_count  = 0;
+static int align_count;
 
 static inline uint32_t get_ptreg(struct pt_regs *regs, uint32_t rx)
 {
-	return *((int *)&(regs->a0) - 2 + rx);
+	return rx == 15 ? regs->lr : *((uint32_t *)&(regs->a0) - 2 + rx);
 }
 
 static inline void put_ptreg(struct pt_regs *regs, uint32_t rx, uint32_t val)
 {
-	*((int *)&(regs->a0) - 2 + rx) = val;
+	if (rx == 15)
+		regs->lr = val;
+	else
+		*((uint32_t *)&(regs->a0) - 2 + rx) = val;
 }
 
 /*
@@ -33,18 +36,18 @@ static int ldb_asm(uint32_t addr, uint32_t *valp)
 		return 1;
 
 	asm volatile (
-		"movi	%0, 0			\n"
-		"1:				\n"
-		"ldb	%1, (%2)		\n"
-		"br	3f			\n"
-		"2:				\n"
-		"movi	%0, 1			\n"
-		"br	3f			\n"
-		".section __ex_table,\"a\"	\n"
-		".align 2			\n"
-		".long	1b, 2b			\n"
-		".previous			\n"
-		"3:				\n"
+		"movi	%0, 0\n"
+		"1:\n"
+		"ldb	%1, (%2)\n"
+		"br	3f\n"
+		"2:\n"
+		"movi	%0, 1\n"
+		"br	3f\n"
+		".section __ex_table,\"a\"\n"
+		".align 2\n"
+		".long	1b, 2b\n"
+		".previous\n"
+		"3:\n"
 		: "=&r"(err), "=r"(val)
 		: "r" (addr)
 	);
@@ -60,7 +63,7 @@ static int ldb_asm(uint32_t addr, uint32_t *valp)
  * Success: return 0
  * Failure: return 1
  */
-static volatile int stb_asm(uint32_t addr, uint32_t val)
+static int stb_asm(uint32_t addr, uint32_t val)
 {
 	int err;
 
@@ -68,18 +71,18 @@ static volatile int stb_asm(uint32_t addr, uint32_t val)
 		return 1;
 
 	asm volatile (
-		"movi	%0, 0			\n"
-		"1:				\n"
-		"stb	%1, (%2)		\n"
-		"br	3f			\n"
-		"2:				\n"
-		"movi	%0, 1			\n"
-		"br	3f			\n"
-		".section __ex_table,\"a\"	\n"
-		".align 2			\n"
-		".long	1b, 2b			\n"
-		".previous			\n"
-		"3:				\n"
+		"movi	%0, 0\n"
+		"1:\n"
+		"stb	%1, (%2)\n"
+		"br	3f\n"
+		"2:\n"
+		"movi	%0, 1\n"
+		"br	3f\n"
+		".section __ex_table,\"a\"\n"
+		".align 2\n"
+		".long	1b, 2b\n"
+		".previous\n"
+		"3:\n"
 		: "=&r"(err)
 		: "r"(val), "r" (addr)
 	);
@@ -222,8 +225,6 @@ void csky_alignment(struct pt_regs *regs)
 	uint32_t imm    = 0;
 	uint32_t addr   = 0;
 
-	siginfo_t info;
-
 	if (!user_mode(regs))
 		goto bad_area;
 
@@ -240,10 +241,10 @@ void csky_alignment(struct pt_regs *regs)
 	rz  = (opcode >> 8) & 0xf;
 	opcode &= 0xf000;
 
-	if (rx == 0 || rx == 15 || rz == 0 || rz == 15)
+	if (rx == 0 || rx == 1 || rz == 0 || rz == 1)
 		goto bad_area;
 
-	switch(opcode) {
+	switch (opcode) {
 	case OP_LDH:
 		addr = get_ptreg(regs, rx) + (imm << 1);
 		ret = ldh_c(regs, rz, addr);
@@ -262,7 +263,7 @@ void csky_alignment(struct pt_regs *regs)
 		break;
 	}
 
-	if(ret)
+	if (ret)
 		goto bad_area;
 
 	regs->pc += 2;
@@ -276,20 +277,13 @@ bad_area:
 
 		bust_spinlocks(1);
 		pr_alert("%s opcode: %x, rz: %d, rx: %d, imm: %d, addr: %x.\n",
-		          __func__, opcode, rz, rx, imm, addr);
+				__func__, opcode, rz, rx, imm, addr);
 		show_regs(regs);
 		bust_spinlocks(0);
 		do_exit(SIGKILL);
 	}
 
-	info.si_signo = SIGBUS;
-	info.si_errno = 0;
-	info.si_code  = BUS_ADRALN;
-	info.si_addr  = (void __user *)addr;
-
-	force_sig_info(info.si_signo, &info, current);
-
-	return;
+	force_sig_fault(SIGBUS, BUS_ADRALN, (void __user *)addr, current);
 }
 
 static struct ctl_table alignment_tbl[4] = {

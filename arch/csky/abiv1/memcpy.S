@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-2.0
+/* SPDX-License-Identifier: GPL-2.0 */
 // Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
 
 #include <linux/linkage.h>
@@ -22,22 +22,22 @@
 /* void *memcpy(void *dest, const void *src, size_t n); */
 ENTRY(memcpy)
 	mov	r7, r2
-	cmplti	r4, 4                                   /* If len less than 4 bytes */
+	cmplti	r4, 4
 	bt	.L_copy_by_byte
 	mov	r6, r2
 	andi	r6, 3
 	cmpnei	r6, 0
-	jbt	.L_dest_not_aligned                     /* If dest is not 4 bytes aligned */
+	jbt	.L_dest_not_aligned
 	mov	r6, r3
 	andi	r6, 3
 	cmpnei	r6, 0
-	jbt	.L_dest_aligned_but_src_not_aligned     /* If dest is aligned, but src is not aligned */
+	jbt	.L_dest_aligned_but_src_not_aligned
 .L0:
 	cmplti	r4, 16
-	jbt	.L_aligned_and_len_less_16bytes         /* If len less than 16 bytes */
+	jbt	.L_aligned_and_len_less_16bytes
 	subi	sp, 8
 	stw	r8, (sp, 0)
-.L_aligned_and_len_larger_16bytes:                      /* src and dst are all aligned, and len > 16 bytes */
+.L_aligned_and_len_larger_16bytes:
 	ldw	r1, (r3, 0)
 	ldw	r5, (r3, 4)
 	ldw	r8, (r3, 8)
@@ -53,7 +53,7 @@ ENTRY(memcpy)
 	jbf	.L_aligned_and_len_larger_16bytes
 	ldw	r8, (sp, 0)
 	addi	sp, 8
-	cmpnei	r4, 0                    /* If len == 0, return, else goto .L_aligned_and_len_less_16bytes  */
+	cmpnei	r4, 0
 	jbf	.L_return
 
 .L_aligned_and_len_less_16bytes:
@@ -84,8 +84,10 @@ ENTRY(memcpy)
 	jbt	.L4
 	rts
 
-/* If dest is not aligned, just copying some bytes makes the dest align.
-   Afther that, we judge whether the src is aligned. */
+/*
+ * If dest is not aligned, just copying some bytes makes the dest align.
+ * Afther that, we judge whether the src is aligned.
+ */
 .L_dest_not_aligned:
 	mov	r5, r3
 	rsub	r5, r5, r7

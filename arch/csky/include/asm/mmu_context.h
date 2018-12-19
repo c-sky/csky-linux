@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-2.0
+/* SPDX-License-Identifier: GPL-2.0 */
 // Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
 
 #ifndef __ASM_CSKY_MMU_CONTEXT_H
@@ -41,9 +41,9 @@ static inline unsigned long tlb_get_pgd(void)
 #define ASID_MASK		(ASID_FIRST_VERSION - 1)
 #define ASID_VERSION_MASK	~ASID_MASK
 
-#define destroy_context(mm)		do{}while(0)
-#define enter_lazy_tlb(mm,tsk)		do{}while(0)
-#define deactivate_mm(tsk,mm)		do{}while(0)
+#define destroy_context(mm)		do {} while (0)
+#define enter_lazy_tlb(mm, tsk)		do {} while (0)
+#define deactivate_mm(tsk, mm)		do {} while (0)
 
 /*
  *  All unused by hardware upper bits will be considered
@@ -54,7 +54,8 @@ get_new_mmu_context(struct mm_struct *mm, unsigned long cpu)
 {
 	unsigned long asid = asid_cache(cpu);
 
-	if (! ((asid += ASID_INC) & ASID_MASK) ) {
+	asid += ASID_INC;
+	if (!(asid & ASID_MASK)) {
 		flush_tlb_all();	/* start new asid cycle */
 		if (!asid)		/* fix version if needed */
 			asid = ASID_FIRST_VERSION;
@@ -77,7 +78,7 @@ init_new_context(struct task_struct *tsk, struct mm_struct *mm)
 }
 
 static inline void switch_mm(struct mm_struct *prev, struct mm_struct *next,
-                             struct task_struct *tsk)
+			struct task_struct *tsk)
 {
 	unsigned int cpu = smp_processor_id();
 	unsigned long flags;
@@ -129,7 +130,7 @@ activate_mm(struct mm_struct *prev, struct mm_struct *next)
  * we will get a new one for it.
  */
 static inline void
-drop_mmu_context(struct mm_struct *mm, unsigned cpu)
+drop_mmu_context(struct mm_struct *mm, unsigned int cpu)
 {
 	unsigned long flags;
 

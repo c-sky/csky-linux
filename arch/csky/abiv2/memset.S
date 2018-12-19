@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-2.0
+/* SPDX-License-Identifier: GPL-2.0 */
 // Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
 
 #include <linux/linkage.h>
@@ -10,7 +10,7 @@ ENTRY(memset)
 	/* Test if len less than 4 bytes.  */
 	mov	r12, r0
 	cmplti	r2, 8
-	jbt	.L_set_by_byte
+	bt	.L_set_by_byte
 
 	andi	r13, r0, 3
 	movi	r19, 4
@@ -76,7 +76,7 @@ ENTRY(memset)
 	addi	r0, 1
 	BNEZAD (r13, .L_dest_not_aligned_loop)
 	cmplti	r2, 8
-	jbt	.L_set_by_byte
+	bt	.L_set_by_byte
 	/* Check whether the src is aligned.  */
 	jbr	.L_dest_aligned
 ENDPROC(memset)

@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-2.0
+/* SPDX-License-Identifier: GPL-2.0 */
 // Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
 
 #ifndef __ASM_CSKY_PROCESSOR_H
@@ -8,7 +8,7 @@
  * Default implementation of macro that returns current
  * instruction pointer ("program counter").
  */
-#define current_text_addr() ({ __label__ _l; _l: &&_l;})
+#define current_text_addr() ({ __label__ _l; _l: &&_l; })
 
 #include <linux/bitops.h>
 #include <asm/segment.h>
@@ -30,7 +30,7 @@ struct cpuinfo_csky {
 	unsigned long options;
 	unsigned int processor_id[4];
 	unsigned int fpu_id;
-} __attribute__((aligned(SMP_CACHE_BYTES)));
+} __aligned(SMP_CACHE_BYTES);
 
 extern struct cpuinfo_csky cpu_data[];
 
@@ -64,7 +64,7 @@ struct thread_struct {
 	unsigned long error_code;
 
 	/* FPU regs */
-	struct user_fp __attribute__((aligned(16))) user_fp;
+	struct user_fp __aligned(16) user_fp;
 };
 
 #define INIT_THREAD  { \
@@ -87,7 +87,7 @@ do {									\
 	(_regs)->regs[3] = 0; /* ABIV2 is R7, use it? */		\
 	(_regs)->sr &= ~PS_S;						\
 	(_regs)->usp = (_usp);						\
-} while(0)
+} while (0)
 
 /* Forward declaration, a strange C thing */
 struct task_struct;
@@ -100,7 +100,7 @@ static inline void release_thread(struct task_struct *dead_task)
 /* Prepare to copy thread state - unlazy all lazy status */
 #define prepare_to_copy(tsk)    do { } while (0)
 
-extern int kernel_thread(int (*fn)(void *), void * arg, unsigned long flags);
+extern int kernel_thread(int (*fn)(void *), void *arg, unsigned long flags);
 
 #define copy_segments(tsk, mm)		do { } while (0)
 #define release_segments(mm)		do { } while (0)

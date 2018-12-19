@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-2.0
+/* SPDX-License-Identifier: GPL-2.0 */
 // Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
 
 #include <linux/linkage.h>
@@ -9,7 +9,7 @@ ENTRY(__memmove)
 ENTRY(memmove)
 	subu	r3, r0, r1
 	cmphs	r3, r2
-	jbt	memcpy
+	bt	memcpy
 
 	mov	r12, r0
 	addu	r0, r0, r2
@@ -17,7 +17,7 @@ ENTRY(memmove)
 
 	/* Test if len less than 4 bytes.  */
 	cmplti	r2, 4
-	jbt	.L_copy_by_byte
+	bt	.L_copy_by_byte
 
 	andi	r13, r0, 3
 	/* Test if dest is not 4 bytes aligned.  */
@@ -101,7 +101,7 @@ ENTRY(memmove)
 	stb	r3, (r0, 0)
 	BNEZAD (r13, .L_dest_not_aligned_loop)
 	cmplti	r2, 4
-	jbt	.L_copy_by_byte
+	bt	.L_copy_by_byte
 	/* Check whether the src is aligned.  */
 	jbr	.L_dest_aligned
 ENDPROC(memmove)

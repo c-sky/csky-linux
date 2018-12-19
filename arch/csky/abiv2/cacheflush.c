@@ -29,7 +29,8 @@ void flush_icache_user_range(struct vm_area_struct *vma, struct page *page,
 	kunmap_atomic((void *)kaddr);
 }
 
-void update_mmu_cache(struct vm_area_struct *vma, unsigned long address, pte_t *pte)
+void update_mmu_cache(struct vm_area_struct *vma, unsigned long address,
+		      pte_t *pte)
 {
 	unsigned long addr, pfn;
 	struct page *page;

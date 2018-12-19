@@ -1,7 +1,6 @@
 include include/uapi/asm-generic/Kbuild.asm
 
 header-y += cachectl.h
-header-y += stat.h
 
 generic-y += auxvec.h
 generic-y += param.h

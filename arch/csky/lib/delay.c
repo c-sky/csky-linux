@@ -3,19 +3,18 @@
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/init.h>
+#include <linux/delay.h>
 
 void __delay(unsigned long loops)
 {
-       asm volatile (
+	asm volatile (
 		"mov r0, r0\n"
 		"1:declt %0\n"
 		"bf	1b"
-                :"=r"(loops)
-	        :"0"(loops));
+		: "=r"(loops)
+		: "0"(loops));
 }
 EXPORT_SYMBOL(__delay);
-
-extern unsigned long loops_per_jiffy;
 
 void __const_udelay(unsigned long xloops)
 {

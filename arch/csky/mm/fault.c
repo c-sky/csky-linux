@@ -46,14 +46,14 @@ int fixup_exception(struct pt_regs *regs)
 asmlinkage void do_page_fault(struct pt_regs *regs, unsigned long write,
 			      unsigned long mmu_meh)
 {
-	struct vm_area_struct * vma = NULL;
+	struct vm_area_struct *vma = NULL;
 	struct task_struct *tsk = current;
 	struct mm_struct *mm = tsk->mm;
-	siginfo_t info;
+	int si_code;
 	int fault;
 	unsigned long address = mmu_meh & PAGE_MASK;
 
-	info.si_code = SEGV_MAPERR;
+	si_code = SEGV_MAPERR;
 
 #ifndef CONFIG_CPU_HAS_TLBI
 	/*
@@ -65,8 +65,8 @@ asmlinkage void do_page_fault(struct pt_regs *regs, unsigned long write,
 	 * only copy the information from the master page table,
 	 * nothing more.
 	 */
-	if (unlikely(address >= VMALLOC_START && address <= VMALLOC_END))
-	{
+	if (unlikely(address >= VMALLOC_START) &&
+	    unlikely(address <= VMALLOC_END)) {
 		/*
 		 * Synchronize this task's top level page-table
 		 * with the 'reference' page table.
@@ -81,6 +81,7 @@ asmlinkage void do_page_fault(struct pt_regs *regs, unsigned long write,
 		pte_t *pte_k;
 
 		unsigned long pgd_base;
+
 		pgd_base = tlb_get_pgd();
 		pgd = (pgd_t *)pgd_base + offset;
 		pgd_k = init_mm.pgd + offset;
@@ -128,7 +129,7 @@ asmlinkage void do_page_fault(struct pt_regs *regs, unsigned long write,
 	 * we can handle it..
 	 */
 good_area:
-	info.si_code = SEGV_ACCERR;
+	si_code = SEGV_ACCERR;
 
 	if (write) {
 		if (!(vma->vm_flags & VM_WRITE))
@@ -173,26 +174,22 @@ bad_area_nosemaphore:
 	if (user_mode(regs)) {
 		tsk->thread.address = address;
 		tsk->thread.error_code = write;
-		info.si_signo = SIGSEGV;
-		info.si_errno = 0;
-		/* info.si_code has been set above */
-		info.si_addr = (void __user *) address;
-		force_sig_info(SIGSEGV, &info, tsk);
+		force_sig_fault(SIGSEGV, si_code, (void __user *)address, current);
 		return;
 	}
 
 no_context:
 	/* Are we prepared to handle this kernel fault? */
-	if (fixup_exception(regs)) return;
+	if (fixup_exception(regs))
+		return;
 
 	/*
 	 * Oops. The kernel tried to access some bad page. We'll have to
 	 * terminate things with extreme prejudice.
 	 */
 	bust_spinlocks(1);
-	pr_alert("Unable to handle kernel paging request at virtual "
-		 "address %08lx, epc == %08lx\n",
-		 address, regs->pc);
+	pr_alert("Unable to %s at vaddr: %08lx, epc: %08lx\n",
+		 __func__, address, regs->pc);
 	die_if_kernel("Oops", regs, write);
 
 out_of_memory:
@@ -211,11 +208,5 @@ do_sigbus:
 		goto no_context;
 
 	tsk->thread.address = address;
-	info.si_signo = SIGBUS;
-	info.si_errno = 0;
-	info.si_code = BUS_ADRERR;
-	info.si_addr = (void __user *) address;
-	force_sig_info(SIGBUS, &info, tsk);
-
-	return;
+	force_sig_fault(SIGBUS, BUS_ADRERR, (void __user *)address, current);
 }

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0
+
 #include <linux/module.h>
 #include <linux/init.h>
 #include <linux/kernel.h>
@@ -20,9 +22,10 @@
 #include <asm/mmu_context.h>
 #include <asm/pgalloc.h>
 
-static struct {
+struct ipi_data_struct {
 	unsigned long bits ____cacheline_aligned;
-} ipi_data[NR_CPUS] __cacheline_aligned;
+};
+static DEFINE_PER_CPU(struct ipi_data_struct, ipi_data);
 
 enum ipi_message_type {
 	IPI_EMPTY,
@@ -33,12 +36,10 @@ enum ipi_message_type {
 
 static irqreturn_t handle_ipi(int irq, void *dev)
 {
-	unsigned long *pending_ipis = &ipi_data[smp_processor_id()].bits;
-
 	while (true) {
 		unsigned long ops;
 
-		ops = xchg(pending_ipis, 0);
+		ops = xchg(&this_cpu_ptr(&ipi_data)->bits, 0);
 		if (ops == 0)
 			return IRQ_HANDLED;
 
@@ -54,14 +55,16 @@ static irqreturn_t handle_ipi(int irq, void *dev)
 	return IRQ_HANDLED;
 }
 
-static void (*send_arch_ipi)(const unsigned long *mask) = NULL;
+static void (*send_arch_ipi)(const struct cpumask *mask);
 
-void __init set_send_ipi(void (*func)(const unsigned long *))
+static int ipi_irq;
+void __init set_send_ipi(void (*func)(const struct cpumask *mask), int irq)
 {
 	if (send_arch_ipi)
 		return;
 
 	send_arch_ipi = func;
+	ipi_irq = irq;
 }
 
 static void
@@ -70,10 +73,10 @@ send_ipi_message(const struct cpumask *to_whom, enum ipi_message_type operation)
 	int i;
 
 	for_each_cpu(i, to_whom)
-		set_bit(operation, &ipi_data[i].bits);
+		set_bit(operation, &per_cpu_ptr(&ipi_data, i)->bits);
 
 	smp_mb();
-	send_arch_ipi(cpumask_bits(to_whom));
+	send_arch_ipi(to_whom);
 }
 
 void arch_send_call_function_ipi_mask(struct cpumask *mask)
@@ -101,9 +104,6 @@ void smp_send_reschedule(int cpu)
 	send_ipi_message(cpumask_of(cpu), IPI_RESCHEDULE);
 }
 
-void *__cpu_up_stack_pointer[NR_CPUS];
-void *__cpu_up_task_pointer[NR_CPUS];
-
 void __init smp_prepare_boot_cpu(void)
 {
 }
@@ -112,33 +112,21 @@ void __init smp_prepare_cpus(unsigned int max_cpus)
 {
 }
 
-static int ipi_dummy_dev;
-static int ipi_irq;
-
-void __init enable_smp_ipi(void)
+static void __init enable_smp_ipi(void)
 {
 	enable_percpu_irq(ipi_irq, 0);
 }
 
-static int (*arch_ipi_irq_mapping)(void) = NULL;
-
-void __init set_ipi_irq_mapping(int (*func)(void))
-{
-	if (arch_ipi_irq_mapping)
-		return;
-
-	arch_ipi_irq_mapping = func;
-}
-
+static int ipi_dummy_dev;
 void __init setup_smp_ipi(void)
 {
 	int rc;
 
-	ipi_irq = arch_ipi_irq_mapping();
 	if (ipi_irq == 0)
 		panic("%s IRQ mapping failed\n", __func__);
 
-	rc = request_percpu_irq(ipi_irq, handle_ipi, "IPI Interrupt", &ipi_dummy_dev);
+	rc = request_percpu_irq(ipi_irq, handle_ipi, "IPI Interrupt",
+				&ipi_dummy_dev);
 	if (rc)
 		panic("%s IRQ request failed\n", __func__);
 
@@ -181,7 +169,11 @@ int __cpu_up(unsigned int cpu, struct task_struct *tidle)
 
 	secondary_ccr  = mfcr("cr18");
 
-	/* Flush dcache */
+	/*
+	 * Because other CPUs are in reset status, we must flush data
+	 * from cache to out and secondary CPUs use them in
+	 * csky_start_secondary(void)
+	 */
 	mtcr("cr17", 0x22);
 
 	/* Enable cpu in SMP reset ctrl reg */

@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-2.0
+/* SPDX-License-Identifier: GPL-2.0 */
 // Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
 
 #ifndef _CSKY_PTRACE_H
@@ -57,41 +57,41 @@ struct user_fp {
 struct  switch_stack {
 #if defined(__CSKYABIV2__)
 	unsigned long   r4;
-        unsigned long   r5;
-        unsigned long   r6;
-        unsigned long   r7;
+	unsigned long   r5;
+	unsigned long   r6;
+	unsigned long   r7;
 	unsigned long   r8;
-        unsigned long   r9;
-        unsigned long   r10;
-        unsigned long   r11;
+	unsigned long   r9;
+	unsigned long   r10;
+	unsigned long   r11;
 #else
 	unsigned long   r8;
-        unsigned long   r9;
-        unsigned long   r10;
-        unsigned long   r11;
-        unsigned long   r12;
-        unsigned long   r13;
-        unsigned long   r14;
+	unsigned long   r9;
+	unsigned long   r10;
+	unsigned long   r11;
+	unsigned long   r12;
+	unsigned long   r13;
+	unsigned long   r14;
 #endif
-        unsigned long   r15;
+	unsigned long   r15;
 #if defined(__CSKYABIV2__)
-        unsigned long   r16;
-        unsigned long   r17;
-        unsigned long   r26;
-        unsigned long   r27;
-        unsigned long   r28;
-        unsigned long   r29;
-        unsigned long   r30;
+	unsigned long   r16;
+	unsigned long   r17;
+	unsigned long   r26;
+	unsigned long   r27;
+	unsigned long   r28;
+	unsigned long   r29;
+	unsigned long   r30;
 #endif
 };
 
 #ifdef __KERNEL__
 
-#define PS_S            0x80000000              /* Supervisor Mode */
+#define PS_S	0x80000000 /* Supervisor Mode */
 
 #define arch_has_single_step() (1)
 #define current_pt_regs() \
-	(struct pt_regs *)((char *)current_thread_info() + THREAD_SIZE) - 1
+({ (struct pt_regs *)((char *)current_thread_info() + THREAD_SIZE) - 1; })
 
 #define user_stack_pointer(regs) ((regs)->usp)
 
