@@ -148,3 +148,4 @@ static int __init gx6605s_timer_init(struct device_node *np)
 	return gx6605s_clksrc_init(timer_of_base(&to) + CLKSRC_OFFSET);
 }
 TIMER_OF_DECLARE(natchip_gx6605s_timer, "natchip,gx6605s-timer", gx6605s_timer_init);
+TIMER_OF_DECLARE(csky_gx6605s_timer, "csky,gx6605s-timer", gx6605s_timer_init);
