@@ -7,7 +7,7 @@
 #include <asm/ptrace.h>
 #include <abi/regdef.h>
 
-#define ELF_ARCH 252
+#define ELF_ARCH 39
 
 /* CSKY Relocations */
 #define R_CSKY_NONE               0
@@ -38,7 +38,7 @@ typedef elf_greg_t elf_gregset_t[ELF_NGREG];
 /*
  * This is used to ensure we don't load something for the wrong architecture.
  */
-#define elf_check_arch(x) ((x)->e_machine == ELF_ARCH)
+#define elf_check_arch(x) (((x)->e_machine == 39) || ((x)->e_machine == 252))
 
 /*
  * These are used to set parameters in the core dumps.
