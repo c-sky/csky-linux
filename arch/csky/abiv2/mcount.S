@@ -106,7 +106,6 @@ END(_mcount)
 ENTRY(ftrace_graph_caller)
 	mov	a0, sp
 	addi	a0, 24
-	mov	a1, lr
 	ldw	a1, (sp, 16)
 	subi	a1, MCOUNT_INSN_SIZE
 	mov	a2, r8

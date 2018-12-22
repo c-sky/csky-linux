@@ -27,7 +27,7 @@ void prepare_ftrace_return(unsigned long *parent, unsigned long self_addr,
 	}
 
 	err = ftrace_push_return_trace(old, self_addr, &trace.depth,
-				       frame_pointer, NULL);
+				       *(unsigned long *)frame_pointer, NULL);
 	if (err == -EBUSY) {
 		return;
 	} else {

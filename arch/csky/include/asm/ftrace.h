@@ -6,4 +6,6 @@
 
 #define MCOUNT_INSN_SIZE 4
 
+#define HAVE_FUNCTION_GRAPH_FP_TEST
+
 #endif /* __ASM_CSKY_FTRACE_H */
