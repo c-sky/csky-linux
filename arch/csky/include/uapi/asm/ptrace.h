@@ -35,7 +35,7 @@ struct pt_regs {
 
 	unsigned long	rhi;
 	unsigned long	rlo;
-	unsigned long	pad; /* reserved */
+	unsigned long	dcsr;
 #endif
 };
 
