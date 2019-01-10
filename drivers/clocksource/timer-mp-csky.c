@@ -5,6 +5,7 @@
 #include <linux/interrupt.h>
 #include <linux/sched_clock.h>
 #include <linux/cpu.h>
+#include <linux/of_irq.h>
 #include <asm/reg_ops.h>
 
 #include "timer-of.h"
@@ -14,7 +15,10 @@
 #define PTIM_LVR	"cr<6, 14>"
 #define PTIM_TSR	"cr<1, 14>"
 
-static int csky_mptimer_set_next_event(unsigned long delta, struct clock_event_device *ce)
+static int csky_mptimer_irq;
+
+static int csky_mptimer_set_next_event(unsigned long delta,
+				       struct clock_event_device *ce)
 {
 	mtcr(PTIM_LVR, delta);
 
@@ -53,13 +57,9 @@ static DEFINE_PER_CPU(struct timer_of, csky_to) = {
 		.set_state_oneshot_stopped	= csky_mptimer_oneshot_stopped,
 		.set_next_event			= csky_mptimer_set_next_event,
 	},
-	.of_irq = {
-		.flags				= IRQF_TIMER,
-		.percpu				= 1,
-	},
 };
 
-static irqreturn_t timer_interrupt(int irq, void *dev)
+static irqreturn_t csky_timer_interrupt(int irq, void *dev)
 {
 	struct timer_of *to = this_cpu_ptr(&csky_to);
 
@@ -79,18 +79,17 @@ static int csky_mptimer_starting_cpu(unsigned int cpu)
 
 	to->clkevt.cpumask = cpumask_of(cpu);
 
-	enable_percpu_irq(timer_of_irq(to), 0);
+	enable_percpu_irq(csky_mptimer_irq, 0);
 
-	clockevents_config_and_register(&to->clkevt, timer_of_rate(to), 2, ULONG_MAX);
+	clockevents_config_and_register(&to->clkevt, timer_of_rate(to),
+					2, ULONG_MAX);
 
 	return 0;
 }
 
 static int csky_mptimer_dying_cpu(unsigned int cpu)
 {
-	struct timer_of *to = per_cpu_ptr(&csky_to, cpu);
-
-	disable_percpu_irq(timer_of_irq(to));
+	disable_percpu_irq(csky_mptimer_irq);
 
 	return 0;
 }
@@ -100,12 +99,12 @@ static int csky_mptimer_dying_cpu(unsigned int cpu)
  */
 static u64 notrace sched_clock_read(void)
 {
-	return (u64) mfcr(PTIM_CCVR);
+	return (u64)mfcr(PTIM_CCVR);
 }
 
 static u64 clksrc_read(struct clocksource *c)
 {
-	return (u64) mfcr(PTIM_CCVR);
+	return (u64)mfcr(PTIM_CCVR);
 }
 
 struct clocksource csky_clocksource = {
@@ -116,14 +115,10 @@ struct clocksource csky_clocksource = {
 	.read	= clksrc_read,
 };
 
-#define CPUHP_AP_CSKY_TIMER_STARTING CPUHP_AP_DUMMY_TIMER_STARTING
-
 static int __init csky_mptimer_init(struct device_node *np)
 {
-	int ret, cpu;
-	struct timer_of *to;
-	int rate = 0;
-	int irq	 = 0;
+	int ret, cpu, cpu_rollback;
+	struct timer_of *to = NULL;
 
 	/*
 	 * Csky_mptimer is designed for C-SKY SMP multi-processors and
@@ -137,43 +132,42 @@ static int __init csky_mptimer_init(struct device_node *np)
 	 * We use private irq for the mptimer and irq number is the same
 	 * for every core. So we use request_percpu_irq() in timer_of_init.
 	 */
+	csky_mptimer_irq = irq_of_parse_and_map(np, 0);
+	if (csky_mptimer_irq <= 0)
+		return -EINVAL;
+
+	ret = request_percpu_irq(csky_mptimer_irq, csky_timer_interrupt,
+				 "csky_mp_timer", &csky_to);
+	if (ret)
+		return -EINVAL;
 
 	for_each_possible_cpu(cpu) {
 		to = per_cpu_ptr(&csky_to, cpu);
-
-		if (cpu == 0) {
-			to->flags	  |= TIMER_OF_IRQ;
-			to->of_irq.handler = timer_interrupt;
-
-			ret = timer_of_init(np, to);
-			if (ret)
-				return ret;
-
-			rate	= timer_of_rate(to);
-			irq	= to->of_irq.irq;
-		} else {
-			ret = timer_of_init(np, to);
-			if (ret)
-				return ret;
-
-			to->of_clk.rate	= rate;
-			to->of_irq.irq	= irq;
-		}
+		ret = timer_of_init(np, to);
+		if (ret)
+			goto rollback;
 	}
 
-	ret = cpuhp_setup_state(CPUHP_AP_CSKY_TIMER_STARTING,
+	clocksource_register_hz(&csky_clocksource, timer_of_rate(to));
+	sched_clock_register(sched_clock_read, 32, timer_of_rate(to));
+
+	ret = cpuhp_setup_state(CPUHP_AP_RISCV_TIMER_STARTING,
 				"clockevents/csky/timer:starting",
 				csky_mptimer_starting_cpu,
 				csky_mptimer_dying_cpu);
-	if (ret) {
-		pr_err("%s: Failed to cpuhp_setup_state.\n", __func__);
-		return ret;
-	}
-
-	clocksource_register_hz(&csky_clocksource, rate);
-	sched_clock_register(sched_clock_read, 32, rate);
+	if (ret)
+		return -EINVAL;
 
 	return 0;
+
+rollback:
+	for_each_possible_cpu(cpu_rollback) {
+		if (cpu_rollback == cpu)
+			break;
+
+		to = per_cpu_ptr(&csky_to, cpu_rollback);
+		timer_of_cleanup(to);
+	}
+	return -EINVAL;
 }
 TIMER_OF_DECLARE(csky_mptimer, "csky,mptimer", csky_mptimer_init);
-TIMER_OF_DECLARE(csky_timer_v1, "csky,timer-v1", csky_mptimer_init);

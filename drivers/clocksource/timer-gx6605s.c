@@ -24,7 +24,7 @@
 
 static irqreturn_t gx6605s_timer_interrupt(int irq, void *dev)
 {
-	struct clock_event_device *ce = (struct clock_event_device *) dev;
+	struct clock_event_device *ce = dev;
 	void __iomem *base = timer_of_base(to_timer_of(ce));
 
 	writel_relaxed(GX6605S_STATUS_CLR, base + TIMER_STATUS);
@@ -42,12 +42,14 @@ static int gx6605s_timer_set_oneshot(struct clock_event_device *ce)
 	writel_relaxed(GX6605S_CONTRL_RST, base + TIMER_CONTRL);
 
 	/* enable with irq and start */
-	writel_relaxed(GX6605S_CONFIG_EN | GX6605S_CONFIG_IRQ_EN, base + TIMER_CONFIG);
+	writel_relaxed(GX6605S_CONFIG_EN | GX6605S_CONFIG_IRQ_EN,
+		       base + TIMER_CONFIG);
 
 	return 0;
 }
 
-static int gx6605s_timer_set_next_event(unsigned long delta, struct clock_event_device *ce)
+static int gx6605s_timer_set_next_event(unsigned long delta,
+					struct clock_event_device *ce)
 {
 	void __iomem *base = timer_of_base(to_timer_of(ce));
 
@@ -94,7 +96,7 @@ static u64 notrace gx6605s_sched_clock_read(void)
 
 	base = timer_of_base(&to) + CLKSRC_OFFSET;
 
-	return (u64) readl_relaxed(base + TIMER_VALUE);
+	return (u64)readl_relaxed(base + TIMER_VALUE);
 }
 
 static void gx6605s_clkevt_init(void __iomem *base)
@@ -102,7 +104,8 @@ static void gx6605s_clkevt_init(void __iomem *base)
 	writel_relaxed(0, base + TIMER_DIV);
 	writel_relaxed(0, base + TIMER_CONFIG);
 
-	clockevents_config_and_register(&to.clkevt, timer_of_rate(&to), 2, ULONG_MAX);
+	clockevents_config_and_register(&to.clkevt, timer_of_rate(&to), 2,
+					ULONG_MAX);
 }
 
 static int gx6605s_clksrc_init(void __iomem *base)
@@ -118,8 +121,8 @@ static int gx6605s_clksrc_init(void __iomem *base)
 
 	sched_clock_register(gx6605s_sched_clock_read, 32, timer_of_rate(&to));
 
-	return clocksource_mmio_init(base + TIMER_VALUE, "gx6605s", timer_of_rate(&to),
-				     200, 32, clocksource_mmio_readl_up);
+	return clocksource_mmio_init(base + TIMER_VALUE, "gx6605s",
+			timer_of_rate(&to), 200, 32, clocksource_mmio_readl_up);
 }
 
 static int __init gx6605s_timer_init(struct device_node *np)
@@ -127,12 +130,13 @@ static int __init gx6605s_timer_init(struct device_node *np)
 	int ret;
 
 	/*
-	 * The timer driver is for nationalchip gx6605s SOC and there are two same timer
-	 * in gx6605s. We use one for clkevt and another for clksrc.
+	 * The timer driver is for nationalchip gx6605s SOC and there are two
+	 * same timer in gx6605s. We use one for clkevt and another for clksrc.
 	 *
-	 * The timer is mmio map to access, so we need give mmio addres in dts.
+	 * The timer is mmio map to access, so we need give mmio address in dts.
 	 *
-	 * It provides a 32bit countup timer and interrupt will be caused by count-overflow.
+	 * It provides a 32bit countup timer and interrupt will be caused by
+	 * count-overflow.
 	 * So we need set-next-event by ULONG_MAX - delta in TIMER_INI reg.
 	 *
 	 * The counter at 0x0  offset is clock event.
@@ -147,5 +151,4 @@ static int __init gx6605s_timer_init(struct device_node *np)
 
 	return gx6605s_clksrc_init(timer_of_base(&to) + CLKSRC_OFFSET);
 }
-TIMER_OF_DECLARE(natchip_gx6605s_timer, "natchip,gx6605s-timer", gx6605s_timer_init);
 TIMER_OF_DECLARE(csky_gx6605s_timer, "csky,gx6605s-timer", gx6605s_timer_init);
