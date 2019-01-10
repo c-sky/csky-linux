@@ -9,21 +9,25 @@
 #include <linux/platform_device.h>
 
 #define CSKY_PMU_MAX_EVENTS 32
+
+#define HPCR		"<0, 0x0>"	/* PMU Control reg */
+#define HPCNTENR	"<0, 0x4>"	/* Count Enable reg */
+
 static uint64_t (*hw_raw_read_mapping[CSKY_PMU_MAX_EVENTS])(void);
 static void (*hw_raw_write_mapping[CSKY_PMU_MAX_EVENTS])(uint64_t val);
 
 struct csky_pmu_t {
 	struct pmu	pmu;
-	uint32_t	config;
+	uint32_t	hpcr;
 } csky_pmu;
 
 #define cprgr(reg)				\
 ({						\
 	unsigned int tmp;			\
 	asm volatile("cprgr %0, "reg"\n"	\
-		     :"=r"(tmp)			\
+		     : "=r"(tmp)		\
 		     :				\
-		     :"memory");		\
+		     : "memory");		\
 	tmp;					\
 })
 
@@ -40,9 +44,9 @@ struct csky_pmu_t {
 ({						\
 	unsigned int tmp;			\
 	asm volatile("cprcr %0, "reg"\n"	\
-		     :"=r"(tmp)			\
+		     : "=r"(tmp)		\
 		     :				\
-		     :"memory");		\
+		     : "memory");		\
 	tmp;					\
 })
 
@@ -54,30 +58,6 @@ struct csky_pmu_t {
 	: "r"(val)		\
 	: "memory");		\
 })
-
-/* hardware profiling cycle counter */
-static uint64_t csky_pmu_read_hpcc(void)
-{
-	uint32_t lo, hi, tmp;
-	uint64_t result;
-
-	do {
-		tmp = cprgr("<0, 0x1>");
-		lo  = cprgr("<0, 0x0>");
-		hi  = cprgr("<0, 0x1>");
-	} while (hi != tmp);
-
-	result = (uint64_t) (hi) << 32;
-	result |= lo;
-
-	return result;
-}
-
-static void csky_pmu_write_hpcc(uint64_t val)
-{
-	cpwgr("<0, 0x0>", (uint32_t)  val);
-	cpwgr("<0, 0x1>", (uint32_t) (val >> 32));
-}
 
 /* cycle counter */
 static uint64_t csky_pmu_read_cc(void)
@@ -223,7 +203,7 @@ static void csky_pmu_write_dcmc(uint64_t val)
 	cpwgr("<0, 0xd>", (uint32_t) (val >> 32));
 }
 
-/* l2 cache acess counter */
+/* l2 cache access counter */
 static uint64_t csky_pmu_read_l2ac(void)
 {
 	uint32_t lo, hi, tmp;
@@ -865,11 +845,13 @@ static int csky_pmu_event_init(struct perf_event *event)
 	int ret;
 
 	if (event->attr.exclude_user)
-		csky_pmu.config = 0x4;
+		csky_pmu.hpcr = BIT(2);
 	else if (event->attr.exclude_kernel)
-		csky_pmu.config = 0x8;
+		csky_pmu.hpcr = BIT(3);
 	else
-		csky_pmu.config = 0x4 | 0x8;
+		csky_pmu.hpcr = BIT(2) | BIT(3);
+
+	csky_pmu.hpcr |= BIT(1) | BIT(0);
 
 	switch (event->attr.type) {
 	case PERF_TYPE_HARDWARE:
@@ -899,13 +881,13 @@ static int csky_pmu_event_init(struct perf_event *event)
 /* starts all counters */
 static void csky_pmu_enable(struct pmu *pmu)
 {
-	cpwcr("<0, 0x0>", csky_pmu.config | 0x3);
+	cpwcr(HPCR, csky_pmu.hpcr);
 }
 
 /* stops all counters */
 static void csky_pmu_disable(struct pmu *pmu)
 {
-	cpwcr("<0, 0x0>", 0);
+	cpwcr(HPCR, BIT(1));
 }
 
 static void csky_pmu_start(struct perf_event *event, int flags)
@@ -916,13 +898,12 @@ static void csky_pmu_start(struct perf_event *event, int flags)
 	if (WARN_ON_ONCE(idx == -1))
 		return;
 
-	if (flags & PERF_EF_RELOAD) {
+	if (flags & PERF_EF_RELOAD)
 		WARN_ON_ONCE(!(hwc->state & PERF_HES_UPTODATE));
-	}
 
 	hwc->state = 0;
 
-	cpwcr("<0, 0x4>", (0x1 << idx) | cprcr("<0, 0x4>"));
+	cpwcr(HPCNTENR, BIT(idx) | cprcr(HPCNTENR));
 }
 
 static void csky_pmu_stop(struct perf_event *event, int flags)
@@ -931,7 +912,7 @@ static void csky_pmu_stop(struct perf_event *event, int flags)
 	int idx = hwc->idx;
 
 	if (!(event->hw.state & PERF_HES_STOPPED)) {
-		cpwcr("<0, 0x4>", ~(0x1 << idx) & cprcr("<0, 0x4>"));
+		cpwcr(HPCNTENR, ~BIT(idx) & cprcr(HPCNTENR));
 		event->hw.state |= PERF_HES_STOPPED;
 	}
 
@@ -956,7 +937,8 @@ static int csky_pmu_add(struct perf_event *event, int flags)
 
 	local64_set(&hwc->prev_count, 0);
 
-	hw_raw_write_mapping[hwc->idx](0);
+	if (hw_raw_write_mapping[hwc->idx] != NULL)
+		hw_raw_write_mapping[hwc->idx](0);
 
 	hwc->state = PERF_HES_UPTODATE | PERF_HES_STOPPED;
 	if (flags & PERF_EF_START)
@@ -967,7 +949,7 @@ static int csky_pmu_add(struct perf_event *event, int flags)
 	return 0;
 }
 
-static int csky_pmu_device_probe(struct platform_device *pdev)
+int __init init_hw_perf_events(void)
 {
 	csky_pmu.pmu = (struct pmu) {
 		.pmu_enable	= csky_pmu_enable,
@@ -981,8 +963,8 @@ static int csky_pmu_device_probe(struct platform_device *pdev)
 	};
 
 	memset((void *)hw_raw_read_mapping, 0,
-	       sizeof(hw_raw_read_mapping[CSKY_PMU_MAX_EVENTS]));
-	hw_raw_read_mapping[0x0]  = csky_pmu_read_hpcc;
+		sizeof(hw_raw_read_mapping[CSKY_PMU_MAX_EVENTS]));
+
 	hw_raw_read_mapping[0x1]  = csky_pmu_read_cc;
 	hw_raw_read_mapping[0x2]  = csky_pmu_read_ic;
 	hw_raw_read_mapping[0x3]  = csky_pmu_read_icac;
@@ -1011,8 +993,8 @@ static int csky_pmu_device_probe(struct platform_device *pdev)
 	hw_raw_read_mapping[0x1b] = csky_pmu_read_l2wmc;
 
 	memset((void *)hw_raw_write_mapping, 0,
-	       sizeof(hw_raw_write_mapping[CSKY_PMU_MAX_EVENTS]));
-	hw_raw_write_mapping[0x0]  = csky_pmu_write_hpcc;
+		sizeof(hw_raw_write_mapping[CSKY_PMU_MAX_EVENTS]));
+
 	hw_raw_write_mapping[0x1]  = csky_pmu_write_cc;
 	hw_raw_write_mapping[0x2]  = csky_pmu_write_ic;
 	hw_raw_write_mapping[0x3]  = csky_pmu_write_icac;
@@ -1042,24 +1024,8 @@ static int csky_pmu_device_probe(struct platform_device *pdev)
 
 	csky_pmu.pmu.capabilities |= PERF_PMU_CAP_NO_INTERRUPT;
 
-	cpwcr("<0, 0x0>", 0xc0000000);
+	cpwcr(HPCR, BIT(31) | BIT(30) | BIT(1));
 
-	return perf_pmu_register(&csky_pmu.pmu, pdev->name, PERF_TYPE_RAW);
+	return perf_pmu_register(&csky_pmu.pmu, "cpu", PERF_TYPE_RAW);
 }
-
-#ifdef CONFIG_OF
-static const struct of_device_id csky_pmu_match[] = {
-	{ .compatible = "csky,pmu-v1" },
-	{},
-};
-MODULE_DEVICE_TABLE(of, csky_pmu_match);
-#endif
-
-static struct platform_driver csky_pmu_driver = {
-	.driver	= {
-		.name		= "csky-pmu",
-		.of_match_table = of_match_ptr(csky_pmu_match),
-	},
-	.probe	= csky_pmu_device_probe,
-};
-module_platform_driver(csky_pmu_driver);
+arch_initcall(init_hw_perf_events);

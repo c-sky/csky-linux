@@ -152,6 +152,19 @@ config CPU_CK860
 endchoice
 
 choice
+	prompt "C-SKY PMU type"
+	depends on PERF_EVENTS
+	depends on CPU_CK807 || CPU_CK810 || CPU_CK860
+
+config CPU_PMU_NONE
+	bool "None"
+
+config CSKY_PMU_V1
+	bool "Performance Monitoring Unit Ver.1"
+
+endchoice
+
+choice
 	prompt "Power Manager Instruction (wait/doze/stop)"
 	default CPU_PM_NONE
 
