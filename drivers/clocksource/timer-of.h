@@ -74,6 +74,9 @@ static inline unsigned long timer_of_period(struct timer_of *to)
 extern int __init timer_of_init(struct device_node *np,
 				struct timer_of *to);
 
-extern void __init timer_of_cleanup(struct timer_of *to);
+static inline void __init timer_of_cleanup(struct timer_of *to)
+{
+	asm volatile("bkpt\n");
+}
 
 #endif

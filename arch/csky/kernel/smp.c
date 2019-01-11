@@ -33,11 +33,10 @@ static inline void mmget(struct mm_struct *mm)
 #include <asm/mmu_context.h>
 #include <asm/pgalloc.h>
 
-#define IPI_IRQ	15
-
-static struct {
+struct ipi_data_struct {
 	unsigned long bits ____cacheline_aligned;
-} ipi_data[NR_CPUS] __cacheline_aligned;
+};
+static DEFINE_PER_CPU(struct ipi_data_struct, ipi_data);
 
 enum ipi_message_type {
 	IPI_EMPTY,
@@ -48,12 +47,10 @@ enum ipi_message_type {
 
 static irqreturn_t handle_ipi(int irq, void *dev)
 {
-	unsigned long *pending_ipis = &ipi_data[smp_processor_id()].bits;
-
 	while (true) {
 		unsigned long ops;
 
-		ops = xchg(pending_ipis, 0);
+		ops = xchg(&this_cpu_ptr(&ipi_data)->bits, 0);
 		if (ops == 0)
 			return IRQ_HANDLED;
 
@@ -69,14 +66,16 @@ static irqreturn_t handle_ipi(int irq, void *dev)
 	return IRQ_HANDLED;
 }
 
-static void (*send_arch_ipi)(const unsigned long *mask, unsigned long irq) = NULL;
+static void (*send_arch_ipi)(const struct cpumask *mask);
 
-void __init set_send_ipi(void (*func)(const unsigned long *, unsigned long))
+static int ipi_irq;
+void __init set_send_ipi(void (*func)(const struct cpumask *mask), int irq)
 {
 	if (send_arch_ipi)
 		return;
 
 	send_arch_ipi = func;
+	ipi_irq = irq;
 }
 
 static void
@@ -85,10 +84,10 @@ send_ipi_message(const struct cpumask *to_whom, enum ipi_message_type operation)
 	int i;
 
 	for_each_cpu(i, to_whom)
-		set_bit(operation, &ipi_data[i].bits);
+		set_bit(operation, &per_cpu_ptr(&ipi_data, i)->bits);
 
 	smp_mb();
-	send_arch_ipi(cpumask_bits(to_whom), IPI_IRQ);
+	send_arch_ipi(to_whom);
 }
 
 void arch_send_call_function_ipi_mask(struct cpumask *mask)
@@ -116,9 +115,6 @@ void smp_send_reschedule(int cpu)
 	send_ipi_message(cpumask_of(cpu), IPI_RESCHEDULE);
 }
 
-void *__cpu_up_stack_pointer[NR_CPUS];
-void *__cpu_up_task_pointer[NR_CPUS];
-
 void __init smp_prepare_boot_cpu(void)
 {
 }
@@ -133,13 +129,15 @@ void __init setup_smp_ipi(void)
 {
 	int rc;
 
-	irq_create_mapping(NULL, IPI_IRQ);
+	if (ipi_irq == 0)
+		panic("%s IRQ mapping failed\n", __func__);
 
-	rc = request_percpu_irq(IPI_IRQ, handle_ipi, "IPI Interrupt", &ipi_dummy_dev);
+	rc = request_percpu_irq(ipi_irq, handle_ipi, "IPI Interrupt",
+				&ipi_dummy_dev);
 	if (rc)
 		panic("%s IRQ request failed\n", __func__);
 
-	enable_percpu_irq(IPI_IRQ, 0);
+	enable_percpu_irq(ipi_irq, 0);
 }
 
 void __init setup_smp(void)
@@ -176,11 +174,15 @@ int __cpu_up(unsigned int cpu, struct task_struct *tidle)
 	secondary_hint = mfcr("cr31");
 	secondary_ccr  = mfcr("cr18");
 
-	/* Flush dcache */
+	/*
+	 * Because other CPUs are in reset status, we must flush data
+	 * from cache to out and secondary CPUs use them in
+	 * csky_start_secondary(void)
+	 */
 	mtcr("cr17", 0x22);
 
 	if (mask & mfcr("cr<29, 0>")) {
-		send_arch_ipi(&mask, IPI_IRQ);
+		send_arch_ipi(cpumask_of(cpu));
 	} else {
 		/* Enable cpu in SMP reset ctrl reg */
 		mask |= mfcr("cr<29, 0>");
@@ -225,7 +227,7 @@ void csky_start_secondary(void)
 	init_fpu();
 #endif
 
-	enable_percpu_irq(IPI_IRQ, 0);
+	enable_percpu_irq(ipi_irq, 0);
 
 	mmget(mm);
 	mmgrab(mm);
@@ -263,8 +265,6 @@ void __cpu_die(unsigned int cpu)
 		return;
 	}
 	pr_notice("CPU%u: shutdown\n", cpu);
-
-	return;
 }
 
 void arch_cpu_idle_dead(void)
@@ -273,7 +273,7 @@ void arch_cpu_idle_dead(void)
 
 	cpu_report_death();
 
-	while(!secondary_stack)
+	while (!secondary_stack)
 		arch_cpu_idle();
 
 	local_irq_disable();
