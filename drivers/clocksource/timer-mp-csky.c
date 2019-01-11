@@ -151,7 +151,7 @@ static int __init csky_mptimer_init(struct device_node *np)
 	clocksource_register_hz(&csky_clocksource, timer_of_rate(to));
 	sched_clock_register(sched_clock_read, 32, timer_of_rate(to));
 
-	ret = cpuhp_setup_state(CPUHP_AP_RISCV_TIMER_STARTING,
+	ret = cpuhp_setup_state(CPUHP_AP_DUMMY_TIMER_STARTING,
 				"clockevents/csky/timer:starting",
 				csky_mptimer_starting_cpu,
 				csky_mptimer_dying_cpu);
