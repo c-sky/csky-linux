@@ -150,7 +150,7 @@ ck_intc_init_comm(struct device_node *node, struct device_node *parent)
 	return 0;
 }
 
-static inline bool handle_irq_perbit(struct pt_regs *regs, u32 hwirq,
+static inline bool handle_irq_onebit(struct pt_regs *regs, u32 hwirq,
 				     u32 irq_base)
 {
 	if (hwirq == 0)
@@ -166,16 +166,15 @@ static void gx_irq_handler(struct pt_regs *regs)
 {
 	bool ret;
 
-retry:
-	ret = handle_irq_perbit(regs,
+	ret = handle_irq_onebit(regs,
 			readl(reg_base + GX_INTC_PEN63_32), 32);
 	if (ret)
-		goto retry;
+		return;
 
-	ret = handle_irq_perbit(regs,
+	ret = handle_irq_onebit(regs,
 			readl(reg_base + GX_INTC_PEN31_00), 0);
-	if (ret)
-		goto retry;
+	if (!ret)
+		pr_err("%s: none irq pending!\n", __func__);
 }
 
 static int __init
@@ -277,29 +276,30 @@ static void ck_irq_handler(struct pt_regs *regs)
 	void __iomem *reg_pen_lo = reg_base + CK_INTC_PEN31_00;
 	void __iomem *reg_pen_hi = reg_base + CK_INTC_PEN63_32;
 
-retry:
 	/* handle 0 - 63 irqs */
-	ret = handle_irq_perbit(regs, readl(reg_pen_hi), 32);
+	ret = handle_irq_onebit(regs, readl(reg_pen_hi), 32);
 	if (ret)
-		goto retry;
-
-	ret = handle_irq_perbit(regs, readl(reg_pen_lo), 0);
-	if (ret)
-		goto retry;
-
-	if (nr_irq == INTC_IRQS)
 		return;
 
+	ret = handle_irq_onebit(regs, readl(reg_pen_lo), 0);
+	if (ret)
+		return;
+
+	if (nr_irq == INTC_IRQS) {
+		pr_err("%s: none irq pending!\n", __func__);
+		return;
+	}
+
 	/* handle 64 - 127 irqs */
-	ret = handle_irq_perbit(regs,
+	ret = handle_irq_onebit(regs,
 			readl(reg_pen_hi + CK_INTC_DUAL_BASE), 96);
 	if (ret)
-		goto retry;
+		return;
 
-	ret = handle_irq_perbit(regs,
+	ret = handle_irq_onebit(regs,
 			readl(reg_pen_lo + CK_INTC_DUAL_BASE), 64);
-	if (ret)
-		goto retry;
+	if (!ret)
+		pr_err("%s: none irq pending!\n", __func__);
 }
 
 static int __init
