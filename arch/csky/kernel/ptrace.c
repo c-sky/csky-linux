@@ -7,7 +7,9 @@
 #include <linux/ptrace.h>
 #include <linux/regset.h>
 #include <linux/sched.h>
+#if (LINUX_VERSION_CODE >> 8) != (KERNEL_VERSION(4,9,0) >> 8)
 #include <linux/sched/task_stack.h>
+#endif
 #include <linux/signal.h>
 #include <linux/smp.h>
 #include <linux/uaccess.h>
