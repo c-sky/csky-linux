@@ -175,4 +175,8 @@
 	lrw	\rx, (PHYS_OFFSET + 0x20000000) | 0xe
 	mtcr	\rx, cr<31, 15>
 .endm
+
+.macro ANDI_R3 rx, imm
+	andi	\rx, \imm
+.endm
 #endif /* __ASM_CSKY_ENTRY_H */

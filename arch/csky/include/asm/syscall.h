@@ -7,6 +7,8 @@
 #include <linux/err.h>
 #include <abi/regdef.h>
 
+extern void *sys_call_table[];
+
 static inline int
 syscall_get_nr(struct task_struct *task, struct pt_regs *regs)
 {
