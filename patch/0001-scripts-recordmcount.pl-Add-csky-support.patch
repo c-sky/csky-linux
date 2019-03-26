@@ -1,0 +1,27 @@
+From 681106a84ff78e8089ee273d05d8fbba6be942b7 Mon Sep 17 00:00:00 2001
+From: Guo Ren <ren_guo@c-sky.com>
+Date: Tue, 26 Mar 2019 11:24:07 +0800
+Subject: [PATCH] scripts/recordmcount.pl: Add csky support
+
+Signed-off-by: Guo Ren <ren_guo@c-sky.com>
+---
+ scripts/recordmcount.pl | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/scripts/recordmcount.pl b/scripts/recordmcount.pl
+index faac4b1..7126d16 100755
+--- a/scripts/recordmcount.pl
++++ b/scripts/recordmcount.pl
+@@ -374,6 +374,9 @@ if ($arch eq "x86_64") {
+     $mcount_regex = "^\\s*([0-9a-fA-F]+):.*\\s__mcount\$";
+     $type = ".quad";
+     $alignment = 8;
++} elsif ($arch eq "csky") {
++    $mcount_regex = "^\\s*([0-9a-fA-F]+):\\s*R_CKCORE_PCREL_JSR_IMM26BY2\\s+_mcount\$";
++    $alignment = 2;
+ } else {
+     die "Arch $arch is not supported with CONFIG_FTRACE_MCOUNT_RECORD";
+ }
+-- 
+2.7.4
+
