@@ -222,7 +222,7 @@ handle_signal(int sig, struct k_sigaction *ka, siginfo_t *info,
  * that the kernel can handle, and then we build all the user-level signal
  * handling stack-frames in one go after that.
  */
-static void do_signal(struct pt_regs *regs, int syscall)
+static void do_signal(struct pt_regs *regs)
 {
 	unsigned int retval = 0, continue_addr = 0, restart_addr = 0;
 	struct ksignal ksig;
@@ -239,7 +239,9 @@ static void do_signal(struct pt_regs *regs, int syscall)
 	/*
 	 * If we were from a system call, check for system call restarting...
 	 */
-	if (syscall) {
+	if (in_syscall(regs)) {
+		forget_syscall(regs);
+
 		continue_addr = regs->pc;
 #if defined(__CSKYABIV2__)
 		restart_addr = continue_addr - 4;
@@ -247,7 +249,6 @@ static void do_signal(struct pt_regs *regs, int syscall)
 		restart_addr = continue_addr - 2;
 #endif
 		retval = regs->a0;
-
 		/*
 		 * Prepare for system call restart.  We do this here so that a
 		 * debugger will see the already changed.
@@ -308,7 +309,9 @@ static void do_signal(struct pt_regs *regs, int syscall)
 	}
 
 no_signal:
-	if (syscall) {
+	if (in_syscall(regs)) {
+		forget_syscall(regs);
+
 		/*
 		 * Handle restarting a different system call.  As above,
 		 * if a debugger has chosen to restart at a different PC,
@@ -336,10 +339,10 @@ no_signal:
 }
 
 asmlinkage void
-do_notify_resume(unsigned int thread_flags, struct pt_regs *regs, int syscall)
+do_notify_resume(unsigned int thread_flags, struct pt_regs *regs)
 {
 	if (thread_flags & _TIF_SIGPENDING)
-		do_signal(regs, syscall);
+		do_signal(regs);
 
 	if (thread_flags & _TIF_NOTIFY_RESUME) {
 		clear_thread_flag(TIF_NOTIFY_RESUME);
