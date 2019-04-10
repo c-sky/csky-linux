@@ -5,6 +5,7 @@
 
 #define syscallid	r1
 #define regs_syscallid(regs) regs->regs[9]
+#define regs_fp(regs) regs->regs[2]
 
 /*
  * PSR format:
