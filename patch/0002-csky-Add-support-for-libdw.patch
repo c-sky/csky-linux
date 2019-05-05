@@ -117,7 +117,7 @@ index 0000000..e4e5f33
 --- /dev/null
 +++ b/tools/perf/arch/csky/Build
 @@ -0,0 +1 @@
-+perf-y += util/
++libperf-y += util/
 diff --git a/tools/perf/arch/csky/Makefile b/tools/perf/arch/csky/Makefile
 new file mode 100644
 index 0000000..7fbca17
@@ -239,8 +239,8 @@ index 0000000..1160bb2
 --- /dev/null
 +++ b/tools/perf/arch/csky/util/Build
 @@ -0,0 +1,2 @@
-+perf-$(CONFIG_DWARF) += dwarf-regs.o
-+perf-$(CONFIG_LIBDW_DWARF_UNWIND) += unwind-libdw.o
++libperf-$(CONFIG_DWARF) += dwarf-regs.o
++libperf-$(CONFIG_LIBDW_DWARF_UNWIND) += unwind-libdw.o
 diff --git a/tools/perf/arch/csky/util/dwarf-regs.c b/tools/perf/arch/csky/util/dwarf-regs.c
 new file mode 100644
 index 0000000..ca86eca
