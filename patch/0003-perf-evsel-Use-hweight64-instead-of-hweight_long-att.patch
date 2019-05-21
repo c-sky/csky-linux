@@ -1,0 +1,79 @@
+From cf1c19a393bd2bd5df791ea06f4287c34af6a034 Mon Sep 17 00:00:00 2001
+Message-Id: <cf1c19a393bd2bd5df791ea06f4287c34af6a034.1558417965.git.han_mao@c-sky.com>
+From: Mao Han <han_mao@c-sky.com>
+Date: Tue, 21 May 2019 13:51:32 +0800
+Subject: [PATCH 1/1] perf evsel: Use hweight64() instead of
+ hweight_long(attr.sample_regs_user)
+
+On 32-bits platform with more than 32 registers, the 64 bits mask is
+truncate to the lower 32 bits and the return value of hweight_long will
+always smaller than 32. When kernel outputs more than 32 registers, but
+the user perf program only counts 32, there will be a data mismatch
+result to overflow check fail.
+
+Signed-off-by: Mao Han <han_mao@c-sky.com>
+---
+ tools/perf/util/evsel.c | 12 ++++++------
+ 1 file changed, 6 insertions(+), 6 deletions(-)
+
+diff --git a/tools/perf/util/evsel.c b/tools/perf/util/evsel.c
+index 8bc2711..5e718b1 100644
+--- a/tools/perf/util/evsel.c
++++ b/tools/perf/util/evsel.c
+@@ -1914,7 +1914,7 @@ int perf_evsel__parse_sample(struct perf_evsel *evsel, union perf_event *event,
+ 		if (data->user_regs.abi) {
+ 			u64 mask = evsel->attr.sample_regs_user;
+ 
+-			sz = hweight_long(mask) * sizeof(u64);
++			sz = hweight64(mask) * sizeof(u64);
+ 			OVERFLOW_CHECK(array, sz, max_size);
+ 			data->user_regs.mask = mask;
+ 			data->user_regs.regs = (u64 *)array;
+@@ -1972,7 +1972,7 @@ int perf_evsel__parse_sample(struct perf_evsel *evsel, union perf_event *event,
+ 		if (data->intr_regs.abi != PERF_SAMPLE_REGS_ABI_NONE) {
+ 			u64 mask = evsel->attr.sample_regs_intr;
+ 
+-			sz = hweight_long(mask) * sizeof(u64);
++			sz = hweight64(mask) * sizeof(u64);
+ 			OVERFLOW_CHECK(array, sz, max_size);
+ 			data->intr_regs.mask = mask;
+ 			data->intr_regs.regs = (u64 *)array;
+@@ -2050,7 +2050,7 @@ size_t perf_event__sample_event_size(const struct perf_sample *sample, u64 type,
+ 	if (type & PERF_SAMPLE_REGS_USER) {
+ 		if (sample->user_regs.abi) {
+ 			result += sizeof(u64);
+-			sz = hweight_long(sample->user_regs.mask) * sizeof(u64);
++			sz = hweight64(sample->user_regs.mask) * sizeof(u64);
+ 			result += sz;
+ 		} else {
+ 			result += sizeof(u64);
+@@ -2078,7 +2078,7 @@ size_t perf_event__sample_event_size(const struct perf_sample *sample, u64 type,
+ 	if (type & PERF_SAMPLE_REGS_INTR) {
+ 		if (sample->intr_regs.abi) {
+ 			result += sizeof(u64);
+-			sz = hweight_long(sample->intr_regs.mask) * sizeof(u64);
++			sz = hweight64(sample->intr_regs.mask) * sizeof(u64);
+ 			result += sz;
+ 		} else {
+ 			result += sizeof(u64);
+@@ -2230,7 +2230,7 @@ int perf_event__synthesize_sample(union perf_event *event, u64 type,
+ 	if (type & PERF_SAMPLE_REGS_USER) {
+ 		if (sample->user_regs.abi) {
+ 			*array++ = sample->user_regs.abi;
+-			sz = hweight_long(sample->user_regs.mask) * sizeof(u64);
++			sz = hweight64(sample->user_regs.mask) * sizeof(u64);
+ 			memcpy(array, sample->user_regs.regs, sz);
+ 			array = (void *)array + sz;
+ 		} else {
+@@ -2266,7 +2266,7 @@ int perf_event__synthesize_sample(union perf_event *event, u64 type,
+ 	if (type & PERF_SAMPLE_REGS_INTR) {
+ 		if (sample->intr_regs.abi) {
+ 			*array++ = sample->intr_regs.abi;
+-			sz = hweight_long(sample->intr_regs.mask) * sizeof(u64);
++			sz = hweight64(sample->intr_regs.mask) * sizeof(u64);
+ 			memcpy(array, sample->intr_regs.regs, sz);
+ 			array = (void *)array + sz;
+ 		} else {
+-- 
+2.7.4
+
