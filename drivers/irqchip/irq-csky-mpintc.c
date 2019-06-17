@@ -160,7 +160,10 @@ static int csky_irq_set_affinity(struct irq_data *d,
 		return -EINVAL;
 
 	/* Enable interrupt destination */
-	cpu |= BIT(31);
+	if (cpumask_equal(mask_val, cpu_present_mask))
+		cpu = 0;
+	else
+		cpu |= BIT(31);
 
 	writel_relaxed(cpu, INTCG_base + INTCG_CIDSTR + offset);
 
