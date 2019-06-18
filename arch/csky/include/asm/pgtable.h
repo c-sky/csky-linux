@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: GPL-2.0
+/* SPDX-License-Identifier: GPL-2.0 */
 // Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
+
 #ifndef __ASM_CSKY_PGTABLE_H
 #define __ASM_CSKY_PGTABLE_H
 
@@ -42,30 +43,33 @@
 	(pmd_page_vaddr(*(dir)) + __pte_offset_t(address))
 #define pte_offset_map(dir, address) \
 	((pte_t *)page_address(pmd_page(*(dir))) + __pte_offset_t(address))
-#define pmd_page(pmd)			(pfn_to_page(pmd_phys(pmd) >> PAGE_SHIFT))
-#define pte_clear(mm,addr,ptep)		set_pte((ptep), \
+#define pmd_page(pmd)	(pfn_to_page(pmd_phys(pmd) >> PAGE_SHIFT))
+#define pte_clear(mm, addr, ptep)	set_pte((ptep), \
 	(((unsigned int) addr & PAGE_OFFSET) ? __pte(_PAGE_GLOBAL) : __pte(0)))
 #define pte_none(pte)		(!(pte_val(pte) & ~_PAGE_GLOBAL))
-#define pte_present(pte)		(pte_val(pte) & _PAGE_PRESENT )
-#define pte_pfn(x)			((unsigned long)((x).pte_low >> PAGE_SHIFT))
-#define pfn_pte(pfn, prot)		__pte(((unsigned long long)(pfn) << PAGE_SHIFT) \
-						| pgprot_val(prot))
+#define pte_present(pte)	(pte_val(pte) & _PAGE_PRESENT)
+#define pte_pfn(x)	((unsigned long)((x).pte_low >> PAGE_SHIFT))
+#define pfn_pte(pfn, prot) __pte(((unsigned long long)(pfn) << PAGE_SHIFT) \
+				| pgprot_val(prot))
 
 #define __READABLE	(_PAGE_READ | _PAGE_VALID | _PAGE_ACCESSED)
 #define __WRITEABLE	(_PAGE_WRITE | _PAGE_DIRTY | _PAGE_MODIFIED)
 
-#define _PAGE_CHG_MASK  (PAGE_MASK | _PAGE_ACCESSED | _PAGE_MODIFIED | _CACHE_MASK)
+#define _PAGE_CHG_MASK	(PAGE_MASK | _PAGE_ACCESSED | _PAGE_MODIFIED | \
+			 _CACHE_MASK)
 
-#define pte_unmap(pte) ((void)(pte))
+#define pte_unmap(pte)	((void)(pte))
 
 #define __swp_type(x)			(((x).val >> 4) & 0xff)
 #define __swp_offset(x)			((x).val >> 12)
-#define __swp_entry(type, offset)	((swp_entry_t) {((type) << 4) | ((offset) << 12) })
+#define __swp_entry(type, offset)	((swp_entry_t) {((type) << 4) | \
+					((offset) << 12) })
 #define __pte_to_swp_entry(pte)		((swp_entry_t) { pte_val(pte) })
 #define __swp_entry_to_pte(x)		((pte_t) { (x).val })
 
 #define pte_page(x)			pfn_to_page(pte_pfn(x))
-#define __mk_pte(page_nr,pgprot)	__pte(((page_nr) << PAGE_SHIFT) | pgprot_val(pgprot))
+#define __mk_pte(page_nr, pgprot)	__pte(((page_nr) << PAGE_SHIFT) | \
+					pgprot_val(pgprot))
 
 /*
  * CSKY can't do page protection for execute, and considers that the same like
@@ -115,9 +119,10 @@ static inline void set_pte(pte_t *p, pte_t pte)
 #if defined(CONFIG_CPU_NEED_TLBSYNC)
 	dcache_wb_line((u32)p);
 #endif
+	/* prevent out of order excution */
 	smp_mb();
 }
-#define set_pte_at(mm,addr,ptep,pteval) set_pte(ptep,pteval)
+#define set_pte_at(mm, addr, ptep, pteval) set_pte(ptep, pteval)
 
 static inline pte_t *pmd_page_vaddr(pmd_t pmd)
 {
@@ -136,6 +141,7 @@ static inline void set_pmd(pmd_t *p, pmd_t pmd)
 #if defined(CONFIG_CPU_NEED_TLBSYNC)
 	dcache_wb_line((u32)p);
 #endif
+	/* prevent specul excute */
 	smp_mb();
 }
 
@@ -149,14 +155,14 @@ static inline int pmd_none(pmd_t pmd)
 
 static inline int pmd_present(pmd_t pmd)
 {
-        return (pmd_val(pmd) != __pa(invalid_pte_table));
+	return (pmd_val(pmd) != __pa(invalid_pte_table));
 }
 
 static inline void pmd_clear(pmd_t *p)
 {
-        pmd_val(*p) = (__pa(invalid_pte_table));
+	pmd_val(*p) = (__pa(invalid_pte_table));
 #if defined(CONFIG_CPU_NEED_TLBSYNC)
-        dcache_wb_line((u32)p);
+	dcache_wb_line((u32)p);
 #endif
 }
 
@@ -275,7 +281,7 @@ static inline pgd_t *pgd_offset(struct mm_struct *mm, unsigned long address)
 }
 
 /* Find an entry in the third-level page table.. */
-static inline pte_t *pte_offset(pmd_t * dir, unsigned long address)
+static inline pte_t *pte_offset(pmd_t *dir, unsigned long address)
 {
 	return (pte_t *) (pmd_page_vaddr(*dir)) +
 		((address >> PAGE_SHIFT) & (PTRS_PER_PTE - 1));
@@ -286,7 +292,8 @@ extern void paging_init(void);
 
 extern void show_jtlb_table(void);
 
-void update_mmu_cache(struct vm_area_struct *vma, unsigned long address, pte_t *pte);
+void update_mmu_cache(struct vm_area_struct *vma, unsigned long address,
+		      pte_t *pte);
 
 /* Needs to be defined here and not in linux/mm.h, as it is arch dependent */
 #define kern_addr_valid(addr)	(1)
@@ -294,7 +301,7 @@ void update_mmu_cache(struct vm_area_struct *vma, unsigned long address, pte_t *
 /*
  * No page table caches to initialise
  */
-#define pgtable_cache_init()	do {} while(0)
+#define pgtable_cache_init()	do {} while (0)
 
 #define io_remap_pfn_range(vma, vaddr, pfn, size, prot) \
 	remap_pfn_range(vma, vaddr, pfn, size, prot)
