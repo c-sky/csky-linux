@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: GPL-2.0
+/* SPDX-License-Identifier: GPL-2.0 */
 // Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
+
 #ifndef __ASM_CSKY_ENTRY_H
 #define __ASM_CSKY_ENTRY_H
 
@@ -109,12 +110,12 @@
 
 .macro SAVE_SWITCH_STACK
 	subi    sp, 32
-	stm     r8-r15,(sp)
+	stm     r8-r15, (sp)
 .endm
 
 .macro RESTORE_SWITCH_STACK
-        ldm     r8-r15,(sp)
-        addi    sp, 32
+	ldm     r8-r15, (sp)
+	addi    sp, 32
 .endm
 
 /* MMU registers operators. */
@@ -131,7 +132,7 @@
 .endm
 
 .macro RD_PGDR  rx
-        cprcr   \rx, cpcr29
+	cprcr   \rx, cpcr29
 .endm
 
 .macro WR_MEH	rx

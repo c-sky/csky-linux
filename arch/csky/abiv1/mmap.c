@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 // Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
+
 #include <linux/fs.h>
 #include <linux/mm.h>
 #include <linux/mman.h>
@@ -10,14 +11,14 @@
 
 unsigned long shm_align_mask = (0x4000 >> 1) - 1;   /* Sane caches */
 
-#define COLOUR_ALIGN(addr,pgoff)                            \
-	((((addr) + shm_align_mask) & ~shm_align_mask) +        \
+#define COLOUR_ALIGN(addr, pgoff) \
+	((((addr) + shm_align_mask) & ~shm_align_mask) + \
 	 (((pgoff) << PAGE_SHIFT) & shm_align_mask))
 
 unsigned long arch_get_unmapped_area(struct file *filp, unsigned long addr,
 		unsigned long len, unsigned long pgoff, unsigned long flags)
 {
-	struct vm_area_struct * vmm;
+	struct vm_area_struct *vmm;
 	int do_color_align;
 
 	if (flags & MAP_FIXED) {
@@ -26,7 +27,7 @@ unsigned long arch_get_unmapped_area(struct file *filp, unsigned long addr,
 		 * cache aliasing constraints.
 		 */
 		if ((flags & MAP_SHARED) &&
-				((addr - (pgoff << PAGE_SHIFT)) & shm_align_mask))
+			((addr - (pgoff << PAGE_SHIFT)) & shm_align_mask))
 			return -EINVAL;
 		return addr;
 	}
@@ -53,7 +54,7 @@ unsigned long arch_get_unmapped_area(struct file *filp, unsigned long addr,
 		addr = PAGE_ALIGN(addr);
 
 	for (vmm = find_vma(current->mm, addr); ; vmm = vmm->vm_next) {
-		/* At this point:  (!vmm || addr < vmm->vm_end). */
+		/* At this point: (!vmm || addr < vmm->vm_end). */
 		if (TASK_SIZE - len < addr)
 			return -ENOMEM;
 		if (!vmm || addr + len <= vmm->vm_start)

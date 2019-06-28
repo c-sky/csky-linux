@@ -1,5 +1,5 @@
-// SPDX-License-Identifier: GPL-2.0
-// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
+/* SPDX-License-Identifier: GPL-2.0 */
+
 #include <linux/uaccess.h>
 
 static inline int setup_vdso_page(unsigned short *ptr)

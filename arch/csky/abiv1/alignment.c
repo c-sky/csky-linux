@@ -1,22 +1,16 @@
 // SPDX-License-Identifier: GPL-2.0
 // Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
+
 #include <linux/kernel.h>
 #include <linux/uaccess.h>
 #include <linux/ptrace.h>
 
 static int align_enable = 1;
-static int align_count  = 0;
+static int align_count;
 
 static inline uint32_t get_ptreg(struct pt_regs *regs, uint32_t rx)
 {
-	uint32_t val;
-
-	if (rx == 15)
-		val = regs->lr;
-	else
-		val = *((uint32_t *)&(regs->a0) - 2 + rx);
-
-	return val;
+	return rx == 15 ? regs->lr : *((uint32_t *)&(regs->a0) - 2 + rx);
 }
 
 static inline void put_ptreg(struct pt_regs *regs, uint32_t rx, uint32_t val)
@@ -25,7 +19,6 @@ static inline void put_ptreg(struct pt_regs *regs, uint32_t rx, uint32_t val)
 		regs->lr = val;
 	else
 		*((uint32_t *)&(regs->a0) - 2 + rx) = val;
-	return;
 }
 
 /*
@@ -43,18 +36,18 @@ static int ldb_asm(uint32_t addr, uint32_t *valp)
 		return 1;
 
 	asm volatile (
-		"movi	%0, 0			\n"
-		"1:				\n"
-		"ldb	%1, (%2)		\n"
-		"br	3f			\n"
-		"2:				\n"
-		"movi	%0, 1			\n"
-		"br	3f			\n"
-		".section __ex_table,\"a\"	\n"
-		".align 2			\n"
-		".long	1b, 2b			\n"
-		".previous			\n"
-		"3:				\n"
+		"movi	%0, 0\n"
+		"1:\n"
+		"ldb	%1, (%2)\n"
+		"br	3f\n"
+		"2:\n"
+		"movi	%0, 1\n"
+		"br	3f\n"
+		".section __ex_table,\"a\"\n"
+		".align 2\n"
+		".long	1b, 2b\n"
+		".previous\n"
+		"3:\n"
 		: "=&r"(err), "=r"(val)
 		: "r" (addr)
 	);
@@ -70,7 +63,7 @@ static int ldb_asm(uint32_t addr, uint32_t *valp)
  * Success: return 0
  * Failure: return 1
  */
-static volatile int stb_asm(uint32_t addr, uint32_t val)
+static int stb_asm(uint32_t addr, uint32_t val)
 {
 	int err;
 
@@ -78,18 +71,18 @@ static volatile int stb_asm(uint32_t addr, uint32_t val)
 		return 1;
 
 	asm volatile (
-		"movi	%0, 0			\n"
-		"1:				\n"
-		"stb	%1, (%2)		\n"
-		"br	3f			\n"
-		"2:				\n"
-		"movi	%0, 1			\n"
-		"br	3f			\n"
-		".section __ex_table,\"a\"	\n"
-		".align 2			\n"
-		".long	1b, 2b			\n"
-		".previous			\n"
-		"3:				\n"
+		"movi	%0, 0\n"
+		"1:\n"
+		"stb	%1, (%2)\n"
+		"br	3f\n"
+		"2:\n"
+		"movi	%0, 1\n"
+		"br	3f\n"
+		".section __ex_table,\"a\"\n"
+		".align 2\n"
+		".long	1b, 2b\n"
+		".previous\n"
+		"3:\n"
 		: "=&r"(err)
 		: "r"(val), "r" (addr)
 	);
@@ -253,7 +246,7 @@ void csky_alignment(struct pt_regs *regs)
 	if (rx == 0 || rx == 1 || rz == 0 || rz == 1)
 		goto bad_area;
 
-	switch(opcode) {
+	switch (opcode) {
 	case OP_LDH:
 		addr = get_ptreg(regs, rx) + (imm << 1);
 		ret = ldh_c(regs, rz, addr);
@@ -272,7 +265,7 @@ void csky_alignment(struct pt_regs *regs)
 		break;
 	}
 
-	if(ret)
+	if (ret)
 		goto bad_area;
 
 	regs->pc += 2;
@@ -286,7 +279,7 @@ bad_area:
 
 		bust_spinlocks(1);
 		pr_alert("%s opcode: %x, rz: %d, rx: %d, imm: %d, addr: %x.\n",
-		          __func__, opcode, rz, rx, imm, addr);
+				__func__, opcode, rz, rx, imm, addr);
 		show_regs(regs);
 		bust_spinlocks(0);
 		do_exit(SIGKILL);
@@ -340,4 +333,3 @@ static int __init csky_alignment_init(void)
 }
 
 arch_initcall(csky_alignment_init);
-
