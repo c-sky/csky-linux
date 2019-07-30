@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 // Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
+
 #include <linux/export.h>
 #include <linux/mm.h>
 #include <linux/vmalloc.h>
@@ -15,18 +16,17 @@ void __iomem *ioremap(phys_addr_t addr, size_t size)
 	pgprot_t prot;
 
 	last_addr = addr + size - 1;
-	if (!size || last_addr < addr) {
+	if (!size || last_addr < addr)
 		return NULL;
-	}
 
 	offset = addr & (~PAGE_MASK);
 	addr &= PAGE_MASK;
 	size = PAGE_ALIGN(size + offset);
 
 	area = get_vm_area_caller(size, VM_ALLOC, __builtin_return_address(0));
-	if (!area) {
+	if (!area)
 		return NULL;
-	}
+
 	vaddr = (unsigned long)area->addr;
 
 	prot = __pgprot(_PAGE_PRESENT | __READABLE | __WRITEABLE |
