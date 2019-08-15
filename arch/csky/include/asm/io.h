@@ -3,9 +3,9 @@
 #ifndef __ASM_CSKY_IO_H
 #define __ASM_CSKY_IO_H
 
-#include <asm/pgtable.h>
 #include <linux/types.h>
-#include <linux/version.h>
+#include <linux/mm_types.h>
+#include <asm/pgtable.h>
 
 /*
  * I/O memory access primitives. Reads are ordered relative to any
@@ -18,6 +18,43 @@
  * For CACHEV2 (860), store instruction with PAGE_ATTR_NO_BUFFERABLE won't
  * fast retire.
  */
+
+#define readb_relaxed readb_relaxed
+static inline u8 readb_relaxed(const volatile void __iomem *addr)
+{
+	return *(const volatile u8 __force *)addr;
+}
+
+#define readw_relaxed readw_relaxed
+static inline u16 readw_relaxed(const volatile void __iomem *addr)
+{
+	return *(const volatile u16 __force *)addr;
+}
+
+#define readl_relaxed readl_relaxed
+static inline u32 readl_relaxed(const volatile void __iomem *addr)
+{
+	return *(const volatile u32 __force *)addr;
+}
+
+#define writeb_relaxed writeb_relaxed
+static inline void writeb_relaxed(u8 value, volatile void __iomem *addr)
+{
+	*(volatile u8 __force *)addr = value;
+}
+
+#define writew_relaxed writew_relaxed
+static inline void writew_relaxed(u16 value, volatile void __iomem *addr)
+{
+	*(volatile u16 __force *)addr = value;
+}
+
+#define writel_relaxed writel_relaxed
+static inline void writel_relaxed(u32 value, volatile void __iomem *addr)
+{
+	*(volatile u32 __force *)addr = value;
+}
+
 #define readb(c)		({ u8  __v = readb_relaxed(c); rmb(); __v; })
 #define readw(c)		({ u16 __v = readw_relaxed(c); rmb(); __v; })
 #define readl(c)		({ u32 __v = readl_relaxed(c); rmb(); __v; })
@@ -42,6 +79,7 @@ extern void iounmap(void *addr);
 #define ioremap(addr, size)		__ioremap((addr), (size), pgprot_noncached(PAGE_KERNEL))
 #define ioremap_wc(addr, size)		__ioremap((addr), (size), pgprot_writecombine(PAGE_KERNEL))
 #define ioremap_nocache(addr, size)	ioremap((addr), (size))
+#define ioremap_wt(addr, size)		ioremap((addr), (size))
 #define ioremap_cache			ioremap_cache
 
 #include <asm-generic/io.h>
