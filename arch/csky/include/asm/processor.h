@@ -103,5 +103,6 @@ unsigned long get_wchan(struct task_struct *p);
 	((struct pt_regs *)(THREAD_SIZE + task_stack_page(p)) - 1)
 
 #define cpu_relax() barrier()
+#define cpu_relax_lowlatency()                cpu_relax()
 
 #endif /* __ASM_CSKY_PROCESSOR_H */
