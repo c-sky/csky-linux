@@ -39,9 +39,25 @@
 	__typeof__(new) __tmp;					\
 	__typeof__(old) __old = (old);				\
 	__typeof__(*(ptr)) __ret;				\
+	smp_mb();						\
 	switch (size) {						\
+	case 1:							\
+		asm volatile (					\
+		"1:	ldex.w		%1, (%3) \n"		\
+		"	zextb		%0, %1   \n"		\
+		"	cmpne		%0, %4   \n"		\
+		"	bt		2f       \n"		\
+		"	lsri		%1, 8    \n"		\
+		"	lsli		%1, 8    \n"		\
+		"	or		%1, %2   \n"		\
+		"	stex.w		%1, (%3) \n"		\
+		"	bez		%1, 1b   \n"		\
+		"2:				 \n"		\
+			: "=&r"(__ret), "=&r"(__tmp)		\
+			: "r"(__new), "r"(__ptr), "r"(__old)	\
+			:);					\
+		break;						\
 	case 4:							\
-		smp_mb();					\
 		asm volatile (					\
 		"1:	ldex.w		%0, (%3) \n"		\
 		"	cmpne		%0, %4   \n"		\
@@ -53,11 +69,11 @@
 			: "=&r" (__ret), "=&r" (__tmp)		\
 			: "r" (__new), "r"(__ptr), "r"(__old)	\
 			:);					\
-		smp_mb();					\
 		break;						\
 	default:						\
 		BUILD_BUG();					\
 	}							\
+	smp_mb();						\
 	__ret;							\
 })
 
