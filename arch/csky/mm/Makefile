@@ -13,3 +13,4 @@ obj-y +=			syscache.o
 obj-y +=			tlb.o
 obj-y +=			asid.o
 obj-y +=			context.o
+obj-$(CONFIG_HAVE_TCM) +=	tcm.o
