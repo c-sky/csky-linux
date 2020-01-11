@@ -131,6 +131,7 @@ EXPORT_SYMBOL(get_wchan);
 #ifndef CONFIG_CPU_PM_NONE
 void arch_cpu_idle(void)
 {
+	dcache_wbinv_all();
 #ifdef CONFIG_CPU_PM_WAIT
 	asm volatile("wait\n");
 #endif
