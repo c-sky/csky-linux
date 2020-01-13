@@ -141,7 +141,7 @@ void __init fixrange_init(unsigned long start, unsigned long end,
 			pmd = (pmd_t *)pud;
 			for (; (k < PTRS_PER_PMD) && (vaddr != end); pmd++, k++) {
 				if (pmd_none(*pmd)) {
-					pte = (pte_t *) memblock_alloc_low(PAGE_SIZE, PAGE_SIZE);
+					pte = (pte_t *) alloc_bootmem_low_pages(PAGE_SIZE);
 					if (!pte)
 						panic("%s: Failed to allocate %lu bytes align=%lx\n",
 						      __func__, PAGE_SIZE,
