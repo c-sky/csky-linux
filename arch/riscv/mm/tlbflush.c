@@ -3,6 +3,57 @@
 #include <linux/mm.h>
 #include <linux/smp.h>
 #include <linux/sched.h>
+
+#define XUANTIE
+#ifdef  XUANTIE
+#include <asm/mmu_context.h>
+
+void flush_tlb_all(void)
+{
+	__asm__ __volatile__ ("sfence.vma" : : : "memory");
+}
+
+void flush_tlb_mm(struct mm_struct *mm)
+{
+	int newpid = cpu_asid(mm);
+
+	__asm__ __volatile__ ("sfence.vma zero, %0"
+				:
+				: "r"(newpid)
+				: "memory");
+}
+
+void flush_tlb_page(struct vm_area_struct *vma, unsigned long addr)
+{
+	int newpid = cpu_asid(vma->vm_mm);
+
+	addr &= PAGE_MASK;
+
+	__asm__ __volatile__ ("sfence.vma %0, %1"
+				:
+				: "r"(addr), "r"(newpid)
+				: "memory");
+}
+
+void flush_tlb_range(struct vm_area_struct *vma, unsigned long start,
+			unsigned long end)
+{
+	unsigned long newpid = cpu_asid(vma->vm_mm);
+
+	start &= PAGE_MASK;
+	end   += PAGE_SIZE - 1;
+	end   &= PAGE_MASK;
+
+	while (start < end) {
+		__asm__ __volatile__ ("sfence.vma %0, %1"
+					:
+					: "r"(start), "r"(newpid)
+					: "memory");
+		start += PAGE_SIZE;
+	}
+}
+#else
+
 #include <asm/sbi.h>
 
 void flush_tlb_all(void)
@@ -54,3 +105,4 @@ void flush_tlb_range(struct vm_area_struct *vma, unsigned long start,
 {
 	__sbi_tlb_flush_range(mm_cpumask(vma->vm_mm), start, end - start);
 }
+#endif
