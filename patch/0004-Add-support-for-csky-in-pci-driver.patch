@@ -1,0 +1,39 @@
+From cf4fc1b25988b43d05c9910aa03c2dd8ef3345c9 Mon Sep 17 00:00:00 2001
+From: Ma Jun <majun258@linux.alibaba.com>
+Date: Mon, 17 Feb 2020 12:26:11 +0800
+Subject: [PATCH 1/2] Add support for csky in pci driver
+
+Signed-off-by: Ma Jun <majun258@linux.alibaba.com>
+---
+ drivers/pci/Makefile     | 1 +
+ drivers/pci/host/Kconfig | 2 +-
+ 2 files changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/pci/Makefile b/drivers/pci/Makefile
+index 8db5079f..ca42d52e 100644
+--- a/drivers/pci/Makefile
++++ b/drivers/pci/Makefile
+@@ -41,6 +41,7 @@ obj-$(CONFIG_MIPS) += setup-irq.o
+ obj-$(CONFIG_TILE) += setup-irq.o
+ obj-$(CONFIG_SPARC_LEON) += setup-irq.o
+ obj-$(CONFIG_M68K) += setup-irq.o
++obj-$(CONFIG_CSKY) += setup-irq.o
+ 
+ #
+ # ACPI Related PCI FW Functions
+diff --git a/drivers/pci/host/Kconfig b/drivers/pci/host/Kconfig
+index d7e7c0a8..f4dd3424 100644
+--- a/drivers/pci/host/Kconfig
++++ b/drivers/pci/host/Kconfig
+@@ -96,7 +96,7 @@ config PCI_HOST_COMMON
+ 
+ config PCI_HOST_GENERIC
+ 	bool "Generic PCI host controller"
+-	depends on (ARM || ARM64) && OF
++	depends on (ARM || ARM64 || CSKY) && OF
+ 	select PCI_HOST_COMMON
+ 	select IRQ_DOMAIN
+ 	help
+-- 
+2.17.1
+
