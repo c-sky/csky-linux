@@ -18,6 +18,7 @@
 #include <linux/extable.h>
 #include <linux/uaccess.h>
 #include <linux/perf_event.h>
+#include <linux/kprobes.h>
 
 #include <asm/hardirq.h>
 #include <asm/mmu_context.h>
@@ -38,6 +39,25 @@ int fixup_exception(struct pt_regs *regs)
 	return 0;
 }
 
+/* Returns true if kprobes handled the fault */
+static nokprobe_inline bool kprobe_page_fault(struct pt_regs *regs,
+					      unsigned int trap)
+{
+	if (!kprobes_built_in())
+		return false;
+	if (user_mode(regs))
+		return false;
+	/*
+	 * To be potentially processing a kprobe fault and to be allowed
+	 * to call kprobe_running(), we have to be non-preemptible.
+	 */
+	if (preemptible())
+		return false;
+	if (!kprobe_running())
+		return false;
+	return kprobe_fault_handler(regs, trap);
+}
+
 /*
  * This routine handles page faults. It determines the address,
  * and the problem, and then passes it off to one of the appropriate
@@ -52,6 +72,9 @@ asmlinkage void do_page_fault(struct pt_regs *regs, unsigned long write,
 	int si_code;
 	int fault;
 	unsigned long address = mmu_meh & PAGE_MASK;
+
+	if (kprobe_page_fault(regs, tsk->thread.trap_no))
+		return;
 
 	si_code = SEGV_MAPERR;
 
