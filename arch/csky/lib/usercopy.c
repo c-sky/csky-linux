@@ -10,10 +10,7 @@ raw_copy_from_user(
 		const void *from,
 		unsigned long n)
 {
-	if (access_ok(VERIFY_READ, from, n))
-		__copy_user_zeroing(to,from,n); 
-	else
-		memset(to,0, n);
+	___copy_from_user(to, from, n);
 	return n;
 }
 EXPORT_SYMBOL(raw_copy_from_user);
@@ -24,8 +21,7 @@ raw_copy_to_user(
 		const void *from,
 		unsigned long n)
 {
-	if (access_ok(VERIFY_WRITE, to, n))
-		__copy_user(to,from,n);
+	___copy_to_user(to, from, n);
 	return n;
 }
 EXPORT_SYMBOL(raw_copy_to_user);
