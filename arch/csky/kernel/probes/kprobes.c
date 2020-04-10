@@ -46,7 +46,7 @@ static int __kprobes patch_text(kprobe_opcode_t *addr, u32 opcode)
 {
 	struct csky_insn_patch param = { addr, opcode, ATOMIC_INIT(0) };
 
-	return stop_machine_cpuslocked(patch_text_cb, &param, cpu_online_mask);
+	return stop_machine(patch_text_cb, &param, cpu_online_mask);
 }
 
 static void __kprobes arch_prepare_ss_slot(struct kprobe *p)
@@ -389,19 +389,6 @@ kprobe_single_step_handler(struct pt_regs *regs)
 	return 0;
 }
 
-/*
- * Provide a blacklist of symbols identifying ranges which cannot be kprobed.
- * This blacklist is exposed to userspace via debugfs (kprobes/blacklist).
- */
-int __init arch_populate_kprobe_blacklist(void)
-{
-	int ret;
-
-	ret = kprobe_add_area_blacklist((unsigned long)__irqentry_text_start,
-					(unsigned long)__irqentry_text_end);
-	return ret;
-}
-
 void __kprobes __used *trampoline_probe_handler(struct pt_regs *regs)
 {
 	struct kretprobe_instance *ri = NULL;
@@ -495,5 +482,28 @@ int __kprobes arch_trampoline_kprobe(struct kprobe *p)
 
 int __init arch_init_kprobes(void)
 {
+	return 0;
+}
+
+int kprobe_exceptions_notify(struct notifier_block *self,
+				unsigned long val, void *data)
+{
+	return NOTIFY_DONE;
+}
+
+int __kprobes setjmp_pre_handler(struct kprobe *p, struct pt_regs *regs)
+{
+	panic("csky-linux don't support %s", __func__);
+	return 0;
+}
+
+void __kprobes jprobe_return(void)
+{
+	panic("csky-linux don't support %s", __func__);
+}
+
+int __kprobes longjmp_break_handler(struct kprobe *p, struct pt_regs *regs)
+{
+	panic("csky-linux don't support %s", __func__);
 	return 0;
 }

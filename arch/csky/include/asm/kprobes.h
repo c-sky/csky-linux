@@ -42,5 +42,8 @@ int kprobe_single_step_handler(struct pt_regs *regs);
 void kretprobe_trampoline(void);
 void __kprobes *trampoline_probe_handler(struct pt_regs *regs);
 
+int kprobe_exceptions_notify(struct notifier_block *self,
+			     unsigned long val, void *data);
+
 #endif /* CONFIG_KPROBES */
 #endif /* __ASM_CSKY_KPROBES_H */
