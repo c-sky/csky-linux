@@ -389,19 +389,6 @@ kprobe_single_step_handler(struct pt_regs *regs)
 	return 0;
 }
 
-/*
- * Provide a blacklist of symbols identifying ranges which cannot be kprobed.
- * This blacklist is exposed to userspace via debugfs (kprobes/blacklist).
- */
-int __init arch_populate_kprobe_blacklist(void)
-{
-	int ret;
-
-	ret = kprobe_add_area_blacklist((unsigned long)__irqentry_text_start,
-					(unsigned long)__irqentry_text_end);
-	return ret;
-}
-
 void __kprobes __used *trampoline_probe_handler(struct pt_regs *regs)
 {
 	struct kretprobe_instance *ri = NULL;
