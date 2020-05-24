@@ -302,8 +302,4 @@
 	jmpi	3f /* jump to va */
 3:
 .endm
-
-.macro ANDI_R3 rx, imm
-	andi	\rx, \imm
-.endm
 #endif /* __ASM_CSKY_ENTRY_H */
