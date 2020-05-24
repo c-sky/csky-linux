@@ -205,9 +205,9 @@ ENTRY(ret_from_fork)
 	jbsr	syscall_trace_exit
 
 ret_from_exception:
+	psrclr	ie
 	ld	syscallid, (sp, LSAVE_PSR)
 	btsti	syscallid, 31
-	bt	1f
 
 	/*
 	 * Load address of current->thread_info, Then get address of task_struct
@@ -217,11 +217,20 @@ ret_from_exception:
 	bmaski	r10, THREAD_SHIFT
 	andn	r9, r10
 
+	bt	1f
 	ldw	r12, (r9, TINFO_FLAGS)
 	andi	r12, (_TIF_SIGPENDING | _TIF_NOTIFY_RESUME | _TIF_NEED_RESCHED | _TIF_UPROBE)
 	cmpnei	r12, 0
 	bt	exit_work
 1:
+#ifdef CONFIG_PREEMPT
+	ldw	r12, (r9, TINFO_PREEMPT)
+	cmpnei	r12, 0
+	bt	2f
+	jbsr	preempt_schedule_irq	/* irq en/disable is done inside */
+2:
+#endif
+
 #ifdef CONFIG_TRACE_IRQFLAGS
 	ld	r10, (sp, LSAVE_PSR)
 	btsti	r10, 6
@@ -238,6 +247,7 @@ exit_work:
 	btsti	r12, TIF_NEED_RESCHED
 	bt	work_resched
 
+	psrset	ie
 	mov	a0, sp
 	mov	a1, r12
 	jmpi	do_notify_resume
@@ -288,38 +298,9 @@ ENTRY(csky_irq)
 	jbsr	trace_hardirqs_off
 #endif
 
-#ifdef CONFIG_PREEMPT
-	mov	r9, sp			/* Get current stack  pointer */
-	bmaski	r10, THREAD_SHIFT
-	andn	r9, r10			/* Get thread_info */
-
-	/*
-	 * Get task_struct->stack.preempt_count for current,
-	 * and increase 1.
-	 */
-	ldw	r12, (r9, TINFO_PREEMPT)
-	addi	r12, 1
-	stw	r12, (r9, TINFO_PREEMPT)
-#endif
-
 	mov	a0, sp
 	jbsr	csky_do_IRQ
 
-#ifdef CONFIG_PREEMPT
-	subi	r12, 1
-	stw	r12, (r9, TINFO_PREEMPT)
-	cmpnei	r12, 0
-	bt	2f
-	ldw	r12, (r9, TINFO_FLAGS)
-	btsti	r12, TIF_NEED_RESCHED
-	bf	2f
-1:
-	jbsr	preempt_schedule_irq	/* irq en/disable is done inside */
-	ldw	r7, (r9, TINFO_FLAGS)	/* get new tasks TI_FLAGS */
-	btsti	r7, TIF_NEED_RESCHED
-	bt	1b			/* go again */
-#endif
-2:
 	jmpi	ret_from_exception
 
 /*
