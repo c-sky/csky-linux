@@ -126,6 +126,8 @@ skip_context_tracking:
 1:
 #ifdef CONFIG_TRACE_IRQFLAGS
 	call trace_hardirqs_on
+
+	REG_L s1, PT_STATUS(sp)
 #endif
 	/*
 	 * Exceptions run with interrupts enabled or disabled depending on the
@@ -136,9 +138,23 @@ skip_context_tracking:
 	csrs CSR_STATUS, SR_IE
 
 1:
+#ifdef CONFIG_TRACE_IRQFLAGS
+	REG_L a0, PT_A0(sp)
+	REG_L a1, PT_A1(sp)
+	REG_L a2, PT_A2(sp)
+	REG_L a3, PT_A3(sp)
+	REG_L a4, PT_A4(sp)
+	REG_L a5, PT_A5(sp)
+	REG_L a6, PT_A6(sp)
+	REG_L a7, PT_A7(sp)
+#endif
 	la ra, ret_from_exception
 	/* Handle syscalls */
 	li t0, EXC_SYSCALL
+
+#ifdef CONFIG_TRACE_IRQFLAGS
+	REG_L s4, PT_CAUSE(sp)
+#endif
 	beq s4, t0, handle_syscall
 
 	/* Handle other exceptions */
@@ -172,6 +188,9 @@ handle_syscall:
 	 * Advance SEPC to avoid executing the original
 	 * scall instruction on sret
 	 */
+#ifdef CONFIG_TRACE_IRQFLAGS
+	REG_L s2, PT_EPC(sp)
+#endif
 	addi s2, s2, 0x4
 	REG_S s2, PT_EPC(sp)
 	/* Trace syscalls, but only if requested by the user. */
