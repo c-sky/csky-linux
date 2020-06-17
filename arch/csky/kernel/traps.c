@@ -183,9 +183,19 @@ asmlinkage void trap_c(struct pt_regs *regs)
 		if (fpu_libc_helper(regs))
 			return;
 #endif
-		default:
-			sig = SIGSEGV;
-			break;
+#ifdef CONFIG_CPU_HAS_TLBI
+	case VEC_TFATAL:
+		tsk->thread.trap_no = vector;
+
+		mtcr("cr<8, 15>", 0x04000000);
+		sync_is();
+
+		pr_err("TLB fatal caught!\n");
+		return;
+#endif
+	default:
+		sig = SIGSEGV;
+		break;
 	}
 
 	tsk->thread.trap_no = vector;

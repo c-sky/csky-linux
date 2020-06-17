@@ -25,6 +25,7 @@ void flush_tlb_all(void)
 void flush_tlb_mm(struct mm_struct *mm)
 {
 #ifdef CONFIG_CPU_HAS_TLBI
+	sync_is();
 	asm volatile("tlbi.asids %0"::"r"(cpu_asid(mm)));
 #else
 	tlb_invalid_all();
@@ -54,6 +55,7 @@ void flush_tlb_range(struct vm_area_struct *vma, unsigned long start,
 	end   &= TLB_ENTRY_SIZE_MASK;
 
 #ifdef CONFIG_CPU_HAS_TLBI
+	sync_is();
 	while (start < end) {
 		asm volatile("tlbi.vas %0"::"r"(start | newpid));
 		start += 2*PAGE_SIZE;
@@ -88,6 +90,7 @@ void flush_tlb_kernel_range(unsigned long start, unsigned long end)
 	end   &= TLB_ENTRY_SIZE_MASK;
 
 #ifdef CONFIG_CPU_HAS_TLBI
+	sync_is();
 	while (start < end) {
 		asm volatile("tlbi.vaas %0"::"r"(start));
 		start += 2*PAGE_SIZE;
@@ -122,6 +125,7 @@ void flush_tlb_page(struct vm_area_struct *vma, unsigned long addr)
 	addr &= TLB_ENTRY_SIZE_MASK;
 
 #ifdef CONFIG_CPU_HAS_TLBI
+	sync_is();
 	asm volatile("tlbi.vas %0"::"r"(addr | newpid));
 	sync_is();
 #else
@@ -148,6 +152,7 @@ void flush_tlb_one(unsigned long addr)
 	addr &= TLB_ENTRY_SIZE_MASK;
 
 #ifdef CONFIG_CPU_HAS_TLBI
+	sync_is();
 	asm volatile("tlbi.vaas %0"::"r"(addr));
 	sync_is();
 #else
