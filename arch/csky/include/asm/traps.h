@@ -17,7 +17,7 @@
 #define VEC_AUTOVEC	10
 #define VEC_FAUTOVEC	11
 #define VEC_HWACCEL	12
-
+#define VEC_TFATAL	13
 #define	VEC_TLBMISS	14
 #define	VEC_TLBMODIFIED	15
 

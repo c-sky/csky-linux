@@ -39,6 +39,9 @@ static inline int read_mmu_entryhi(void)
 
 static inline void write_mmu_entryhi(int value)
 {
+#ifdef CONFIG_CPU_HAS_TLBI
+	sync_is();
+#endif
 	mtcr("cr<4, 15>", value);
 }
 
@@ -78,6 +81,7 @@ static inline void tlb_read(void)
 static inline void tlb_invalid_all(void)
 {
 #ifdef CONFIG_CPU_HAS_TLBI
+	sync_is();
 	asm volatile("tlbi.alls\n":::"memory");
 	sync_is();
 #else
@@ -88,6 +92,7 @@ static inline void tlb_invalid_all(void)
 static inline void local_tlb_invalid_all(void)
 {
 #ifdef CONFIG_CPU_HAS_TLBI
+	sync_is();
 	asm volatile("tlbi.all\n":::"memory");
 	sync_is();
 #else
