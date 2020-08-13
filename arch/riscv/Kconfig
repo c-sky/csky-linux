@@ -328,7 +328,7 @@ menu "supported PMU type"
 
 config RISCV_BASE_PMU
 	bool "Base Performance Monitoring Unit"
-	def_bool y
+	def_bool n
 	help
 	  A base PMU that serves as a reference implementation and has limited
 	  feature of perf.  It can run on any RISC-V machines so serves as the
