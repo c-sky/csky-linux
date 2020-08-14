@@ -60,7 +60,7 @@ static int patch_insn_write(void *addr, const void *insn, size_t len)
 	 * already, so we don't need to give another lock here and could
 	 * ensure that it was safe between each cores.
 	 */
-	lockdep_assert_held(&text_mutex);
+	//lockdep_assert_held(&text_mutex);
 
 	if (across_pages)
 		patch_map(addr + len, FIX_TEXT_POKE1);
