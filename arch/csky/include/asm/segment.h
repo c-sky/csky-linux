@@ -11,7 +11,7 @@ typedef struct {
 #define KERNEL_DS		((mm_segment_t) { 0xFFFFFFFF })
 #define get_ds()		KERNEL_DS
 
-#define USER_DS			((mm_segment_t) { 0x80000000UL })
+#define USER_DS			((mm_segment_t) { PAGE_OFFSET })
 #define get_fs()		(current_thread_info()->addr_limit)
 #define set_fs(x)		(current_thread_info()->addr_limit = (x))
 #define segment_eq(a, b)	((a).seg == (b).seg)

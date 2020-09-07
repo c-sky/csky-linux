@@ -34,7 +34,7 @@ extern struct cpuinfo_csky cpu_data[];
  * for a 64 bit kernel expandable to 8192EB, of which the current CSKY
  * implementations will "only" be able to use 1TB ...
  */
-#define TASK_SIZE       0x7fff8000UL
+#define TASK_SIZE	(PAGE_OFFSET - (PAGE_SIZE * 8))
 
 #ifdef __KERNEL__
 #define STACK_TOP       TASK_SIZE
@@ -44,7 +44,7 @@ extern struct cpuinfo_csky cpu_data[];
 /* This decides where the kernel will search for a free chunk of vm
  * space during mmap's.
  */
-#define TASK_UNMAPPED_BASE      (TASK_SIZE / 3)
+#define TASK_UNMAPPED_BASE      (TASK_SIZE / 4)
 
 struct thread_struct {
 	unsigned long  sp;        /* kernel stack pointer */
