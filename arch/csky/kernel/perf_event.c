@@ -1290,6 +1290,8 @@ static int csky_pmu_dying_cpu(unsigned int cpu)
 	return 0;
 }
 
+#define CPUHP_AP_PERF_CSKY_ONLINE	CPUHP_AP_PERF_ONLINE + 1
+
 int csky_pmu_device_probe(struct platform_device *pdev,
 			  const struct of_device_id *of_table)
 {
@@ -1319,7 +1321,7 @@ int csky_pmu_device_probe(struct platform_device *pdev,
 		pr_notice("[perf] PMU request irq fail!\n");
 	}
 
-	ret = cpuhp_setup_state(CPUHP_AP_PERF_ONLINE, "AP_PERF_ONLINE",
+	ret = cpuhp_setup_state(CPUHP_AP_PERF_CSKY_ONLINE, "perf csky:online",
 				csky_pmu_starting_cpu,
 				csky_pmu_dying_cpu);
 	if (ret) {
