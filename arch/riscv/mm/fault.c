@@ -221,7 +221,7 @@ asmlinkage void do_page_fault(struct pt_regs *regs)
 	}
 
 	/* Enable interrupts if they were enabled in the parent context. */
-	if (likely(regs->status & SR_PIE))
+	if (likely(regs->status & SR_PIE) || user_mode(regs))
 		local_irq_enable();
 
 	/*
