@@ -1,4 +1,5 @@
 generic-y += asm-offsets.h
+generic-y += atomic.h
 generic-y += bugs.h
 generic-y += clkdev.h
 generic-y += compat.h
