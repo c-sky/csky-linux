@@ -82,8 +82,12 @@ static inline void tlb_invalid_all(void)
 {
 #ifdef CONFIG_CPU_HAS_TLBI
 	sync_is();
-	asm volatile("tlbi.alls\n":::"memory");
-	sync_is();
+	asm volatile(
+		"tlbi.alls	\n"
+		"sync.i		\n"
+		:
+		:
+		: "memory");
 #else
 	mtcr("cr<8, 15>", 0x04000000);
 #endif
@@ -93,8 +97,12 @@ static inline void local_tlb_invalid_all(void)
 {
 #ifdef CONFIG_CPU_HAS_TLBI
 	sync_is();
-	asm volatile("tlbi.all\n":::"memory");
-	sync_is();
+	asm volatile(
+		"tlbi.all	\n"
+		"sync.i		\n"
+		:
+		:
+		: "memory");
 #else
 	tlb_invalid_all();
 #endif
@@ -105,12 +113,27 @@ static inline void tlb_invalid_indexed(void)
 	mtcr("cr<8, 15>", 0x02000000);
 }
 
-static inline void setup_pgd(pgd_t *pgd)
+#define NOP32 ".long 0x4820c400\n"
+
+static inline void setup_pgd(pgd_t *pgd, int asid)
 {
 #ifdef CONFIG_CPU_HAS_TLBI
-	mtcr("cr<28, 15>", __pa(pgd) | BIT(0));
+	sync_is();
+#else
+	mb();
 #endif
-	mtcr("cr<29, 15>", __pa(pgd) | BIT(0));
+	asm volatile(
+#ifdef CONFIG_CPU_HAS_TLBI
+		"mtcr %1, cr<28, 15>	\n"
+#endif
+		"mtcr %1, cr<29, 15>	\n"
+		"mtcr %0, cr< 4, 15>	\n"
+		".rept 64		\n"
+		NOP32
+		".endr			\n"
+		:
+		:"r"(asid), "r"(__pa(pgd) | BIT(0))
+		:"memory");
 }
 
 static inline pgd_t *get_pgd(void)
