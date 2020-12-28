@@ -99,6 +99,7 @@ asmlinkage void do_page_fault(struct pt_regs *regs)
 	struct vm_area_struct *vma = NULL;
 	struct task_struct *tsk = current;
 	struct mm_struct *mm = tsk->mm;
+	unsigned int flags = FAULT_FLAG_ALLOW_RETRY | FAULT_FLAG_KILLABLE;
 	int si_code;
 	int fault;
 	unsigned long address = read_mmu_entryhi() & PAGE_MASK;
@@ -169,6 +170,13 @@ asmlinkage void do_page_fault(struct pt_regs *regs)
 	if (in_atomic() || !mm)
 		goto bad_area_nosemaphore;
 
+	if (user_mode(regs))
+		flags |= FAULT_FLAG_USER;
+
+	if (is_write(regs))
+		flags |= FAULT_FLAG_WRITE;
+
+retry:
 	down_read(&mm->mmap_sem);
 	vma = find_vma(mm, address);
 	if (!vma)
@@ -199,7 +207,7 @@ good_area:
 	 * make sure we exit gracefully rather than endlessly redo
 	 * the fault.
 	 */
-	fault = handle_mm_fault(vma, address, is_write(regs) ? FAULT_FLAG_WRITE : 0);
+	fault = handle_mm_fault(vma, address, flags);
 	if (unlikely(fault & VM_FAULT_ERROR)) {
 		if (fault & VM_FAULT_OOM)
 			goto out_of_memory;
@@ -217,6 +225,17 @@ good_area:
 		tsk->min_flt++;
 		perf_sw_event(PERF_COUNT_SW_PAGE_FAULTS_MIN, 1, regs,
 			      address);
+	}
+
+	if (unlikely((fault & VM_FAULT_RETRY) && (flags & FAULT_FLAG_ALLOW_RETRY))) {
+		flags |= FAULT_FLAG_TRIED;
+
+		/*
+		 * No need to mmap_read_unlock(mm) as we would
+		 * have already released it in __lock_page_or_retry
+		 * in mm/filemap.c.
+		 */
+		goto retry;
 	}
 
 	up_read(&mm->mmap_sem);
