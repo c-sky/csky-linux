@@ -48,4 +48,9 @@ config SOC_KENDRYTE_K210_DTB_BUILTIN
 	  This option should be selected if no bootloader is being used.
 	  If unsure, say Y.
 
+config SOC_THEAD
+	bool "T-HEAD SoCs"
+	help
+	  This enables support for T-HEAD SoC platform hardware.
+
 endmenu
