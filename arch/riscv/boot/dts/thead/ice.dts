@@ -536,6 +536,12 @@
 			contiguous-size = <0x0 0x20000000>;
 		};
 
+		watchdog: watchdog@3fffe3000 {
+			compatible = "ice,ice-wdt";
+			reg = <0x3 0xfffe3000 0x0 0x1000>;
+			interrupts = <20>;
+		};
+
 		dpu: dpu@3fff28000 {
 			compatible = "verisilicon,dc8000-fb";
 			reg = <0x3 0xfff28000 0x0 0x8000>;
