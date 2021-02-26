@@ -345,6 +345,51 @@ asmlinkage void syscall_trace_exit(struct pt_regs *regs)
 }
 
 #ifdef CONFIG_CPU_CK860
+static void show_cr(void)
+{
+	pr_info("\n");
+	pr_info("CR0_PSR:    0x%08x\n", mfcr("cr0"));
+	pr_info("CR1_VBR:    0x%08x\n", mfcr("cr1"));
+	pr_info("CR2_EPSR:   0x%08x\n", mfcr("cr2"));
+	pr_info("CR3_FPSR:   0x%08x\n", mfcr("cr3"));
+	pr_info("CR4_EPC:    0x%08x\n", mfcr("cr4"));
+	pr_info("CR5_FPC:    0x%08x\n", mfcr("cr5"));
+	pr_info("CR11_GCR:   0x%08x\n", mfcr("cr11"));
+	pr_info("CR12_GSR:   0x%08x\n", mfcr("cr12"));
+	pr_info("CR13_CPID:  0x%08x\n", mfcr("cr13"));
+	pr_info("CR17_CFR:   0x%08x\n", mfcr("cr17"));
+	pr_info("CR18_CCR:   0x%08x\n", mfcr("cr18"));
+	pr_info("CR23_CCR2:  0x%08x\n", mfcr("cr23"));
+	pr_info("CR25_CER2:  0x%08x\n", mfcr("cr25"));
+	pr_info("CR28_RVBR:  0x%08x\n", mfcr("cr28"));
+	pr_info("CR29_RMR:   0x%08x\n", mfcr("cr29"));
+	pr_info("CR30_MPID:  0x%08x\n", mfcr("cr30"));
+	pr_info("CR31_HINT:  0x%08x\n", mfcr("cr31"));
+	pr_info("\n");
+	pr_info("CR0_2_FID:  0x%08x\n", mfcr("cr<0, 2>"));
+	pr_info("CR1_2_FCR:  0x%08x\n", mfcr("cr<1, 2>"));
+	pr_info("CR2_2_FESR: 0x%08x\n", mfcr("cr<2, 2>"));
+	pr_info("\n");
+	pr_info("CR14_1_USP:    0x%08x\n", mfcr("cr<14, 1>"));
+	pr_info("CR26_1_CINDEX: 0x%08x\n", mfcr("cr<26, 1>"));
+	pr_info("CR27_1_CDATA0: 0x%08x\n", mfcr("cr<27, 1>"));
+	pr_info("CR28_1_CDATA1: 0x%08x\n", mfcr("cr<28, 1>"));
+	pr_info("CR29_1_CDATA2: 0x%08x\n", mfcr("cr<29, 1>"));
+	pr_info("CR30_1_CDATA3: 0x%08x\n", mfcr("cr<30, 1>"));
+	pr_info("CR31_1_CINS:   0x%08x\n", mfcr("cr<31, 1>"));
+	pr_info("\n");
+	pr_info("CR0_15_MIR:    0x%08x\n", mfcr("cr<0, 15>"));
+	pr_info("CR2_15_MEL0:   0x%08x\n", mfcr("cr<2, 15>"));
+	pr_info("CR3_15_MEL1:   0x%08x\n", mfcr("cr<3, 15>"));
+	pr_info("CR4_15_MEH:    0x%08x\n", mfcr("cr<4, 15>"));
+	pr_info("CR6_15_MPR:    0x%08x\n", mfcr("cr<6, 15>"));
+	pr_info("CR8_15_MCIR:   0x%08x\n", mfcr("cr<8, 15>"));
+	pr_info("CR28_15_MPGD0: 0x%08x\n", mfcr("cr<28, 15>"));
+	pr_info("CR29_15_MPGD1: 0x%08x\n", mfcr("cr<29, 15>"));
+	pr_info("CR30_15_MSA0:  0x%08x\n", mfcr("cr<30, 15>"));
+	pr_info("CR31_15_MSA1:  0x%08x\n", mfcr("cr<31, 15>"));
+}
+
 static void show_iutlb(void)
 {
 	int entry, i;
@@ -451,6 +496,7 @@ static void show_jtlb(void)
 
 static void show_tlb(void)
 {
+	show_cr();
 	show_iutlb();
 	show_dutlb();
 	show_jtlb();
