@@ -368,6 +368,11 @@ config VECTOR
 
 	  If you don't know what to do here, say Y.
 
+config VECTOR_EMU
+	bool "VECTOR e64 emulate for c906 v1"
+	depends on VECTOR
+	default n
+
 endmenu
 
 menu "Kernel features"

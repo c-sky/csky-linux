@@ -57,9 +57,18 @@ void die(struct pt_regs *regs, const char *str)
 		do_exit(SIGSEGV);
 }
 
+#ifdef CONFIG_VECTOR_EMU
+extern bool decode_exec_insn(struct pt_regs *regs, uint64_t insn);
+#endif
 void do_trap(struct pt_regs *regs, int signo, int code, unsigned long addr)
 {
 	struct task_struct *tsk = current;
+
+#ifdef CONFIG_VECTOR_EMU
+	if (signo == SIGILL)
+		if (decode_exec_insn(regs, regs->badaddr))
+			return;
+#endif
 
 	if (show_unhandled_signals && unhandled_signal(tsk, signo)
 	    && printk_ratelimit()) {

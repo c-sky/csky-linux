@@ -27,6 +27,15 @@
 struct task_struct;
 struct pt_regs;
 
+#ifdef CONFIG_VECTOR_EMU
+struct vsetvl_info {
+	unsigned long last_vector_pc;
+	unsigned long regid;
+	unsigned long vl;
+	unsigned long vtype;
+};
+#endif
+
 /* CPU-specific state of a task */
 struct thread_struct {
 	/* Callee-saved registers */
@@ -36,6 +45,9 @@ struct thread_struct {
 	struct __riscv_d_ext_state fstate;
 	unsigned long bad_cause;
 	struct __riscv_v_state vstate;
+#ifdef CONFIG_VECTOR_EMU
+	struct vsetvl_info vsetvl_state;
+#endif
 };
 
 #define INIT_THREAD {					\

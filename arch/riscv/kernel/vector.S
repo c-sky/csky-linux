@@ -77,8 +77,16 @@ ENTRY(__vstate_restore)
 	csrw	CSR_VXRM, t0
 	ld	t0,  TASK_THREAD_VL_V0(a0)
 	ld	t2,  TASK_THREAD_VTYPE_V0(a0)
+#ifdef CONFIG_VECTOR_EMU
+	srli	t3, t2, 63
+	bne	t3,zero,1f
+#endif
 	vsetvl	t3, t0, t2
-
+#ifdef CONFIG_VECTOR_EMU
+	j	2f
+1:	vsetvli zero,zero,e64,m2,d1
+2:
+#endif
 	csrc	sstatus, t1
 	ret
 ENDPROC(__vstate_restore)
