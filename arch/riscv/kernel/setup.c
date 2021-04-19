@@ -20,6 +20,7 @@
 #include <linux/swiotlb.h>
 #include <linux/smp.h>
 #include <linux/efi.h>
+#include <linux/crash_dump.h>
 
 #include <asm/cpu_ops.h>
 #include <asm/early_ioremap.h>
@@ -149,6 +150,15 @@ static void __init init_resources(void)
 	 * with /memory regions, insert_resource later on will take
 	 * care of it.
 	 */
+
+#ifdef CONFIG_KEXEC_CORE
+	if (crashk_res.start != crashk_res.end) {
+		ret = add_resource(&iomem_resource, &crashk_res);
+		if (ret < 0)
+			goto error;
+	}
+#endif
+
 	for_each_reserved_mem_region(region) {
 		res = memblock_alloc(sizeof(struct resource), SMP_CACHE_BYTES);
 		if (!res)
@@ -240,7 +250,6 @@ void __init setup_arch(char **cmdline_p)
 	efi_init();
 	setup_bootmem();
 	paging_init();
-	init_resources();
 #if IS_ENABLED(CONFIG_BUILTIN_DTB)
 	unflatten_and_copy_device_tree();
 #else
@@ -259,6 +268,7 @@ void __init setup_arch(char **cmdline_p)
 #endif
 
 #if IS_ENABLED(CONFIG_RISCV_SBI)
+	init_resources();
 	sbi_init();
 #endif
 

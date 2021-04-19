@@ -119,4 +119,11 @@ extern int compat_arch_setup_additional_pages(struct linux_binprm *bprm,
 				compat_arch_setup_additional_pages
 
 #endif /* CONFIG_COMPAT */
+
+#define ELF_CORE_COPY_REGS(dest, regs)			\
+do {							\
+	*(struct user_regs_struct *)&(dest) =		\
+		*(struct user_regs_struct *)regs;	\
+} while (0);
+
 #endif /* _ASM_RISCV_ELF_H */
