@@ -77,7 +77,7 @@ ENTRY(__vstate_restore)
 	csrw	CSR_VXRM, t0
 	ld	t0,  TASK_THREAD_VL_V0(a0)
 	ld	t2,  TASK_THREAD_VTYPE_V0(a0)
-	vsetvl	t0, t0, t2
+	vsetvl	t3, t0, t2
 
 	csrc	sstatus, t1
 	ret
