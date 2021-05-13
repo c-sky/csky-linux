@@ -120,25 +120,25 @@ static int c_show(struct seq_file *m, void *v)
 		seq_printf(m, "uarch\t\t: %s\n", compat);
 
 	if (!of_property_read_string(node, "cpu-freq", &freq))
-		seq_printf(m, "cpu-freq\t\t: %s\n", freq);
+		seq_printf(m, "cpu-freq\t: %s\n", freq);
 
 	if (!of_property_read_string(node, "cpu-icache", &icache))
-		seq_printf(m, "cpu-icache\t\t: %s\n", icache);
+		seq_printf(m, "cpu-icache\t: %s\n", icache);
 
 	if (!of_property_read_string(node, "cpu-dcache", &dcache))
-		seq_printf(m, "cpu-dcache\t\t: %s\n", dcache);
+		seq_printf(m, "cpu-dcache\t: %s\n", dcache);
 
 	if (!of_property_read_string(node, "cpu-l2cache", &l2cache))
-		seq_printf(m, "cpu-l2cache\t\t: %s\n", l2cache);
+		seq_printf(m, "cpu-l2cache\t: %s\n", l2cache);
 
 	if (!of_property_read_string(node, "cpu-tlb", &tlb))
 		seq_printf(m, "cpu-tlb\t\t: %s\n", tlb);
 
 	if (!of_property_read_string(node, "cpu-cacheline", &cacheline))
-		seq_printf(m, "cpu-cacheline\t\t: %s\n", cacheline);
+		seq_printf(m, "cpu-cacheline\t: %s\n", cacheline);
 
 	if (!of_property_read_string(node, "cpu-vector", &vecver))
-		seq_printf(m, "cpu-vector\t\t: %s\n", vecver);
+		seq_printf(m, "cpu-vector\t: %s\n", vecver);
 
 	seq_puts(m, "\n");
 	of_node_put(node);

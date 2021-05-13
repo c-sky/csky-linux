@@ -26,6 +26,13 @@
 			compatible = "riscv";
 			riscv,isa = "rv64imafdcsu";
 			mmu-type = "riscv,sv39";
+			cpu-freq = "1.2Ghz";
+			cpu-icache = "64KB";
+			cpu-dcache = "64KB";
+			cpu-l2cache = "2MB";
+			cpu-tlb = "1024 4-ways";
+			cpu-cacheline = "64Bytes";
+			cpu-vector = "0.7.1";
 			cpu0_intc: interrupt-controller {
 				#interrupt-cells = <1>;
 				compatible = "riscv,cpu-intc";
@@ -39,6 +46,13 @@
 			compatible = "riscv";
 			riscv,isa = "rv64imafdcsu";
 			mmu-type = "riscv,sv39";
+			cpu-freq = "1.2Ghz";
+			cpu-icache = "64KB";
+			cpu-dcache = "64KB";
+			cpu-l2cache = "2MB";
+			cpu-tlb = "1024 4-ways";
+			cpu-cacheline = "64Bytes";
+			cpu-vector = "0.7.1";
 			cpu1_intc: interrupt-controller {
 				#interrupt-cells = <1>;
 				compatible = "riscv,cpu-intc";
