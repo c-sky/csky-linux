@@ -117,17 +117,6 @@ static int c_show(struct seq_file *m, void *v)
 	if (!of_property_read_string(node, "compatible", &compat)
 	    && strcmp(compat, "riscv"))
 		seq_printf(m, "uarch\t\t: %s\n", compat);
-#if CONFIG_SOC_THEAD
-	seq_printf(m, "model name\t: T-HEAD C910\n");
-	seq_printf(m, "freq\t\t: 1.2GHz\n");
-	seq_printf(m, "icache\t\t: 64kB\n");
-	seq_printf(m, "dcache\t\t: 64kB\n");
-	seq_printf(m, "l2cache\t\t: 2MB\n");
-	seq_printf(m, "tlb\t\t: 1024 4-ways\n");
-	seq_printf(m, "cache line\t: 64Bytes\n");
-	seq_printf(m, "address sizes\t: 40 bits physical, 39 bits virtual\n");
-	seq_printf(m, "vector version\t: 0.7.1\n");
-#endif
 	seq_puts(m, "\n");
 	of_node_put(node);
 
