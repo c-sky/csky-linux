@@ -6,6 +6,7 @@
 #include <linux/topology.h>
 #include <linux/sched/clock.h>
 #include <linux/moduleparam.h>
+#include <linux/sched/rt.h>
 
 /*
  * Implement a NUMA-aware version of MCS (aka CNA, or compact NUMA-aware lock).
@@ -37,7 +38,8 @@
  * running on the same NUMA node. If it is not, that waiter is detached from the
  * main queue and moved into the tail of the secondary queue. This way, we
  * gradually filter the primary queue, leaving only waiters running on the same
- * preferred NUMA node.
+ * preferred NUMA node. Note that certain priortized waiters (e.g., in
+ * irq and nmi contexts) are excluded from being moved to the secondary queue.
  *
  * We change the NUMA node preference after a waiter at the head of the
  * secondary queue spins for a certain amount of time (1ms, by default).
@@ -52,6 +54,8 @@
  */
 
 #define FLUSH_SECONDARY_QUEUE	1
+
+#define CNA_PRIORITY_NODE      0xffff
 
 struct cna_node {
 	struct mcs_spinlock	mcs;
@@ -111,9 +115,10 @@ static int __init cna_init_nodes(void)
 
 static __always_inline void cna_init_node(struct mcs_spinlock *node)
 {
+	bool priority = !in_task() || irqs_disabled() || rt_task(current);
 	struct cna_node *cn = (struct cna_node *)node;
 
-	cn->numa_node = cn->real_numa_node;
+	cn->numa_node = priority ? CNA_PRIORITY_NODE : cn->real_numa_node;
 	cn->start_time = 0;
 }
 
@@ -252,7 +257,7 @@ static int cna_order_queue(struct mcs_spinlock *node)
 	numa_node = cn->numa_node;
 	next_numa_node = ((struct cna_node *)next)->numa_node;
 
-	if (next_numa_node != numa_node) {
+	if (next_numa_node != numa_node && next_numa_node != CNA_PRIORITY_NODE) {
 		struct mcs_spinlock *nnext = READ_ONCE(next->next);
 
 		if (nnext)
@@ -272,6 +277,13 @@ static __always_inline u32 cna_wait_head_or_lock(struct qspinlock *lock,
 	struct cna_node *cn = (struct cna_node *)node;
 
 	if (!cn->start_time || !intra_node_threshold_reached(cn)) {
+		/*
+		 * We are at the head of the wait queue, no need to use
+		 * the fake NUMA node ID.
+		 */
+		if (cn->numa_node == CNA_PRIORITY_NODE)
+			cn->numa_node = cn->real_numa_node;
+
 		/*
 		 * Try and put the time otherwise spent spin waiting on
 		 * _Q_LOCKED_PENDING_MASK to use by sorting our lists.
