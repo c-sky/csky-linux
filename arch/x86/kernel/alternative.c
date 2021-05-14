@@ -1537,6 +1537,10 @@ void __init alternative_instructions(void)
 	 */
 	paravirt_set_cap();
 
+#if defined(CONFIG_NUMA_AWARE_SPINLOCKS)
+	cna_configure_spin_lock_slowpath();
+#endif
+
 	/*
 	 * First patch paravirt functions, such that we overwrite the indirect
 	 * call with the direct call.
