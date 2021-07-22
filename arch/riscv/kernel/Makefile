@@ -10,7 +10,7 @@ CFLAGS_REMOVE_sbi.o	= $(CC_FLAGS_FTRACE)
 endif
 
 ifdef CONFIG_KEXEC
-AFLAGS_kexec_relocate.o := -mcmodel=medany -mno-relax
+AFLAGS_kexec_relocate.o := -mcmodel=medany $(call cc-option,-mno-relax)
 endif
 
 extra-y += head.o
