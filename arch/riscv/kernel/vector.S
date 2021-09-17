@@ -20,6 +20,14 @@
 #include <asm/csr.h>
 #include <asm/asm-offsets.h>
 
+#if (defined(CONFIG_VECTOR_1_0) && defined(__THEAD_VERSION__))
+#define V_ST	vse8.v
+#define V_LD	vle8.v
+#else
+#define V_ST	vsb.v
+#define V_LD	vlb.v
+#endif
+
 ENTRY(__vstate_save)
 	li	a2,  TASK_THREAD_V0
 	add	a0,  a0, a2
@@ -39,13 +47,13 @@ ENTRY(__vstate_save)
 	sd	t0,  TASK_THREAD_VTYPE_V0(a0)
 
 	vsetvli	t0, x0, e8,m8
-	vsb.v	v0,  (a0)
+	V_ST	v0,  (a0)
 	addi	a0, a0, RISCV_VECTOR_VLENB*8
-	vsb.v	v8,  (a0)
+	V_ST	v8,  (a0)
 	addi	a0, a0, RISCV_VECTOR_VLENB*8
-	vsb.v	v16, (a0)
+	V_ST	v16, (a0)
 	addi	a0, a0, RISCV_VECTOR_VLENB*8
-	vsb.v	v24, (a0)
+	V_ST	v24, (a0)
 
 	csrc	sstatus, t1
 	ret
@@ -60,13 +68,13 @@ ENTRY(__vstate_restore)
 	csrs	sstatus, t1
 
 	vsetvli	t0, x0, e8,m8
-	vlb.v	v0,  (a0)
+	V_LD	v0,  (a0)
 	addi	a0, a0, RISCV_VECTOR_VLENB*8
-	vlb.v	v8,  (a0)
+	V_LD	v8,  (a0)
 	addi	a0, a0, RISCV_VECTOR_VLENB*8
-	vlb.v	v16, (a0)
+	V_LD	v16, (a0)
 	addi	a0, a0, RISCV_VECTOR_VLENB*8
-	vlb.v	v24, (a0)
+	V_LD	v24, (a0)
 
 	mv	a0,  t2
 	ld	t0,  TASK_THREAD_VSTART_V0(a0)

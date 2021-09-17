@@ -362,11 +362,29 @@ config FPU
 config VECTOR
 	bool "VECTOR support"
 	default n
+
+choice VECTOR_VERSION
+	prompt "Vector Version"
+	depends on VECTOR
+	default VECTOR_1_0
+
+config VECTOR_1_0
+	bool "VECTOR 1.0 support"
 	help
-	  Say N here if you want to disable all vector related procedure
+	  Say N here if you want to disable all vector 1.0 related procedure
 	  in the kernel.
 
 	  If you don't know what to do here, say Y.
+
+config VECTOR_0_7
+	bool "VECTOR 0.7 support"
+	help
+	  Say N here if you want to disable all vector 0.7 related procedure
+	  in the kernel.
+
+	  If you don't know what to do here, say Y.
+
+endchoice
 
 config VECTOR_EMU
 	bool "VECTOR e64 emulate for c906 v1"
