@@ -167,9 +167,9 @@ static void plic_irq_eoi(struct irq_data *d)
 }
 
 static struct irq_chip plic_chip = {
-	.name		= "SiFive PLIC",
-	.irq_mask	= plic_irq_mask,
-	.irq_unmask	= plic_irq_unmask,
+	.name		= "T-Head PLIC",
+	.irq_disable	= plic_irq_mask,
+	.irq_enable	= plic_irq_unmask,
 	.irq_eoi	= plic_irq_eoi,
 #ifdef CONFIG_SMP
 	.irq_set_affinity = plic_set_affinity,
