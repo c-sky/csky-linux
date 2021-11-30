@@ -404,6 +404,11 @@ config VECTOR_0_7
 
 endchoice
 
+config VLEN_256
+	bool "VECTOR VLEN 256"
+	depends on VECTOR
+	default n
+
 config VECTOR_EMU
 	bool "VECTOR e64 emulate for c906 v1"
 	depends on VECTOR
