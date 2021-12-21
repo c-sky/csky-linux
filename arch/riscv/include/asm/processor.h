@@ -67,6 +67,9 @@ extern void start_thread(struct pt_regs *regs,
 			unsigned long pc, unsigned long sp);
 
 #ifdef CONFIG_COMPAT
+extern void compat_start_thread(struct pt_regs *regs,
+				unsigned long pc, unsigned long sp);
+
 #define DEFAULT_MAP_WINDOW_64 TASK_SIZE_64
 #else
 #define DEFAULT_MAP_WINDOW_64 TASK_SIZE

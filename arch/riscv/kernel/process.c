@@ -14,6 +14,7 @@
 #include <linux/tick.h>
 #include <linux/ptrace.h>
 #include <linux/uaccess.h>
+#include <uapi/linux/elf.h>
 
 #include <asm/unistd.h>
 #include <asm/processor.h>
@@ -91,6 +92,15 @@ void start_thread(struct pt_regs *regs, unsigned long pc,
 	regs->epc = pc;
 	regs->sp = sp;
 }
+
+#ifdef CONFIG_COMPAT
+void compat_start_thread(struct pt_regs *regs, unsigned long pc,
+			 unsigned long sp)
+{
+	start_thread(regs, pc, sp);
+	regs->status |= SR_UXL_32;
+}
+#endif
 
 void flush_thread(void)
 {
