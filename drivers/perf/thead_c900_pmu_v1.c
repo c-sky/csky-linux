@@ -678,8 +678,7 @@ static int riscv_pmu_request_irq(irq_handler_t handler)
 	riscv_pmu_irq = platform_get_irq(pmu_device, 0);
 	if (riscv_pmu_irq < 0)
 		return -ENODEV;
-	err = request_percpu_irq(riscv_pmu_irq, handler, "c9xx-pmu-v1",
-				 this_cpu_ptr(riscv_pmu.hw_events));
+	err = request_percpu_irq(riscv_pmu_irq, handler, "c9xx-pmu-v1", &riscv_pmu);
 	if (err) {
 		pr_err("unable to request IRQ%d for c9xx PMU counters\n",
 		       riscv_pmu_irq);

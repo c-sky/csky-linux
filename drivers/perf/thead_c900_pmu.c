@@ -633,8 +633,7 @@ static int thead_pmu_request_irq(irq_handler_t handler)
 	thead_pmu.irq = platform_get_irq(pmu_device, 0);
 	if (thead_pmu.irq < 0)
 		return -ENODEV;
-	err = request_percpu_irq(thead_pmu.irq, handler, "c9xx-pmu-v1",
-				 this_cpu_ptr(thead_pmu.hw_events));
+	err = request_percpu_irq(thead_pmu.irq, handler, "c9xx-pmu-v1", &thead_pmu);
 	if (err) {
 		pr_err("unable to request IRQ%d for c9xx PMU counters\n",
 		       thead_pmu.irq);
