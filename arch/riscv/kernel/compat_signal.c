@@ -130,8 +130,8 @@ static long compat_save_v_state(struct pt_regs *regs,
 	return err;
 }
 #else
-#define save_v_state(task, regs) (0)
-#define restore_v_state(task, regs) (0)
+#define compat_save_v_state(task, regs) (0)
+#define compat_restore_v_state(task, regs) (0)
 #endif
 
 static long compat_restore_sigcontext(struct pt_regs *regs,
@@ -151,7 +151,7 @@ static long compat_restore_sigcontext(struct pt_regs *regs,
 
 	/* Restore the vector state. */
 	if (has_vector)
-		err |= restore_v_state(regs, &sc->sc_vregs);
+		err |= compat_restore_v_state(regs, &sc->sc_vregs);
 
 	return err;
 }
@@ -212,7 +212,7 @@ static long compat_setup_sigcontext(struct compat_rt_sigframe __user *frame,
 		err |= compat_save_fp_state(regs, &sc->sc_fpregs);
 	/* Save the vector state. */
 	if (has_vector)
-		err |= save_v_state(regs, &sc->sc_vregs);
+		err |= compat_save_v_state(regs, &sc->sc_vregs);
 
 	return err;
 }
