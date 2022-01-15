@@ -1,3 +1,3 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 
-#include <../vdso/flush_icache.S>
+#include "../vdso/flush_icache.S"

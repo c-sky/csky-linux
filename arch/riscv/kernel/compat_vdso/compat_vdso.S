@@ -5,4 +5,4 @@
 
 #define	__VDSO_PATH	"arch/riscv/kernel/compat_vdso/compat_vdso.so"
 
-#include <../vdso/vdso.S>
+#include "../vdso/vdso.S"
