@@ -78,7 +78,7 @@ asmlinkage long compat_sys_rt_sigreturn(void);
 
 asmlinkage long sys_riscv_flush_icache(uintptr_t, uintptr_t, uintptr_t);
 
-void *compat_sys_call_table[__NR_syscalls] = {
+const void *compat_sys_call_table[__NR_syscalls] = {
 	[0 ... __NR_syscalls - 1] = sys_ni_syscall,
 #include <asm/unistd.h>
 };

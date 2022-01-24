@@ -3103,6 +3103,7 @@ void socket_seq_show(struct seq_file *seq)
  */
 int get_user_ifreq(struct ifreq *ifr, void __user **ifrdata, void __user *arg)
 {
+#ifdef CONFIG_COMPAT
 	if (in_compat_syscall()) {
 		struct compat_ifreq *ifr32 = (struct compat_ifreq *)ifr;
 
@@ -3115,7 +3116,7 @@ int get_user_ifreq(struct ifreq *ifr, void __user **ifrdata, void __user *arg)
 
 		return 0;
 	}
-
+#endif
 	if (copy_from_user(ifr, arg, sizeof(*ifr)))
 		return -EFAULT;
 
@@ -3129,10 +3130,10 @@ EXPORT_SYMBOL(get_user_ifreq);
 int put_user_ifreq(struct ifreq *ifr, void __user *arg)
 {
 	size_t size = sizeof(*ifr);
-
+#ifdef CONFIG_COMPAT
 	if (in_compat_syscall())
 		size = sizeof(struct compat_ifreq);
-
+#endif
 	if (copy_to_user(arg, ifr, size))
 		return -EFAULT;
 

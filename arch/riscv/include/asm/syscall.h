@@ -15,9 +15,9 @@
 #include <linux/err.h>
 
 /* The array of function pointers for syscalls. */
-extern void *sys_call_table[];
+extern const void *sys_call_table[];
 #ifdef CONFIG_COMPAT
-extern void *compat_sys_call_table[];
+extern const void *compat_sys_call_table[];
 #endif
 
 /*
