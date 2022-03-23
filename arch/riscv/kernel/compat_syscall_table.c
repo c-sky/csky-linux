@@ -65,8 +65,8 @@ COMPAT_SYSCALL_DEFINE4(readahead, int, fd, arg_u32p(offset),
 	return ksys_readahead(fd, arg_u64(offset), count);
 }
 
-COMPAT_SYSCALL_DEFINE6(fadvise64_64, int, fd, int, advice, arg_u32p(offset),
-		       arg_u32p(len))
+COMPAT_SYSCALL_DEFINE6(fadvise64_64, int, fd, arg_u32p(offset),
+		       arg_u32p(len), int, advice)
 {
 	return ksys_fadvise64_64(fd, arg_u64(offset), arg_u64(len), advice);
 }
