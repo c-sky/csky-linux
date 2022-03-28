@@ -4,10 +4,9 @@
  */
 
 #include <asm/cacheflush.h>
+#include <asm/sbi.h>
 
 #ifdef CONFIG_SMP
-
-#include <asm/sbi.h>
 
 static void ipi_remote_fence_i(void *info)
 {
