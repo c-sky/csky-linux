@@ -260,7 +260,7 @@ config ARCH_RV64I
 	select HAVE_FTRACE_MCOUNT_RECORD
 	select HAVE_FUNCTION_GRAPH_TRACER
 	select HAVE_FUNCTION_TRACER
-	select SWIOTLB if MMU
+	select SWIOTLB if RISCV_SWIOTLB
 
 endchoice
 
@@ -348,6 +348,11 @@ config RISCV_ISA_C
 config NO_SFENCE_VMA
 	bool "Replace sfence.vma with CSR_SMCIR operation"
 	depends on !SMP
+	default y
+
+config RISCV_SWIOTLB
+	bool "Enable SWIOTLB"
+	depends on MMU
 	default y
 
 menu "supported PMU type"
