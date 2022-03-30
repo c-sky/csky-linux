@@ -345,6 +345,11 @@ config RISCV_ISA_C
 
 	   If you don't know what to do here, say Y.
 
+config NO_SFENCE_VMA
+	bool "Replace sfence.vma with CSR_SMCIR operation"
+	depends on !SMP
+	default y
+
 menu "supported PMU type"
 	depends on PERF_EVENTS
 

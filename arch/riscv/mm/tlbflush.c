@@ -10,29 +10,41 @@
 
 void flush_tlb_all(void)
 {
+#ifdef CONFIG_NO_SFENCE_VMA
+	csr_write(CSR_SMCIR, 1 << 26);
+#else
 	__asm__ __volatile__ ("sfence.vma" : : : "memory");
+#endif
 }
 
 void flush_tlb_mm(struct mm_struct *mm)
 {
 	int newpid = cpu_asid(mm);
 
+#ifdef CONFIG_NO_SFENCE_VMA
+	csr_write(CSR_SMCIR, (1 << 27) | newpid);
+#else
 	__asm__ __volatile__ ("sfence.vma zero, %0"
 				:
 				: "r"(newpid)
 				: "memory");
+#endif
 }
 
 void flush_tlb_page(struct vm_area_struct *vma, unsigned long addr)
 {
 	int newpid = cpu_asid(vma->vm_mm);
 
+#ifdef CONFIG_NO_SFENCE_VMA
+	csr_write(CSR_SMCIR, (1 << 27) | newpid);
+#else
 	addr &= PAGE_MASK;
 
 	__asm__ __volatile__ ("sfence.vma %0, %1"
 				:
 				: "r"(addr), "r"(newpid)
 				: "memory");
+#endif
 }
 
 void flush_tlb_range(struct vm_area_struct *vma, unsigned long start,
@@ -40,6 +52,9 @@ void flush_tlb_range(struct vm_area_struct *vma, unsigned long start,
 {
 	unsigned long newpid = cpu_asid(vma->vm_mm);
 
+#ifdef CONFIG_NO_SFENCE_VMA
+	csr_write(CSR_SMCIR, (1 << 27) | newpid);
+#else
 	start &= PAGE_MASK;
 	end   += PAGE_SIZE - 1;
 	end   &= PAGE_MASK;
@@ -51,6 +66,7 @@ void flush_tlb_range(struct vm_area_struct *vma, unsigned long start,
 					: "memory");
 		start += PAGE_SIZE;
 	}
+#endif
 }
 #else
 
