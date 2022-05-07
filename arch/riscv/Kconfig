@@ -444,6 +444,7 @@ config KEXEC
 	select KEXEC_CORE
 	select HOTPLUG_CPU if SMP
 	depends on MMU
+	default y
 	help
 	  kexec is a system call that implements the ability to shutdown your
 	  current kernel, and to start another kernel. It is like a reboot
@@ -454,6 +455,7 @@ config KEXEC
 
 config CRASH_DUMP
 	bool "Build kdump crash kernel"
+	default y
 	help
 	  Generate crash dump after being started by kexec. This should
 	  be normally only set in special crash dump kernels which are
