@@ -409,6 +409,10 @@ config VECTOR_EMU
 	depends on VECTOR
 	default n
 
+config THEAD_ISA
+	bool "T-HEAD extension ISA in AFLAGS with -march=_xtheadc"
+	default n
+
 endmenu
 
 menu "Kernel features"
