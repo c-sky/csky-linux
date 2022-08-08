@@ -324,6 +324,16 @@ void __init riscv_fill_hwcap(void)
 		set_bit(RISCV_ISA_EXT_ZICSR, isainfo->isa);
 		set_bit(RISCV_ISA_EXT_ZIFENCEI, isainfo->isa);
 
+#ifdef CONFIG_RISCV_COMBO_SPINLOCKS
+		/*
+		 * The RISC-V Linux used queued spinlock at first; then, we used ticket_lock
+		 * as default or queued spinlock by choice. Because ticket_lock would dirty
+		 * spinlock value, the only way is to change from queued_spinlock to
+		 * ticket_spinlock, but can not be vice.
+		 */
+		set_bit(RISCV_ISA_EXT_XTICKETLOCK, isainfo->isa);
+#endif
+
 		/*
 		 * These ones were as they were part of the base ISA when the
 		 * port & dt-bindings were upstreamed, and so can be set
