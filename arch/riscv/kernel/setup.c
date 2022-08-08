@@ -264,6 +264,30 @@ static void __init parse_dtb(void)
 #endif
 }
 
+#ifdef CONFIG_RISCV_COMBO_SPINLOCKS
+DEFINE_STATIC_KEY_TRUE_RO(qspinlock_key);
+EXPORT_SYMBOL(qspinlock_key);
+
+void __init combo_spin_lock_init(void)
+{
+	asm_volatile_goto(ALTERNATIVE(
+		"j %l[l_dis]",
+		"nop",
+		THEAD_VENDOR_ID,
+		ERRATA_THEAD_QSPINLOCK,
+		CONFIG_ERRATA_THEAD_QSPINLOCK)
+		: : : : l_dis);
+	return;
+l_dis:
+	static_branch_disable(&qspinlock_key);
+}
+#else
+void __init combo_spin_lock_init(void)
+{
+	return;
+}
+#endif
+
 extern void __init init_rt_signal_env(void);
 
 void __init setup_arch(char **cmdline_p)
@@ -276,6 +300,7 @@ void __init setup_arch(char **cmdline_p)
 	early_ioremap_setup();
 	sbi_init();
 	jump_label_init();
+	combo_spin_lock_init();
 	parse_early_param();
 
 	efi_init();

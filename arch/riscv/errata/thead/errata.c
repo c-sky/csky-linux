@@ -86,6 +86,18 @@ static bool errata_probe_write_once(unsigned int stage,
 	return false;
 }
 
+static bool errata_probe_qspinlock(unsigned int stage,
+				   unsigned long arch_id, unsigned long impid)
+{
+	if (!IS_ENABLED(CONFIG_ERRATA_THEAD_QSPINLOCK))
+		return false;
+
+	if (stage == RISCV_ALTERNATIVES_EARLY_BOOT)
+		return true;
+
+	return false;
+}
+
 static u32 thead_errata_probe(unsigned int stage,
 			      unsigned long archid, unsigned long impid)
 {
@@ -102,6 +114,9 @@ static u32 thead_errata_probe(unsigned int stage,
 
 	if (errata_probe_write_once(stage, archid, impid))
 		cpu_req_errata |= BIT(ERRATA_THEAD_WRITE_ONCE);
+
+	if (errata_probe_qspinlock(stage, archid, impid))
+		cpu_req_errata |= BIT(ERRATA_THEAD_QSPINLOCK);
 
 	return cpu_req_errata;
 }

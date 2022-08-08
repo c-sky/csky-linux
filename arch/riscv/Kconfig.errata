@@ -96,4 +96,15 @@ config ERRATA_THEAD_WRITE_ONCE
 
 	  If you don't know what to do here, say "Y".
 
+config ERRATA_THEAD_QSPINLOCK
+	bool "Apply T-Head qspinlock errata"
+	depends on ERRATA_THEAD && RISCV_COMBO_SPINLOCKS
+	default y
+	help
+	  The T-Head C9xx cores all use qspinlock as default, and T-Head
+	  cores give LR/SC a strong forward guarantee to satisfy the qspinlock
+	  requirement.
+
+	  If you don't know what to do here, say "Y".
+
 endmenu # "CPU errata selection"
