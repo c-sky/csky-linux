@@ -11,12 +11,36 @@
 #include <asm/barrier.h>
 #include <asm/fence.h>
 
+static inline ulong __xchg16_relaxed(ulong new, void *ptr)
+{
+	ulong ret, tmp;
+	ulong shif = ((ulong)ptr & 2) ? 16 : 0;
+	ulong mask = 0xffff << shif;
+	ulong *__ptr = (ulong *)((ulong)ptr & ~2);
+
+	__asm__ __volatile__ (
+		"0:	lr.w %0, %2\n"
+		"	and  %1, %0, %z3\n"
+		"	or   %1, %1, %z4\n"
+		"	sc.w %1, %1, %2\n"
+		"	bnez %1, 0b\n"
+		: "=&r" (ret), "=&r" (tmp), "+A" (*__ptr)
+		: "rJ" (~mask), "rJ" (new << shif)
+		: "memory");
+
+	return (ulong)((ret & mask) >> shif);
+}
+
 #define __xchg_relaxed(ptr, new, size)					\
 ({									\
 	__typeof__(ptr) __ptr = (ptr);					\
 	__typeof__(new) __new = (new);					\
 	__typeof__(*(ptr)) __ret;					\
 	switch (size) {							\
+	case 2:								\
+		__ret = (__typeof__(*(ptr)))				\
+			__xchg16_relaxed((ulong)__new, __ptr);		\
+		break;							\
 	case 4:								\
 		__asm__ __volatile__ (					\
 			"	amoswap.w %0, %2, %1\n"			\
