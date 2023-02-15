@@ -12,7 +12,7 @@
 #include <asm/errata_list.h>
 
 #ifdef CONFIG_MMU
-extern unsigned long asid_mask;
+extern xlen_t asid_mask;
 
 static inline void local_flush_tlb_all(void)
 {
