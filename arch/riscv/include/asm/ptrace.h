@@ -13,53 +13,53 @@
 #ifndef __ASSEMBLY__
 
 struct pt_regs {
-	unsigned long epc;
-	unsigned long ra;
-	unsigned long sp;
-	unsigned long gp;
-	unsigned long tp;
-	unsigned long t0;
-	unsigned long t1;
-	unsigned long t2;
-	unsigned long s0;
-	unsigned long s1;
-	unsigned long a0;
-	unsigned long a1;
-	unsigned long a2;
-	unsigned long a3;
-	unsigned long a4;
-	unsigned long a5;
-	unsigned long a6;
-	unsigned long a7;
-	unsigned long s2;
-	unsigned long s3;
-	unsigned long s4;
-	unsigned long s5;
-	unsigned long s6;
-	unsigned long s7;
-	unsigned long s8;
-	unsigned long s9;
-	unsigned long s10;
-	unsigned long s11;
-	unsigned long t3;
-	unsigned long t4;
-	unsigned long t5;
-	unsigned long t6;
+	xlen_t epc;
+	xlen_t ra;
+	xlen_t sp;
+	xlen_t gp;
+	xlen_t tp;
+	xlen_t t0;
+	xlen_t t1;
+	xlen_t t2;
+	xlen_t s0;
+	xlen_t s1;
+	xlen_t a0;
+	xlen_t a1;
+	xlen_t a2;
+	xlen_t a3;
+	xlen_t a4;
+	xlen_t a5;
+	xlen_t a6;
+	xlen_t a7;
+	xlen_t s2;
+	xlen_t s3;
+	xlen_t s4;
+	xlen_t s5;
+	xlen_t s6;
+	xlen_t s7;
+	xlen_t s8;
+	xlen_t s9;
+	xlen_t s10;
+	xlen_t s11;
+	xlen_t t3;
+	xlen_t t4;
+	xlen_t t5;
+	xlen_t t6;
 	/* Supervisor/Machine CSRs */
-	unsigned long status;
-	unsigned long badaddr;
-	unsigned long cause;
+	xlen_t status;
+	xlen_t badaddr;
+	xlen_t cause;
 	/* a0 value before the syscall */
-	unsigned long orig_a0;
+	xlen_t orig_a0;
 };
 
 #define PTRACE_SYSEMU			0x1f
 #define PTRACE_SYSEMU_SINGLESTEP	0x20
 
-#ifdef CONFIG_64BIT
-#define REG_FMT "%016lx"
+#if __riscv_xlen == 64
+#define REG_FMT "%016llx"
 #else
-#define REG_FMT "%08lx"
+#define REG_FMT "%08x"
 #endif
 
 #define user_mode(regs) (((regs)->status & SR_PP) == 0)
@@ -69,12 +69,12 @@ struct pt_regs {
 /* Helpers for working with the instruction pointer */
 static inline unsigned long instruction_pointer(struct pt_regs *regs)
 {
-	return regs->epc;
+	return (unsigned long)regs->epc;
 }
 static inline void instruction_pointer_set(struct pt_regs *regs,
 					   unsigned long val)
 {
-	regs->epc = val;
+	regs->epc = (xlen_t)val;
 }
 
 #define profile_pc(regs) instruction_pointer(regs)
@@ -82,40 +82,40 @@ static inline void instruction_pointer_set(struct pt_regs *regs,
 /* Helpers for working with the user stack pointer */
 static inline unsigned long user_stack_pointer(struct pt_regs *regs)
 {
-	return regs->sp;
+	return (unsigned long)regs->sp;
 }
 static inline void user_stack_pointer_set(struct pt_regs *regs,
 					  unsigned long val)
 {
-	regs->sp =  val;
+	regs->sp = (xlen_t)val;
 }
 
 /* Valid only for Kernel mode traps. */
 static inline unsigned long kernel_stack_pointer(struct pt_regs *regs)
 {
-	return regs->sp;
+	return (unsigned long)regs->sp;
 }
 
 /* Helpers for working with the frame pointer */
 static inline unsigned long frame_pointer(struct pt_regs *regs)
 {
-	return regs->s0;
+	return (unsigned long)regs->s0;
 }
 static inline void frame_pointer_set(struct pt_regs *regs,
 				     unsigned long val)
 {
-	regs->s0 = val;
+	regs->s0 = (xlen_t)val;
 }
 
 static inline unsigned long regs_return_value(struct pt_regs *regs)
 {
-	return regs->a0;
+	return (unsigned long)regs->a0;
 }
 
 static inline void regs_set_return_value(struct pt_regs *regs,
 					 unsigned long val)
 {
-	regs->a0 = val;
+	regs->a0 = (xlen_t)val;
 }
 
 extern int regs_query_register_offset(const char *name);

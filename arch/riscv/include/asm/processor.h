@@ -37,12 +37,12 @@ struct thread_struct {
 	/* Callee-saved registers */
 	unsigned long ra;
 	unsigned long sp;	/* Kernel mode stack */
-	unsigned long s[12];	/* s[0]: frame pointer */
+	xlen_t     s[12];	/* s[0]: frame pointer */
 	struct __riscv_d_ext_state fstate;
 	unsigned long bad_cause;
 	unsigned long vstate_ctrl;
 	struct __riscv_v_ext_state vstate;
-};
+} __attribute__((__aligned__(sizeof(xlen_t))));
 
 /* Whitelist the fstate from the task_struct for hardened usercopy */
 static inline void arch_thread_struct_whitelist(unsigned long *offset,
@@ -60,8 +60,8 @@ static inline void arch_thread_struct_whitelist(unsigned long *offset,
 	((struct pt_regs *)(task_stack_page(tsk) + THREAD_SIZE		\
 			    - ALIGN(sizeof(struct pt_regs), STACK_ALIGN)))
 
-#define KSTK_EIP(tsk)		(task_pt_regs(tsk)->epc)
-#define KSTK_ESP(tsk)		(task_pt_regs(tsk)->sp)
+#define KSTK_EIP(tsk)		(ulong)(task_pt_regs(tsk)->epc)
+#define KSTK_ESP(tsk)		(ulong)(task_pt_regs(tsk)->sp)
 
 
 /* Do necessary setup to start up a newly executed thread. */
