@@ -22,10 +22,7 @@ static struct irq_domain *intc_domain;
 
 static asmlinkage void riscv_intc_irq(struct pt_regs *regs)
 {
-	unsigned long cause = regs->cause & ~CAUSE_IRQ_FLAG;
-
-	if (unlikely(cause >= BITS_PER_LONG))
-		panic("unexpected interrupt cause");
+	xlen_t cause = regs->cause & ~CAUSE_IRQ_FLAG;
 
 	generic_handle_domain_irq(intc_domain, cause);
 }
