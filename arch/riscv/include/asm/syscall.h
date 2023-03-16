@@ -81,7 +81,7 @@ static inline void syscall_handler(struct pt_regs *regs, ulong syscall)
 	syscall_t fn;
 
 #ifdef CONFIG_COMPAT
-	if ((regs->status & SR_UXL) == SR_UXL_32)
+	if (test_thread_flag(TIF_32BIT))
 		fn = compat_sys_call_table[syscall];
 	else
 #endif
