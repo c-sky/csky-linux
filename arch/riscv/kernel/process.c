@@ -126,14 +126,12 @@ void start_thread(struct pt_regs *regs, unsigned long pc,
 	regs->epc = pc;
 	regs->sp = sp;
 
-#ifdef CONFIG_64BIT
 	regs->status &= ~SR_UXL;
 
-	if (is_compat_task())
+	if (test_thread_flag(TIF_32BIT) && !test_thread_flag(TIF_64ILP32))
 		regs->status |= SR_UXL_32;
 	else
 		regs->status |= SR_UXL_64;
-#endif
 }
 
 void flush_thread(void)
