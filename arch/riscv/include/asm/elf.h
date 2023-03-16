@@ -127,18 +127,23 @@ do {							\
 		*(struct user_regs_struct *)regs;	\
 } while (0);
 
-#ifdef CONFIG_COMPAT
+#define EF_RISCV_64ILP32	0x20
 
 #define SET_PERSONALITY(ex)					\
 do {    if ((ex).e_ident[EI_CLASS] == ELFCLASS32)		\
 		set_thread_flag(TIF_32BIT);			\
 	else							\
 		clear_thread_flag(TIF_32BIT);			\
+	if ((ex).e_flags & EF_RISCV_64ILP32)			\
+		set_thread_flag(TIF_64ILP32);			\
+	else							\
+		clear_thread_flag(TIF_64ILP32);			\
 	if (personality(current->personality) != PER_LINUX32)	\
 		set_personality(PER_LINUX |			\
 			(current->personality & (~PER_MASK)));	\
 } while (0)
 
+#ifdef CONFIG_COMPAT
 #define COMPAT_ELF_ET_DYN_BASE		((TASK_SIZE_32 / 3) * 2)
 
 /* rv32 registers */
