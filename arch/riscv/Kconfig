@@ -340,6 +340,7 @@ config ARCH_RV64I
 config ARCH_RV64ILP32
 	bool "RV64ILP32"
 	depends on NONPORTABLE
+	select ARCH_SUPPORTS_INT128 if !$(cc-option,$(m64-flag) -D__SIZEOF_INT128__=0)
 	select 32BIT
 	select MMU
 	select VDSO64ILP32
