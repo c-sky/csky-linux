@@ -16,6 +16,12 @@
 # endif
 #endif
 
+#ifdef CONFIG_ARCH_RV64ILP32
+typedef struct {
+	s64 counter;
+} atomic64_t;
+#endif
+
 #include <asm/cmpxchg.h>
 #include <asm/barrier.h>
 
