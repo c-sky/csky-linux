@@ -61,16 +61,28 @@ void clear_page(void *page);
 
 /* Page Global Directory entry */
 typedef struct {
-	unsigned long pgd;
+#ifndef CONFIG_MMU_SV32
+	u64 pgd;
+#else
+	u32 pgd;
+#endif
 } pgd_t;
 
 /* Page Table entry */
 typedef struct {
-	unsigned long pte;
+#ifndef CONFIG_MMU_SV32
+	u64 pte;
+#else
+	u32 pte;
+#endif
 } pte_t;
 
 typedef struct {
-	unsigned long pgprot;
+#ifndef CONFIG_MMU_SV32
+	u64 pgprot;
+#else
+	u32 pgprot;
+#endif
 } pgprot_t;
 
 typedef struct page *pgtable_t;
@@ -83,10 +95,10 @@ typedef struct page *pgtable_t;
 #define __pgd(x)	((pgd_t) { (x) })
 #define __pgprot(x)	((pgprot_t) { (x) })
 
-#ifdef CONFIG_64BIT
-#define PTE_FMT "%016lx"
+#ifndef CONFIG_MMU_SV32
+#define PTE_FMT "%016llx"
 #else
-#define PTE_FMT "%08lx"
+#define PTE_FMT "%08x"
 #endif
 
 #ifdef CONFIG_64BIT
