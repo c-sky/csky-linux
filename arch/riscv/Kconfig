@@ -259,7 +259,7 @@ config FIX_EARLYCON_MEM
 
 config PGTABLE_LEVELS
 	int
-	default 5 if 64BIT
+	default 5 if !MMU_SV32
 	default 2
 
 config LOCKDEP_SUPPORT
@@ -329,6 +329,8 @@ config ARCH_RV32I
 	select GENERIC_LIB_ASHRDI3
 	select GENERIC_LIB_LSHRDI3
 	select GENERIC_LIB_UCMPDI2
+	select MMU
+	select MMU_SV32
 
 config ARCH_RV64I
 	bool "RV64I"

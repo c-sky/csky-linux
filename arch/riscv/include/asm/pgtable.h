@@ -34,7 +34,11 @@
  * Half of the kernel address space (1/4 of the entries of the page global
  * directory) is for the direct mapping.
  */
+#if IS_ENABLED(CONFIG_ARCH_RV64ILP32) && !IS_ENABLED(CONFIG_MMU_SV32)
+#define KERN_VIRT_SIZE          (PTRS_PER_PGD * PMD_SIZE)
+#else
 #define KERN_VIRT_SIZE          ((PTRS_PER_PGD / 2 * PGDIR_SIZE) / 2)
+#endif
 
 #define VMALLOC_SIZE     (KERN_VIRT_SIZE >> 1)
 #define VMALLOC_END      PAGE_OFFSET
@@ -86,7 +90,7 @@
 #define PCI_IO_START     (PCI_IO_END - PCI_IO_SIZE)
 
 #define FIXADDR_TOP      PCI_IO_START
-#ifdef CONFIG_64BIT
+#ifndef CONFIG_MMU_SV32
 #define MAX_FDT_SIZE	 PMD_SIZE
 #define FIX_FDT_SIZE	 (MAX_FDT_SIZE + SZ_2M)
 #define FIXADDR_SIZE     (PMD_SIZE + FIX_FDT_SIZE)
@@ -114,11 +118,11 @@
 
 #define __page_val_to_pfn(_val)  (((_val) & _PAGE_PFN_MASK) >> _PAGE_PFN_SHIFT)
 
-#ifdef CONFIG_64BIT
+#ifndef CONFIG_MMU_SV32
 #include <asm/pgtable-64.h>
 #else
 #include <asm/pgtable-32.h>
-#endif /* CONFIG_64BIT */
+#endif /* !CONFIG_MMU_SV32 */
 
 #include <linux/page_table_check.h>
 
@@ -527,7 +531,11 @@ static inline int ptep_set_access_flags(struct vm_area_struct *vma,
 static inline pte_t ptep_get_and_clear(struct mm_struct *mm,
 				       unsigned long address, pte_t *ptep)
 {
+#ifndef CONFIG_MMU_SV32
+	pte_t pte = __pte(atomic64_xchg((atomic64_t *)ptep, 0));
+#else
 	pte_t pte = __pte(atomic_long_xchg((atomic_long_t *)ptep, 0));
+#endif
 
 	page_table_check_pte_clear(mm, address, pte);
 
@@ -541,7 +549,8 @@ static inline int ptep_test_and_clear_young(struct vm_area_struct *vma,
 {
 	if (!pte_young(*ptep))
 		return 0;
-	return test_and_clear_bit(_PAGE_ACCESSED_OFFSET, &pte_val(*ptep));
+	return test_and_clear_bit(_PAGE_ACCESSED_OFFSET,
+					(unsigned long *)&pte_val(*ptep));
 }
 
 #define __HAVE_ARCH_PTEP_SET_WRPROTECT
