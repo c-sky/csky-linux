@@ -194,8 +194,8 @@ static struct vm_special_mapping rv_compat_vdso_maps[] __ro_after_init = {
 
 static struct __vdso_info compat_vdso_info __ro_after_init = {
 	.name = "compat_vdso",
-	.vdso_code_start = compat_vdso_start,
-	.vdso_code_end = compat_vdso_end,
+	.vdso_code_start = vdso32_start,
+	.vdso_code_end = vdso32_end,
 	.dm = &rv_compat_vdso_maps[RV_VDSO_MAP_VVAR],
 	.cm = &rv_compat_vdso_maps[RV_VDSO_MAP_VDSO],
 };

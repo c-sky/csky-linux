@@ -8,16 +8,16 @@
 #include <asm/page.h>
 
 #ifndef __VDSO_PATH
-#define __VDSO_PATH "arch/riscv/kernel/vdso/vdso.so"
+#define __VDSO_PATH "arch/riscv/kernel/vdso/vdso64.so"
 #endif
 
 	__PAGE_ALIGNED_DATA
 
-	.globl vdso_start, vdso_end
+	.globl vdso64_start, vdso64_end
 	.balign PAGE_SIZE
-vdso_start:
+vdso64_start:
 	.incbin __VDSO_PATH
 	.balign PAGE_SIZE
-vdso_end:
+vdso64_end:
 
 	.previous

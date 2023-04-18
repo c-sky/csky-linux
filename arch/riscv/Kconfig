@@ -5,9 +5,11 @@
 #
 
 config 64BIT
+	select VDSO64
 	bool
 
 config 32BIT
+	select VDSO32
 	bool
 
 config RISCV
@@ -278,6 +280,14 @@ config AS_HAS_OPTION_ARCH
 	def_bool y
 	depends on $(as-instr, .option arch$(comma) +m)
 	depends on !$(as-instr, .option arch$(comma) -i)
+
+config VDSO32
+	bool
+	depends on MMU
+
+config VDSO64
+	bool
+	depends on MMU
 
 source "arch/riscv/Kconfig.socs"
 source "arch/riscv/Kconfig.errata"
@@ -743,6 +753,7 @@ config CRASH_DUMP
 config COMPAT
 	bool "Kernel support for 32-bit U-mode"
 	default 64BIT
+	select VDSO32
 	depends on 64BIT && MMU
 	help
 	  This option enables support for a 32-bit U-mode running under a 64-bit

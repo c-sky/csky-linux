@@ -217,7 +217,7 @@ int compat_setup_rt_frame(struct ksignal *ksig, sigset_t *set,
 	if (err)
 		return -EFAULT;
 
-	regs->ra = (unsigned long)COMPAT_VDSO_SYMBOL(
+	regs->ra = (unsigned long)VDSO32_SYMBOL(
 			current->mm->context.vdso, rt_sigreturn);
 
 	/*
