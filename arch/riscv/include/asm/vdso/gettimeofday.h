@@ -17,6 +17,7 @@
 
 #define VDSO_HAS_CLOCK_GETRES	1
 
+#ifdef __NR_gettimeofday
 static __always_inline
 int gettimeofday_fallback(struct __kernel_old_timeval *_tv,
 			  struct timezone *_tz)
@@ -33,7 +34,9 @@ int gettimeofday_fallback(struct __kernel_old_timeval *_tv,
 
 	return ret;
 }
+#endif
 
+#ifdef __NR_clock_gettime
 static __always_inline
 long clock_gettime_fallback(clockid_t _clkid, struct __kernel_timespec *_ts)
 {
@@ -49,7 +52,9 @@ long clock_gettime_fallback(clockid_t _clkid, struct __kernel_timespec *_ts)
 
 	return ret;
 }
+#endif
 
+#ifdef __NR_clock_getres
 static __always_inline
 int clock_getres_fallback(clockid_t _clkid, struct __kernel_timespec *_ts)
 {
@@ -65,7 +70,7 @@ int clock_getres_fallback(clockid_t _clkid, struct __kernel_timespec *_ts)
 
 	return ret;
 }
-
+#endif
 #endif /* CONFIG_GENERIC_TIME_VSYSCALL */
 
 static __always_inline u64 __arch_get_hw_counter(s32 clock_mode,

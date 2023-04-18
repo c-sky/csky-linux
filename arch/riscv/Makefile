@@ -136,18 +136,19 @@ libs-$(CONFIG_EFI_STUB) += $(objtree)/drivers/firmware/efi/libstub/lib.a
 
 PHONY += vdso_install
 vdso_install:
-	$(Q)$(MAKE) $(build)=arch/riscv/kernel/vdso $@
-	$(if $(CONFIG_COMPAT),$(Q)$(MAKE) \
-		$(build)=arch/riscv/kernel/compat_vdso compat_$@)
+	$(if $(CONFIG_VDSO32),$(Q)$(MAKE) \
+		$(build)=arch/riscv/kernel/vdso vdso32_install
+	$(if $(CONFIG_VDSO64),$(Q)$(MAKE) \
+		$(build)=arch/riscv/kernel/vdso vdso64_install
 
 ifeq ($(KBUILD_EXTMOD),)
 ifeq ($(CONFIG_MMU),y)
 prepare: vdso_prepare
 vdso_prepare: prepare0
-	$(Q)$(MAKE) $(build)=arch/riscv/kernel/vdso include/generated/vdso-offsets.h
-	$(if $(CONFIG_COMPAT),$(Q)$(MAKE) \
-		$(build)=arch/riscv/kernel/compat_vdso include/generated/compat_vdso-offsets.h)
-
+	$(if $(CONFIG_VDSO32),$(Q)$(MAKE) \
+		$(build)=arch/riscv/kernel/vdso include/generated/vdso32-offsets.h)
+	$(if $(CONFIG_VDSO64),$(Q)$(MAKE) \
+		$(build)=arch/riscv/kernel/vdso include/generated/vdso64-offsets.h)
 endif
 endif
 

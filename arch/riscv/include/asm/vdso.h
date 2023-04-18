@@ -17,22 +17,36 @@
 #define __VVAR_PAGES    2
 
 #ifndef __ASSEMBLY__
-#include <generated/vdso-offsets.h>
 
-#define VDSO_SYMBOL(base, name)							\
-	(void __user *)((unsigned long)(base) + __vdso_##name##_offset)
+#ifdef CONFIG_VDSO64
+#include <generated/vdso64-offsets.h>
 
-#ifdef CONFIG_COMPAT
-#include <generated/compat_vdso-offsets.h>
+#define VDSO64_SYMBOL(base, name)					\
+	(void __user *)((unsigned long)(base) + rv64__vdso_##name##_offset)
 
-#define COMPAT_VDSO_SYMBOL(base, name)						\
-	(void __user *)((unsigned long)(base) + compat__vdso_##name##_offset)
+extern char vdso64_start[], vdso64_end[];
 
-extern char compat_vdso_start[], compat_vdso_end[];
+#endif /* CONFIG_VDSO64 */
 
-#endif /* CONFIG_COMPAT */
+#ifdef CONFIG_VDSO32
+#include <generated/vdso32-offsets.h>
 
-extern char vdso_start[], vdso_end[];
+#define VDSO32_SYMBOL(base, name)					\
+	(void __user *)((unsigned long)(base) + rv32__vdso_##name##_offset)
+
+extern char vdso32_start[], vdso32_end[];
+
+#endif /* CONFIG_VDSO32 */
+
+#ifdef CONFIG_64BIT
+#define vdso_start	vdso64_start
+#define vdso_end	vdso64_end
+#define VDSO_SYMBOL	VDSO64_SYMBOL
+#else /* CONFIG_64BIT */
+#define vdso_start	vdso32_start
+#define vdso_end	vdso32_end
+#define VDSO_SYMBOL	VDSO32_SYMBOL
+#endif /* CONFIG_64BIT */
 
 #endif /* !__ASSEMBLY__ */
 
