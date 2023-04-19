@@ -22,6 +22,7 @@
 
 #define __ARCH_WANT_SYS_CLONE3
 #define __ARCH_WANT_MEMFD_SECRET
+#define __ARCH_WANT_TIME32_SYSCALLS
 
 #include <asm-generic/unistd.h>
 

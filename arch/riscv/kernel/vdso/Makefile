@@ -29,20 +29,20 @@ $(obj)/%.so: $(obj)/%.so.dbg FORCE
 quiet_cmd_vdso_install = INSTALL $@
       cmd_vdso_install = cp $(obj)/$@.dbg $(MODLIB)/vdso/$@
 
+vdso-as-syms  = rt_sigreturn
+vdso-as-syms += getcpu
+vdso-as-syms += flush_icache
+vdso-as-syms += sys_hwprobe
+
+vdso-cc-syms  = vgettimeofday
+vdso-cc-syms += hwprobe
+
 # Symbols present in the vdso
 ifdef CONFIG_VDSO64
-vdso64-as-syms  = rt_sigreturn
-vdso64-as-syms += getcpu
-vdso64-as-syms += flush_icache
-vdso64-as-syms += sys_hwprobe
-
-vdso64-cc-syms  = vgettimeofday
-vdso64-cc-syms += hwprobe
-
-obj-as-vdso64  = $(patsubst %, %-64.o, $(vdso64-as-syms)) note-64.o
+obj-as-vdso64  = $(patsubst %, %-64.o, $(vdso-as-syms)) note-64.o
 obj-as-vdso64 := $(addprefix $(obj)/, $(obj-as-vdso64))
 
-obj-cc-vdso64  = $(patsubst %, %-64.o, $(vdso64-cc-syms))
+obj-cc-vdso64  = $(patsubst %, %-64.o, $(vdso-cc-syms))
 obj-cc-vdso64 := $(addprefix $(obj)/, $(obj-cc-vdso64))
 
 targets += $(obj-as-vdso64) $(obj-cc-vdso64) vdso64.so vdso64.so.dbg vdso64.lds
@@ -55,7 +55,7 @@ LDFLAGS_vdso64.so.dbg = -shared -S -soname=linux-vdso64.so.1 \
 # Make sure only to export the intended __vdso_xxx symbol offsets.
 quiet_cmd_vdso64ld = VDSO64LD  $@
       cmd_vdso64ld = $(VDSO_LD) $(ld_flags) $(VDSO64_LD_FLAGS) -T $(filter-out FORCE,$^) -o $@.tmp && \
-                   $(OBJCOPY) $(patsubst %, -G __vdso_%, $(vdso64-as-syms) $(vdso64-cc-syms)) $@.tmp $@ && \
+                   $(OBJCOPY) $(patsubst %, -G __vdso_%, $(vdso-as-syms) $(vdso-cc-syms)) $@.tmp $@ && \
                    rm $@.tmp
 
 # actual build commands
@@ -94,20 +94,13 @@ vdso64_install: vdso64.so
 endif
 
 ifdef CONFIG_VDSO32
-vdso32-as-syms  = rt_sigreturn
-vdso32-as-syms += getcpu
-vdso32-as-syms += flush_icache
-vdso32-as-syms += sys_hwprobe
-
-vdso32-cc-syms += hwprobe
-
 VDSO32_CC_FLAGS := -march=rv32g -mabi=ilp32
 VDSO32_LD_FLAGS := -melf32lriscv
 
-obj-as-vdso32  = $(patsubst %, %-32.o, $(vdso32-as-syms)) note-32.o
+obj-as-vdso32  = $(patsubst %, %-32.o, $(vdso-as-syms)) note-32.o
 obj-as-vdso32 := $(addprefix $(obj)/, $(obj-as-vdso32))
 
-obj-cc-vdso32  = $(patsubst %, %-32.o, $(vdso32-cc-syms))
+obj-cc-vdso32  = $(patsubst %, %-32.o, $(vdso-cc-syms))
 obj-cc-vdso32 := $(addprefix $(obj)/, $(obj-cc-vdso32))
 
 targets += $(obj-as-vdso32) $(obj-cc-vdso32) vdso32.so vdso32.so.dbg vdso32.lds
@@ -121,7 +114,7 @@ LDFLAGS_vdso32.so.dbg = -shared -S -soname=linux-vdso32.so.1 \
 # Make sure only to export the intended __vdso_xxx symbol offsets.
 quiet_cmd_vdso32ld = VDSO32LD  $@
       cmd_vdso32ld = $(VDSO_LD) $(ld_flags) $(VDSO32_LD_FLAGS) -T $(filter-out FORCE,$^) -o $@.tmp && \
-                   $(OBJCOPY) $(patsubst %, -G __vdso_%, $(vdso32-as-syms) $(vdso32-cc-syms)) $@.tmp $@ && \
+                   $(OBJCOPY) $(patsubst %, -G __vdso_%, $(vdso-as-syms) $(vdso-cc-syms)) $@.tmp $@ && \
                    rm $@.tmp
 
 # actual build commands
@@ -139,6 +132,10 @@ $(obj-cc-vdso32): %-32.o: %.c FORCE
 	$(call if_changed_dep,vdso32cc)
 
 CFLAGS_hwprobe-32.o += -fPIC
+
+CFLAGS_vgettimeofday-32.o += -fPIC -include $(c-gettimeofday-y)
+# Disable -pg to prevent insert call site
+CFLAGS_REMOVE_vgettimeofday-32.o = $(CC_FLAGS_FTRACE)
 
 # Generate VDSO offsets using helper script
 gen-vdso32sym := $(srctree)/$(src)/gen_vdso32_offsets.sh
