@@ -38,7 +38,7 @@ bool fixup_exception(struct pt_regs *regs);
 static inline bool fixup_exception(struct pt_regs *regs) { return false; }
 #endif
 
-#if defined(CONFIG_BPF_JIT) && defined(CONFIG_ARCH_RV64I)
+#if defined(CONFIG_BPF_JIT) && !defined(CONFIG_ARCH_RV32I)
 bool ex_handler_bpf(const struct exception_table_entry *ex, struct pt_regs *regs);
 #else
 static inline bool
