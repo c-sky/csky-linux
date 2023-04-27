@@ -336,6 +336,13 @@ config ARCH_RV64I
 	select ARCH_SUPPORTS_INT128 if CC_HAS_INT128
 	select SWIOTLB if MMU
 
+config ARCH_RV64ILP32
+	bool "RV64ILP32"
+	depends on NONPORTABLE
+	select 32BIT
+	select MMU
+	select VDSO64ILP32
+
 endchoice
 
 # We must be able to map all physical memory into the kernel, but the compiler
