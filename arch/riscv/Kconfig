@@ -289,6 +289,10 @@ config VDSO64
 	bool
 	depends on MMU
 
+config VDSO64ILP32
+	bool
+	depends on MMU
+
 source "arch/riscv/Kconfig.socs"
 source "arch/riscv/Kconfig.errata"
 
@@ -754,6 +758,7 @@ config COMPAT
 	bool "Kernel support for 32-bit U-mode"
 	default 64BIT
 	select VDSO32
+	select VDSO64ILP32 if $(cc-option,-march=rv64g -mabi=ilp32)
 	depends on 64BIT && MMU
 	help
 	  This option enables support for a 32-bit U-mode running under a 64-bit
