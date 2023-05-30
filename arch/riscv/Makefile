@@ -140,6 +140,8 @@ vdso_install:
 		$(build)=arch/riscv/kernel/vdso vdso32_install
 	$(if $(CONFIG_VDSO64),$(Q)$(MAKE) \
 		$(build)=arch/riscv/kernel/vdso vdso64_install
+	$(if $(CONFIG_VDSO64ILP32),$(Q)$(MAKE) \
+		$(build)=arch/riscv/kernel/vdso vdso64ilp32_install
 
 ifeq ($(KBUILD_EXTMOD),)
 ifeq ($(CONFIG_MMU),y)
@@ -149,6 +151,8 @@ vdso_prepare: prepare0
 		$(build)=arch/riscv/kernel/vdso include/generated/vdso32-offsets.h)
 	$(if $(CONFIG_VDSO64),$(Q)$(MAKE) \
 		$(build)=arch/riscv/kernel/vdso include/generated/vdso64-offsets.h)
+	$(if $(CONFIG_VDSO64ILP32),$(Q)$(MAKE) \
+		$(build)=arch/riscv/kernel/vdso include/generated/vdso64ilp32-offsets.h)
 endif
 endif
 
