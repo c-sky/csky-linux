@@ -59,6 +59,7 @@ obj-y	+= probes/
 obj-$(CONFIG_MMU) += vdso.o vdso/
 obj-$(CONFIG_VDSO64)  += vdso64.o
 obj-$(CONFIG_VDSO32)  += vdso32.o
+obj-$(CONFIG_VDSO64ILP32)  += vdso64ilp32.o
 
 obj-$(CONFIG_RISCV_M_MODE)	+= traps_misaligned.o
 obj-$(CONFIG_FPU)		+= fpu.o
