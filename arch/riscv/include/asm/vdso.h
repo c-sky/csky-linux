@@ -38,15 +38,15 @@ extern char vdso32_start[], vdso32_end[];
 
 #endif /* CONFIG_VDSO32 */
 
-#ifdef CONFIG_64BIT
-#define vdso_start	vdso64_start
-#define vdso_end	vdso64_end
-#define VDSO_SYMBOL	VDSO64_SYMBOL
-#else /* CONFIG_64BIT */
-#define vdso_start	vdso32_start
-#define vdso_end	vdso32_end
-#define VDSO_SYMBOL	VDSO32_SYMBOL
-#endif /* CONFIG_64BIT */
+#ifdef CONFIG_VDSO64ILP32
+#include <generated/vdso64ilp32-offsets.h>
+
+#define VDSO64ILP32_SYMBOL(base, name)					\
+	(void __user *)((unsigned long)(base) + rv64ilp32__vdso_##name##_offset)
+
+extern char vdso64ilp32_start[], vdso64ilp32_end[];
+
+#endif /* CONFIG_VDSO64ILP32 */
 
 #endif /* !__ASSEMBLY__ */
 
