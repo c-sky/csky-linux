@@ -50,9 +50,14 @@ struct __vdso_info {
 	struct vm_special_mapping *cm;
 };
 
-static struct __vdso_info vdso_info;
-#ifdef CONFIG_COMPAT
-static struct __vdso_info compat_vdso_info;
+#ifdef CONFIG_VDSO64
+static struct __vdso_info vdso64_info;
+#endif
+#ifdef CONFIG_VDSO32
+static struct __vdso_info vdso32_info;
+#endif
+#ifdef CONFIG_VDSO64ILP32
+static struct __vdso_info vdso64ilp32_info;
 #endif
 
 static int vdso_mremap(const struct vm_special_mapping *sm,
@@ -114,10 +119,16 @@ int vdso_join_timens(struct task_struct *task, struct time_namespace *ns)
 	mmap_read_lock(mm);
 
 	for_each_vma(vmi, vma) {
-		if (vma_is_special_mapping(vma, vdso_info.dm))
+#ifdef CONFIG_VDSO64
+		if (vma_is_special_mapping(vma, vdso64_info.dm))
 			zap_vma_pages(vma);
-#ifdef CONFIG_COMPAT
-		if (vma_is_special_mapping(vma, compat_vdso_info.dm))
+#endif
+#ifdef CONFIG_VDSO32
+		if (vma_is_special_mapping(vma, vdso32_info.dm))
+			zap_vma_pages(vma);
+#endif
+#ifdef CONFIG_VDSO64ILP32
+		if (vma_is_special_mapping(vma, vdso64ilp32_info.dm))
 			zap_vma_pages(vma);
 #endif
 	}
@@ -172,13 +183,15 @@ static struct vm_special_mapping rv_vdso_maps[] __ro_after_init = {
 	},
 };
 
-static struct __vdso_info vdso_info __ro_after_init = {
+#ifdef CONFIG_VDSO64
+static struct __vdso_info vdso64_info __ro_after_init = {
 	.name = "vdso",
-	.vdso_code_start = vdso_start,
-	.vdso_code_end = vdso_end,
+	.vdso_code_start = vdso64_start,
+	.vdso_code_end = vdso64_end,
 	.dm = &rv_vdso_maps[RV_VDSO_MAP_VVAR],
 	.cm = &rv_vdso_maps[RV_VDSO_MAP_VDSO],
 };
+#endif
 
 #ifdef CONFIG_COMPAT
 static struct vm_special_mapping rv_compat_vdso_maps[] __ro_after_init = {
@@ -191,21 +204,48 @@ static struct vm_special_mapping rv_compat_vdso_maps[] __ro_after_init = {
 		.mremap = vdso_mremap,
 	},
 };
+#endif
 
-static struct __vdso_info compat_vdso_info __ro_after_init = {
-	.name = "compat_vdso",
+#ifdef CONFIG_VDSO32
+static struct __vdso_info vdso32_info __ro_after_init = {
+	.name = "vdso32",
 	.vdso_code_start = vdso32_start,
 	.vdso_code_end = vdso32_end,
+#ifdef CONFIG_64BIT
 	.dm = &rv_compat_vdso_maps[RV_VDSO_MAP_VVAR],
 	.cm = &rv_compat_vdso_maps[RV_VDSO_MAP_VDSO],
+#else
+	.dm = &rv_vdso_maps[RV_VDSO_MAP_VVAR],
+	.cm = &rv_vdso_maps[RV_VDSO_MAP_VDSO],
+#endif
+};
+#endif
+
+#ifdef CONFIG_VDSO64ILP32
+static struct __vdso_info vdso64ilp32_info __ro_after_init = {
+	.name = "vdso64ilp32",
+	.vdso_code_start = vdso64ilp32_start,
+	.vdso_code_end = vdso64ilp32_end,
+#ifdef CONFIG_64BIT
+	.dm = &rv_compat_vdso_maps[RV_VDSO_MAP_VVAR],
+	.cm = &rv_compat_vdso_maps[RV_VDSO_MAP_VDSO],
+#else
+	.dm = &rv_vdso_maps[RV_VDSO_MAP_VVAR],
+	.cm = &rv_vdso_maps[RV_VDSO_MAP_VDSO],
+#endif
 };
 #endif
 
 static int __init vdso_init(void)
 {
-	__vdso_init(&vdso_info);
-#ifdef CONFIG_COMPAT
-	__vdso_init(&compat_vdso_info);
+#ifdef CONFIG_VDSO64
+	__vdso_init(&vdso64_info);
+#endif
+#ifdef CONFIG_VDSO32
+	__vdso_init(&vdso32_info);
+#endif
+#ifdef CONFIG_VDSO64ILP32
+	__vdso_init(&vdso64ilp32_info);
 #endif
 
 	return 0;
@@ -265,8 +305,18 @@ int compat_arch_setup_additional_pages(struct linux_binprm *bprm,
 	if (mmap_write_lock_killable(mm))
 		return -EINTR;
 
-	ret = __setup_additional_pages(mm, bprm, uses_interp,
-							&compat_vdso_info);
+#ifdef CONFIG_VDSO32
+	if (test_thread_flag(TIF_32BIT) && !test_thread_flag(TIF_64ILP32))
+		ret = __setup_additional_pages(mm, bprm, uses_interp,
+							&vdso32_info);
+#endif
+
+#ifdef CONFIG_VDSO64ILP32
+	if (test_thread_flag(TIF_32BIT) && test_thread_flag(TIF_64ILP32))
+		ret = __setup_additional_pages(mm, bprm, uses_interp,
+							&vdso64ilp32_info);
+#endif
+
 	mmap_write_unlock(mm);
 
 	return ret;
@@ -281,7 +331,21 @@ int arch_setup_additional_pages(struct linux_binprm *bprm, int uses_interp)
 	if (mmap_write_lock_killable(mm))
 		return -EINTR;
 
-	ret = __setup_additional_pages(mm, bprm, uses_interp, &vdso_info);
+#ifdef CONFIG_VDSO64
+	if (!test_thread_flag(TIF_32BIT))
+		ret = __setup_additional_pages(mm, bprm, uses_interp, &vdso64_info);
+#endif
+
+#ifdef CONFIG_VDSO32
+	if (test_thread_flag(TIF_32BIT) && !test_thread_flag(TIF_64ILP32))
+		ret = __setup_additional_pages(mm, bprm, uses_interp, &vdso32_info);
+#endif
+
+#ifdef CONFIG_VDSO64ILP32
+	if (test_thread_flag(TIF_32BIT) && test_thread_flag(TIF_64ILP32))
+		ret = __setup_additional_pages(mm, bprm, uses_interp, &vdso64ilp32_info);
+#endif
+
 	mmap_write_unlock(mm);
 
 	return ret;

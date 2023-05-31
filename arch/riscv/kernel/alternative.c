@@ -182,7 +182,7 @@ static void __init_or_module _apply_alternatives(struct alt_entry *begin,
 }
 
 #ifdef CONFIG_MMU
-static void __init apply_vdso_alternatives(void)
+static void __init apply_vdso_alternatives(void *vdso_start)
 {
 	const Elf_Ehdr *hdr;
 	const Elf_Shdr *shdr;
@@ -203,7 +203,7 @@ static void __init apply_vdso_alternatives(void)
 			    RISCV_ALTERNATIVES_BOOT);
 }
 #else
-static void __init apply_vdso_alternatives(void) { }
+static void __init apply_vdso_alternatives(void *vdso_start) { }
 #endif
 
 void __init apply_boot_alternatives(void)
@@ -216,7 +216,16 @@ void __init apply_boot_alternatives(void)
 			    (struct alt_entry *)__alt_end,
 			    RISCV_ALTERNATIVES_BOOT);
 
-	apply_vdso_alternatives();
+#ifdef CONFIG_VDSO64
+	apply_vdso_alternatives(vdso64_start);
+#endif
+#ifdef CONFIG_VDSO32
+	apply_vdso_alternatives(vdso32_start);
+#endif
+#ifdef CONFIG_VDSO64ILP32
+	apply_vdso_alternatives(vdso64ilp32_start);
+#endif
+
 }
 
 /*
