@@ -345,10 +345,25 @@ static int setup_rt_frame(struct ksignal *ksig, sigset_t *set,
 		return -EFAULT;
 
 	/* Set up to return from userspace. */
-#ifdef CONFIG_MMU
-	regs->ra = (unsigned long)VDSO_SYMBOL(
-		current->mm->context.vdso, rt_sigreturn);
-#else
+#ifdef CONFIG_VDSO64
+	if (!test_thread_flag(TIF_32BIT))
+		regs->ra = (unsigned long)VDSO64_SYMBOL(
+			current->mm->context.vdso, rt_sigreturn);
+#endif /* CONFIG_VDSO64 */
+
+#ifdef CONFIG_VDSO32
+	if (test_thread_flag(TIF_32BIT) && !test_thread_flag(TIF_64ILP32))
+		regs->ra = (unsigned long)VDSO32_SYMBOL(
+			current->mm->context.vdso, rt_sigreturn);
+#endif /* CONFIG_VDSO32 */
+
+#ifdef CONFIG_VDSO64ILP32
+	if (test_thread_flag(TIF_32BIT) && test_thread_flag(TIF_64ILP32))
+		regs->ra = (unsigned long)VDSO64ILP32_SYMBOL(
+			current->mm->context.vdso, rt_sigreturn);
+#endif /* CONFIG_VDSO64ILP32 */
+
+#ifndef CONFIG_MMU
 	/*
 	 * For the nommu case we don't have a VDSO.  Instead we push two
 	 * instructions to call the rt_sigreturn syscall onto the user stack.
