@@ -127,4 +127,34 @@ static inline const Elf_Shdr *find_section(const Elf_Ehdr *hdr,
 	return NULL;
 }
 
+static inline const Elf64_Shdr *find_section64(const Elf64_Ehdr *hdr,
+					       const Elf64_Shdr *sechdrs,
+					       const char *name)
+{
+	const Elf64_Shdr *s, *se;
+	const char *secstrs = (void *)hdr + sechdrs[hdr->e_shstrndx].sh_offset;
+
+	for (s = sechdrs, se = sechdrs + hdr->e_shnum; s < se; s++) {
+		if (strcmp(name, secstrs + s->sh_name) == 0)
+			return s;
+	}
+
+	return NULL;
+}
+
+static inline const Elf32_Shdr *find_section32(const Elf32_Ehdr *hdr,
+					       const Elf32_Shdr *sechdrs,
+					       const char *name)
+{
+	const Elf32_Shdr *s, *se;
+	const char *secstrs = (void *)hdr + sechdrs[hdr->e_shstrndx].sh_offset;
+
+	for (s = sechdrs, se = sechdrs + hdr->e_shnum; s < se; s++) {
+		if (strcmp(name, secstrs + s->sh_name) == 0)
+			return s;
+	}
+
+	return NULL;
+}
+
 #endif /* _ASM_RISCV_MODULE_H */
