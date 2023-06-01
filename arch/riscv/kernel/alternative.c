@@ -181,17 +181,17 @@ static void __init_or_module _apply_alternatives(struct alt_entry *begin,
 				stage);
 }
 
-#ifdef CONFIG_MMU
-static void __init apply_vdso_alternatives(void *vdso_start)
+#ifdef CONFIG_VDSO64
+static void __init apply_vdso_alternatives64(void *vdso_start)
 {
-	const Elf_Ehdr *hdr;
-	const Elf_Shdr *shdr;
-	const Elf_Shdr *alt;
+	const Elf64_Ehdr *hdr;
+	const Elf64_Shdr *shdr;
+	const Elf64_Shdr *alt;
 	struct alt_entry *begin, *end;
 
-	hdr = (Elf_Ehdr *)vdso_start;
+	hdr = (Elf64_Ehdr *)vdso_start;
 	shdr = (void *)hdr + hdr->e_shoff;
-	alt = find_section(hdr, shdr, ".alternative");
+	alt = find_section64(hdr, shdr, ".alternative");
 	if (!alt)
 		return;
 
@@ -202,8 +202,29 @@ static void __init apply_vdso_alternatives(void *vdso_start)
 			    (struct alt_entry *)end,
 			    RISCV_ALTERNATIVES_BOOT);
 }
-#else
-static void __init apply_vdso_alternatives(void *vdso_start) { }
+#endif
+
+#if IS_ENABLED(CONFIG_VDSO32) || IS_ENABLED(CONFIG_VDSO64ILP32)
+static void __init apply_vdso_alternatives32(void *vdso_start)
+{
+	const Elf32_Ehdr *hdr;
+	const Elf32_Shdr *shdr;
+	const Elf32_Shdr *alt;
+	struct alt_entry *begin, *end;
+
+	hdr = (Elf32_Ehdr *)vdso_start;
+	shdr = (void *)hdr + hdr->e_shoff;
+	alt = find_section32(hdr, shdr, ".alternative");
+	if (!alt)
+		return;
+
+	begin = (void *)hdr + alt->sh_offset,
+	end = (void *)hdr + alt->sh_offset + alt->sh_size,
+
+	_apply_alternatives((struct alt_entry *)begin,
+			    (struct alt_entry *)end,
+			    RISCV_ALTERNATIVES_BOOT);
+}
 #endif
 
 void __init apply_boot_alternatives(void)
@@ -217,13 +238,13 @@ void __init apply_boot_alternatives(void)
 			    RISCV_ALTERNATIVES_BOOT);
 
 #ifdef CONFIG_VDSO64
-	apply_vdso_alternatives(vdso64_start);
+	apply_vdso_alternatives64(vdso64_start);
 #endif
 #ifdef CONFIG_VDSO32
-	apply_vdso_alternatives(vdso32_start);
+	apply_vdso_alternatives32(vdso32_start);
 #endif
 #ifdef CONFIG_VDSO64ILP32
-	apply_vdso_alternatives(vdso64ilp32_start);
+	apply_vdso_alternatives32(vdso64ilp32_start);
 #endif
 
 }
