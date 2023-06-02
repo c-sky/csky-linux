@@ -528,7 +528,7 @@ config RISCV_ISA_SVNAPOT
 
 config RISCV_ISA_SVPBMT
 	bool "Svpbmt extension support for supervisor mode page-based memory types"
-	depends on 64BIT && MMU
+	depends on !MMU_SV32 && MMU
 	depends on RISCV_ALTERNATIVE
 	default y
 	help
@@ -684,6 +684,15 @@ config THREAD_SIZE_ORDER
 	help
 	  Specify the Pages of thread stack size (from 4KB to 64KB), which also
 	  affects irq stack size, which is equal to thread stack size.
+
+config MMU_SV32
+	bool "MMU Sv32"
+	depends on 32BIT && MMU
+	help
+	  ARCH_RV32I only supports MMU Sv32 mode, but ARCH_RV64ILP32 supports
+	  MMU Sv39 & Sv32 (MMU Sv32 is optional for RV64 hardware).
+
+	  If unsure, say N.
 
 endmenu # "Platform type"
 
