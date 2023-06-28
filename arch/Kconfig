@@ -1479,6 +1479,16 @@ config ARCH_HAS_NONLEAF_PMD_YOUNG
 	  address translations. Page table walkers that clear the accessed bit
 	  may use this capability to reduce their search space.
 
+config ARCH_HAS_64ILP32_KERNEL
+	bool
+	depends on 32BIT
+	help
+          Architectures that select this option build the kernel with the ILP32 memory
+	  model and support the ILP32 memory model on 32bit ISA in userspace, the ABIs
+	  are different between kernel and userspace, similar to COMPAT, so the option
+	  converts the 64-bit arguments of 32ILP32 syscalls to 64ILP32 calling
+	  convention.
+
 source "kernel/gcov/Kconfig"
 
 source "scripts/gcc-plugins/Kconfig"
