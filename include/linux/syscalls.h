@@ -313,6 +313,13 @@ static inline void addr_limit_user_check(void)
  * include the prototypes if CONFIG_ARCH_HAS_SYSCALL_WRAPPER is enabled.
  */
 #ifndef CONFIG_ARCH_HAS_SYSCALL_WRAPPER
+
+#ifdef CONFIG_ARCH_HAS_64ILP32_KERNEL
+#define arg_loff_t(name)	compat_arg_u64(name)
+#else
+#define arg_loff_t(name)	loff_t  name
+#endif
+
 asmlinkage long sys_io_setup(unsigned nr_reqs, aio_context_t __user *ctx);
 asmlinkage long sys_io_destroy(aio_context_t ctx);
 asmlinkage long sys_io_submit(aio_context_t, long,
@@ -427,10 +434,11 @@ asmlinkage long sys_fstatfs64(unsigned int fd, size_t sz,
 asmlinkage long sys_truncate(const char __user *path, long length);
 asmlinkage long sys_ftruncate(unsigned int fd, unsigned long length);
 #if BITS_PER_LONG == 32
-asmlinkage long sys_truncate64(const char __user *path, loff_t length);
-asmlinkage long sys_ftruncate64(unsigned int fd, loff_t length);
+asmlinkage long sys_truncate64(const char __user *path, arg_loff_t(length));
+asmlinkage long sys_ftruncate64(unsigned int fd, arg_loff_t(length));
 #endif
-asmlinkage long sys_fallocate(int fd, int mode, loff_t offset, loff_t len);
+asmlinkage long sys_fallocate(int fd, int mode, arg_loff_t(offset),
+						arg_loff_t(len));
 asmlinkage long sys_faccessat(int dfd, const char __user *filename, int mode);
 asmlinkage long sys_faccessat2(int dfd, const char __user *filename, int mode,
 			       int flags);
@@ -474,9 +482,9 @@ asmlinkage long sys_writev(unsigned long fd,
 			   const struct iovec __user *vec,
 			   unsigned long vlen);
 asmlinkage long sys_pread64(unsigned int fd, char __user *buf,
-			    size_t count, loff_t pos);
+			    size_t count, arg_loff_t(pos));
 asmlinkage long sys_pwrite64(unsigned int fd, const char __user *buf,
-			     size_t count, loff_t pos);
+			     size_t count, arg_loff_t(pos));
 asmlinkage long sys_preadv(unsigned long fd, const struct iovec __user *vec,
 			   unsigned long vlen, unsigned long pos_l, unsigned long pos_h);
 asmlinkage long sys_pwritev(unsigned long fd, const struct iovec __user *vec,
@@ -516,9 +524,13 @@ asmlinkage long sys_sync(void);
 asmlinkage long sys_fsync(unsigned int fd);
 asmlinkage long sys_fdatasync(unsigned int fd);
 asmlinkage long sys_sync_file_range2(int fd, unsigned int flags,
-				     loff_t offset, loff_t nbytes);
-asmlinkage long sys_sync_file_range(int fd, loff_t offset, loff_t nbytes,
-					unsigned int flags);
+				     arg_loff_t(offset),
+				     arg_loff_t(nbytes));
+asmlinkage long sys_sync_file_range(int fd,
+				    arg_loff_t(offset),
+				    arg_loff_t(nbytes),
+				    unsigned int flags);
+
 asmlinkage long sys_timerfd_create(int clockid, int flags);
 asmlinkage long sys_timerfd_settime(int ufd, int flags,
 				    const struct __kernel_itimerspec __user *utmr,
@@ -795,7 +807,10 @@ asmlinkage long sys_clone3(struct clone_args __user *uargs, size_t size);
 asmlinkage long sys_execve(const char __user *filename,
 		const char __user *const __user *argv,
 		const char __user *const __user *envp);
-asmlinkage long sys_fadvise64_64(int fd, loff_t offset, loff_t len, int advice);
+asmlinkage long sys_fadvise64_64(int fd,
+				 arg_loff_t(offset),
+				 arg_loff_t(len),
+				 int advice);
 
 /* CONFIG_MMU only */
 asmlinkage long sys_swapon(const char __user *specialfile, int swap_flags);
@@ -1023,7 +1038,7 @@ asmlinkage long sys_newstat(const char __user *filename,
 				struct stat __user *statbuf);
 asmlinkage long sys_newlstat(const char __user *filename,
 				struct stat __user *statbuf);
-asmlinkage long sys_fadvise64(int fd, loff_t offset, size_t len, int advice);
+asmlinkage long sys_fadvise64(int fd, arg_loff_t(offset), size_t len, int advice);
 
 /* __ARCH_WANT_SYSCALL_DEPRECATED */
 asmlinkage long sys_alarm(unsigned int seconds);
