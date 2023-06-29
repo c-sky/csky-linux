@@ -116,17 +116,15 @@ static long compat_restore_sigcontext(struct pt_regs *regs,
 	return err;
 }
 
-COMPAT_SYSCALL_DEFINE0(rt_sigreturn)
+long __riscv_compat_rt_sigreturn(void)
 {
-	struct pt_regs *regs = current_pt_regs();
-	struct compat_rt_sigframe __user *frame;
-	struct task_struct *task;
 	sigset_t set;
+	struct pt_regs *regs = current_pt_regs();
+	struct compat_rt_sigframe __user *frame =
+		(struct compat_rt_sigframe __user *)kernel_stack_pointer(regs);
 
 	/* Always make any pending restarted system calls return -EINTR */
 	current->restart_block.fn = do_no_restart_syscall;
-
-	frame = (struct compat_rt_sigframe __user *)regs->sp;
 
 	if (!access_ok(frame, sizeof(*frame)))
 		goto badframe;
@@ -142,17 +140,12 @@ COMPAT_SYSCALL_DEFINE0(rt_sigreturn)
 	if (compat_restore_altstack(&frame->uc.uc_stack))
 		goto badframe;
 
+	regs->cause = -1UL;
+
 	return regs->a0;
 
 badframe:
-	task = current;
-	if (show_unhandled_signals) {
-		pr_info_ratelimited(
-			"%s[%d]: bad frame in %s: frame=%p pc=%p sp=%p\n",
-			task->comm, task_pid_nr(task), __func__,
-			frame, (void *)regs->epc, (void *)regs->sp);
-	}
-	force_sig(SIGSEGV);
+	__riscv_rt_sigreturn_badframe();
 	return 0;
 }
 
