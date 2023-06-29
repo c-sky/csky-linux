@@ -224,18 +224,33 @@ static size_t get_rt_frame_size(bool cal_all)
 	return frame_size;
 }
 
-SYSCALL_DEFINE0(rt_sigreturn)
+void __riscv_rt_sigreturn_badframe(void)
 {
-	struct pt_regs *regs = current_pt_regs();
-	struct rt_sigframe __user *frame;
-	struct task_struct *task;
+	struct task_struct *task = current;
+	struct pt_regs *regs = task_pt_regs(task);
+
+	if (show_unhandled_signals) {
+		pr_info_ratelimited(
+			"%s[%d]: bad frame in %s: frame=%p pc=%p sp=%p\n",
+			task->comm, task_pid_nr(task), __func__,
+			(void *)kernel_stack_pointer(regs),
+			(void *)instruction_pointer(regs),
+			(void *)kernel_stack_pointer(regs));
+	}
+
+	force_sig(SIGSEGV);
+}
+
+static long __riscv_rt_sigreturn(void)
+{
 	sigset_t set;
 	size_t frame_size = get_rt_frame_size(false);
+	struct pt_regs *regs = current_pt_regs();
+	struct rt_sigframe __user *frame =
+		(struct rt_sigframe __user *)kernel_stack_pointer(regs);
 
 	/* Always make any pending restarted system calls return -EINTR */
 	current->restart_block.fn = do_no_restart_syscall;
-
-	frame = (struct rt_sigframe __user *)regs->sp;
 
 	if (!access_ok(frame, frame_size))
 		goto badframe;
@@ -256,16 +271,24 @@ SYSCALL_DEFINE0(rt_sigreturn)
 	return regs->a0;
 
 badframe:
-	task = current;
-	if (show_unhandled_signals) {
-		pr_info_ratelimited(
-			"%s[%d]: bad frame in %s: frame=%p pc=%p sp=%p\n",
-			task->comm, task_pid_nr(task), __func__,
-			frame, (void *)regs->epc, (void *)regs->sp);
-	}
-	force_sig(SIGSEGV);
+	__riscv_rt_sigreturn_badframe();
 	return 0;
 }
+
+SYSCALL_DEFINE0(rt_sigreturn)
+{
+	return __riscv_rt_sigreturn();
+}
+
+#ifdef CONFIG_COMPAT
+COMPAT_SYSCALL_DEFINE0(rt_sigreturn)
+{
+	if (test_thread_flag(TIF_32BIT) && !test_thread_flag(TIF_64ILP32))
+		return __riscv_compat_rt_sigreturn();
+	else
+		return __riscv_rt_sigreturn();
+}
+#endif
 
 static long setup_sigcontext(struct rt_sigframe __user *frame,
 	struct pt_regs *regs)
@@ -433,7 +456,7 @@ static void handle_signal(struct ksignal *ksig, struct pt_regs *regs)
 	rseq_signal_deliver(ksig, regs);
 
 	/* Set up the stack frame */
-	if (is_compat_task())
+	if (test_thread_flag(TIF_32BIT) && !test_thread_flag(TIF_64ILP32))
 		ret = compat_setup_rt_frame(ksig, oldset, regs);
 	else
 		ret = setup_rt_frame(ksig, oldset, regs);

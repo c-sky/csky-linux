@@ -6,6 +6,7 @@
 #if IS_ENABLED(CONFIG_COMPAT)
 int compat_setup_rt_frame(struct ksignal *ksig, sigset_t *set,
 			  struct pt_regs *regs);
+long __riscv_compat_rt_sigreturn(void);
 #else
 static inline
 int compat_setup_rt_frame(struct ksignal *ksig, sigset_t *set,
@@ -13,6 +14,14 @@ int compat_setup_rt_frame(struct ksignal *ksig, sigset_t *set,
 {
 	return -1;
 }
+
+static inline
+long __riscv_compat_rt_sigreturn(void)
+{
+	return -1;
+}
 #endif
+
+void __riscv_rt_sigreturn_badframe(void);
 
 #endif
