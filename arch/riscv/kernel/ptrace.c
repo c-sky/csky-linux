@@ -295,7 +295,7 @@ long arch_ptrace(struct task_struct *child, long request,
 	return ret;
 }
 
-#ifdef CONFIG_COMPAT
+#if IS_ENABLED(CONFIG_COMPAT) || IS_ENABLED(CONFIG_ARCH_RV64ILP32)
 static int compat_riscv_gpr_get(struct task_struct *target,
 				const struct user_regset *regset,
 				struct membuf to)
@@ -350,7 +350,9 @@ static const struct user_regset_view compat_riscv_user_native_view = {
 	.regsets = compat_riscv_user_regset,
 	.n = ARRAY_SIZE(compat_riscv_user_regset),
 };
+#endif
 
+#ifdef CONFIG_COMPAT
 long compat_arch_ptrace(struct task_struct *child, compat_long_t request,
 			compat_ulong_t caddr, compat_ulong_t cdata)
 {
@@ -368,7 +370,7 @@ long compat_arch_ptrace(struct task_struct *child, compat_long_t request,
 
 const struct user_regset_view *task_user_regset_view(struct task_struct *task)
 {
-#ifdef CONFIG_COMPAT
+#if IS_ENABLED(CONFIG_COMPAT) || IS_ENABLED(CONFIG_ARCH_RV64ILP32)
 	if (test_tsk_thread_flag(task, TIF_32BIT) &&
 	   !test_tsk_thread_flag(task, TIF_64ILP32))
 		return &compat_riscv_user_native_view;
