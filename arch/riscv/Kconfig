@@ -347,6 +347,7 @@ config ARCH_RV64ILP32
 	select MMU
 	select VDSO64ILP32
 	select ARCH_HAS_64ILP32_KERNEL
+	select VDSO64ILP32
 
 endchoice
 
