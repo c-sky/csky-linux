@@ -277,7 +277,10 @@ badframe:
 
 SYSCALL_DEFINE0(rt_sigreturn)
 {
-	return __riscv_rt_sigreturn();
+	if (test_thread_flag(TIF_32BIT) && !test_thread_flag(TIF_64ILP32))
+		return __riscv_compat_rt_sigreturn();
+	else
+		return __riscv_rt_sigreturn();
 }
 
 #ifdef CONFIG_COMPAT
