@@ -3390,7 +3390,7 @@ int copy_siginfo_from_user(kernel_siginfo_t *to, const siginfo_t __user *from)
 	return post_copy_siginfo_from_user(to, from);
 }
 
-#ifdef CONFIG_COMPAT
+#if IS_ENABLED(CONFIG_COMPAT) || IS_ENABLED(CONFIG_ARCH_RV64ILP32)
 /**
  * copy_siginfo_to_external32 - copy a kernel siginfo into a compat user siginfo
  * @to: compat siginfo destination
@@ -3556,6 +3556,7 @@ static int post_copy_siginfo_from_user32(kernel_siginfo_t *to,
 	return 0;
 }
 
+#ifdef CONFIG_COMPAT
 static int __copy_siginfo_from_user32(int signo, struct kernel_siginfo *to,
 				      const struct compat_siginfo __user *ufrom)
 {
@@ -3567,6 +3568,7 @@ static int __copy_siginfo_from_user32(int signo, struct kernel_siginfo *to,
 	from.si_signo = signo;
 	return post_copy_siginfo_from_user32(to, &from);
 }
+#endif /* CONFIG_COMPAT */
 
 int copy_siginfo_from_user32(struct kernel_siginfo *to,
 			     const struct compat_siginfo __user *ufrom)
@@ -3578,7 +3580,7 @@ int copy_siginfo_from_user32(struct kernel_siginfo *to,
 
 	return post_copy_siginfo_from_user32(to, &from);
 }
-#endif /* CONFIG_COMPAT */
+#endif
 
 /**
  *  do_sigtimedwait - wait for queued signals specified in @which
@@ -4279,7 +4281,7 @@ int __save_altstack(stack_t __user *uss, unsigned long sp)
 	return err;
 }
 
-#ifdef CONFIG_COMPAT
+#if IS_ENABLED(CONFIG_COMPAT) || IS_ENABLED(CONFIG_ARCH_HAS_64ILP32_KERNEL)
 static int do_compat_sigaltstack(const compat_stack_t __user *uss_ptr,
 				 compat_stack_t __user *uoss_ptr)
 {
@@ -4309,13 +4311,6 @@ static int do_compat_sigaltstack(const compat_stack_t __user *uss_ptr,
 	return ret;
 }
 
-COMPAT_SYSCALL_DEFINE2(sigaltstack,
-			const compat_stack_t __user *, uss_ptr,
-			compat_stack_t __user *, uoss_ptr)
-{
-	return do_compat_sigaltstack(uss_ptr, uoss_ptr);
-}
-
 int compat_restore_altstack(const compat_stack_t __user *uss)
 {
 	int err = do_compat_sigaltstack(uss, NULL);
@@ -4332,6 +4327,15 @@ int __compat_save_altstack(compat_stack_t __user *uss, unsigned long sp)
 		__put_user(t->sas_ss_flags, &uss->ss_flags) |
 		__put_user(t->sas_ss_size, &uss->ss_size);
 	return err;
+}
+#endif
+
+#ifdef CONFIG_COMPAT
+COMPAT_SYSCALL_DEFINE2(sigaltstack,
+			const compat_stack_t __user *, uss_ptr,
+			compat_stack_t __user *, uoss_ptr)
+{
+	return do_compat_sigaltstack(uss_ptr, uoss_ptr);
 }
 #endif
 
