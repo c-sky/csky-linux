@@ -42,6 +42,17 @@ config PCIE_CADENCE_PLAT_EP
 	  endpoint mode. This PCIe controller may be embedded into many
 	  different vendors SoCs.
 
+config PCIE_CADENCE_SOPHGO
+	bool "Cadence Sophgo PCIe Host controller"
+	depends on OF
+	select IRQ_DOMAIN
+	select PCIE_CADENCE
+	help
+	  Say Y here if you want to support the Cadence PCIe controller in host mode
+	  for Sophgo SoCs. this PCIe controller is from cadence, integrated into the
+	  Sophgo SoCs. PCIe is one of subsystems, it is choisable, Don't be
+	  care of this if it is not used in your systems.
+
 config PCI_J721E
 	bool
 

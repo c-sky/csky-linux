@@ -31,6 +31,7 @@ obj-$(CONFIG_SOC_SAMSUNG)	+= samsung/
 obj-y				+= sifive/
 obj-$(CONFIG_SOC_STARFIVE)	+= starfive/
 obj-y				+= sunxi/
+obj-$(CONFIG_SOC_SOPHGO)	+= sophgo/
 obj-$(CONFIG_ARCH_TEGRA)	+= tegra/
 obj-y				+= ti/
 obj-$(CONFIG_ARCH_U8500)	+= ux500/
