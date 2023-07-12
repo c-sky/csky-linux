@@ -869,8 +869,11 @@ static struct ttm_tt *bo_driver_ttm_tt_create(struct ttm_buffer_object *bo,
 	tt = kzalloc(sizeof(*tt), GFP_KERNEL);
 	if (!tt)
 		return NULL;
-
+#ifndef CONFIG_SOC_SOPHGO
 	ret = ttm_tt_init(tt, bo, page_flags, ttm_cached, 0);
+#else
+	ret = ttm_tt_init(tt, bo, page_flags, ttm_write_combined, 0);
+#endif
 	if (ret < 0)
 		goto err_ttm_tt_init;
 

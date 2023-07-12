@@ -245,6 +245,7 @@ static bool radeon_msi_ok(struct radeon_device *rdev)
 	if (rdev->flags & RADEON_IS_AGP)
 		return false;
 
+#ifndef CONFIG_SOC_SOPHGO
 	/*
 	 * Older chips have a HW limitation, they can only generate 40 bits
 	 * of address for "64-bit" MSIs which breaks on some platforms, notably
@@ -254,6 +255,7 @@ static bool radeon_msi_ok(struct radeon_device *rdev)
 		dev_info(rdev->dev, "radeon: MSI limited to 32-bit\n");
 		rdev->pdev->no_64bit_msi = 1;
 	}
+#endif
 
 	/* force MSI on */
 	if (radeon_msi == 1)

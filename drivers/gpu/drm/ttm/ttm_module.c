@@ -61,9 +61,14 @@
  */
 pgprot_t ttm_prot_from_caching(enum ttm_caching caching, pgprot_t tmp)
 {
-	/* Cached mappings need no adjustment */
 	if (caching == ttm_cached)
+#ifndef CONFIG_SOC_SOPHGO
+		/* Cached mappings need no adjustment when coherent */
 		return tmp;
+#else
+		/* Cached mappings shouldn't exist when non-coherent */
+		caching = ttm_write_combined;
+#endif
 
 #if defined(__i386__) || defined(__x86_64__)
 	if (caching == ttm_write_combined)
@@ -74,7 +79,8 @@ pgprot_t ttm_prot_from_caching(enum ttm_caching caching, pgprot_t tmp)
 #endif /* CONFIG_UML */
 #endif /* __i386__ || __x86_64__ */
 #if defined(__ia64__) || defined(__arm__) || defined(__aarch64__) || \
-	defined(__powerpc__) || defined(__mips__) || defined(__loongarch__)
+	defined(__powerpc__) || defined(__mips__) || defined(__loongarch__) || \
+	defined(__riscv)
 	if (caching == ttm_write_combined)
 		tmp = pgprot_writecombine(tmp);
 	else

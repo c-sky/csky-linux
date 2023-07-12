@@ -69,7 +69,7 @@ static pgprot_t drm_io_prot(struct drm_local_map *map,
 	pgprot_t tmp = vm_get_page_prot(vma->vm_flags);
 
 #if defined(__i386__) || defined(__x86_64__) || defined(__powerpc__) || \
-    defined(__mips__) || defined(__loongarch__)
+    defined(__mips__) || defined(__loongarch__) || defined(__riscv)
 	if (map->type == _DRM_REGISTERS && !(map->flags & _DRM_WRITE_COMBINING))
 		tmp = pgprot_noncached(tmp);
 	else
@@ -92,6 +92,9 @@ static pgprot_t drm_dma_prot(uint32_t map_type, struct vm_area_struct *vma)
 
 #if defined(__powerpc__) && defined(CONFIG_NOT_COHERENT_CACHE)
 	tmp = pgprot_noncached_wc(tmp);
+#endif
+#ifdef CONFIG_SOC_SOPHGO
+	tmp = pgprot_writecombine(tmp);
 #endif
 	return tmp;
 }
