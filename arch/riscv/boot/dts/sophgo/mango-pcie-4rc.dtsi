@@ -1,0 +1,149 @@
+#include <dt-bindings/interrupt-controller/irq.h>
+
+#define SOC_PERIPHERAL_IRQ(nr)	(nr)
+
+/ {
+	pcie@7060000000 {
+		compatible = "sophgo,cdns-pcie-host";
+		device_type = "pci";
+		#address-cells = <3>;
+		#size-cells = <2>;
+
+		bus-range = <0x0 0x3f>;
+		linux,pci-domain = <0>;
+		cdns,max-outbound-regions = <16>;
+		cdns,no-bar-match-nbits = <48>;
+		vendor-id = /bits/ 16 <0x1E30>;
+		device-id = /bits/ 16 <0x2042>;
+		pcie-id = /bits/ 16 <0x0>;
+		link-id = /bits/ 16 <0x0>;
+		top-intc-used = <0>;
+		interrupt-parent = <&intc>;
+		interrupts = <SOC_PERIPHERAL_IRQ(122) IRQ_TYPE_LEVEL_HIGH>;
+		interrupt-names = "msi";
+		reg = <0x70 0x60000000  0x0 0x02000000>,
+		      <0x40 0x00000000  0x0 0x00001000>;
+		reg-names = "reg", "cfg";
+
+		// IO, check IO_SPACE_LIMIT
+		// 32bit prefetchable memory
+		// 32bit non-prefetchable memory
+		// 64bit prefetchable memory
+		// 64bit non-prefetchable memory
+		ranges = <0x01000000 0x0  0x00000000  0x40 0x10000000  0x0 0x00400000>,
+			 <0x42000000 0x0  0x20000000  0x40 0x20000000  0x0 0x30000000>,
+			 <0x02000000 0x0  0x50000000  0x40 0x50000000  0x0 0x10000000>,
+			 <0x43000000 0x41 0x00000000  0x41 0x00000000  0x2 0x00000000>,
+			 <0x03000000 0x43 0x00000000  0x43 0x00000000  0x1 0x00000000>;
+		dma-ranges = <0x03000000 0x0 0x0 0x0 0x0 0x1f 0x0>;
+
+		status = "okay";
+	};
+
+	pcie@7060800000 {
+		compatible = "sophgo,cdns-pcie-host";
+		device_type = "pci";
+		#address-cells = <3>;
+		#size-cells = <2>;
+
+		bus-range = <0x40 0x7f>;
+		linux,pci-domain = <1>;
+		cdns,max-outbound-regions = <16>;
+		cdns,no-bar-match-nbits = <48>;
+		vendor-id = /bits/ 16 <0x1E30>;
+		device-id = /bits/ 16 <0x2042>;
+		pcie-id = /bits/ 16 <0x0>;
+		link-id = /bits/ 16 <0x1>;
+		top-intc-used = <1>;
+		top-intc-id = <0>;
+		interrupt-parent = <&intc1>;
+		reg = <0x44 0x00000000  0x0 0x00001000>;
+		reg-names = "cfg";
+
+		// IO, check IO_SPACE_LIMIT
+		// 32bit prefetchable memory
+		// 32bit non-prefetchable memory
+		// 64bit prefetchable memory
+		// 64bit non-prefetchable memory
+		ranges = <0x01000000 0x0  0x00400000  0x44 0x10400000  0x0 0x00400000>,
+			 <0x42000000 0x0  0x60000000  0x44 0x60000000  0x0 0x20000000>,
+			 <0x02000000 0x0  0x80000000  0x44 0x80000000  0x0 0x10000000>,
+			 <0x43000000 0x45 0x00000000  0x45 0x00000000  0x2 0x00000000>,
+			 <0x03000000 0x47 0x00000000  0x47 0x00000000  0x1 0x00000000>;
+		dma-ranges = <0x03000000 0x0 0x0 0x0 0x0 0x1f 0x0>;
+
+		status = "okay";
+	};
+
+	pcie@7062000000 {
+		compatible = "sophgo,cdns-pcie-host";
+		device_type = "pci";
+		#address-cells = <3>;
+		#size-cells = <2>;
+
+		bus-range = <0x80 0xbf>;
+		linux,pci-domain = <2>;
+		cdns,max-outbound-regions = <16>;
+		cdns,no-bar-match-nbits = <48>;
+		vendor-id = /bits/ 16 <0x1E30>;
+		device-id = /bits/ 16 <0x2042>;
+		pcie-id = /bits/ 16 <0x1>;
+		link-id = /bits/ 16 <0x0>;
+		top-intc-used = <0>;
+		interrupt-parent = <&intc>;
+		interrupts = <SOC_PERIPHERAL_IRQ(123) IRQ_TYPE_LEVEL_HIGH>;
+		interrupt-names = "msi";
+		reg = <0x70 0x62000000  0x0 0x02000000>,
+		      <0x48 0x00000000  0x0 0x00001000>;
+		reg-names = "reg", "cfg";
+
+		// IO, check IO_SPACE_LIMIT
+		// 32bit prefetchable memory
+		// 32bit non-prefetchable memory
+		// 64bit prefetchable memory
+		// 64bit non-prefetchable memory
+		ranges = <0x01000000 0x0  0x00800000  0x48 0x10800000  0x0 0x00400000>,
+			 <0x42000000 0x0  0x90000000  0x48 0x90000000  0x0 0x30000000>,
+			 <0x02000000 0x0  0xc0000000  0x48 0xc0000000  0x0 0x10000000>,
+			 <0x43000000 0x49 0x00000000  0x49 0x00000000  0x2 0x00000000>,
+			 <0x03000000 0x4b 0x00000000  0x4b 0x00000000  0x1 0x00000000>;
+		dma-ranges = <0x03000000 0x0 0x0 0x0 0x0 0x1f 0x0>;
+
+		status = "okay";
+	};
+
+	pcie@7062800000 {
+		compatible = "sophgo,cdns-pcie-host";
+		device_type = "pci";
+		#address-cells = <3>;
+		#size-cells = <2>;
+
+		bus-range = <0xc0 0xff>;
+		linux,pci-domain = <3>;
+		cdns,max-outbound-regions = <16>;
+		cdns,no-bar-match-nbits = <48>;
+		vendor-id = /bits/ 16 <0x1E30>;
+		device-id = /bits/ 16 <0x2042>;
+		pcie-id = /bits/ 16 <0x1>;
+		link-id = /bits/ 16 <0x1>;
+		top-intc-used = <1>;
+		top-intc-id = <0>;
+		interrupt-parent = <&intc1>;
+		reg = <0x4c 0x00000000  0x0 0x00001000>;
+		reg-names = "cfg";
+
+		// IO, check IO_SPACE_LIMIT
+		// 32bit prefetchable memory
+		// 32bit non-prefetchable memory
+		// 64bit prefetchable memory
+		// 64bit non-prefetchable memory
+		ranges = <0x01000000 0x0  0x00c00000  0x4c 0x10c00000  0x0 0x00400000>,
+			 <0x42000000 0x0  0xd0000000  0x4c 0xd0000000  0x0 0x20000000>,
+			 <0x02000000 0x0  0xf0000000  0x4c 0xf0000000  0x0 0x10000000>,
+			 <0x43000000 0x4d 0x00000000  0x4d 0x00000000  0x2 0x00000000>,
+			 <0x03000000 0x4f 0x00000000  0x4f 0x00000000  0x1 0x00000000>;
+		dma-ranges = <0x03000000 0x0 0x0 0x0 0x0 0x1f 0x0>;
+
+		status = "okay";
+	};
+};

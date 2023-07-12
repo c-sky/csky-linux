@@ -1,0 +1,91 @@
+#include "mango-2sockets.dtsi"
+#include "mango-top-intc2.dtsi"
+#include "mango-pcie-2rc.dtsi"
+
+/ {
+	info {
+		file-name = "mango-sophgo-pisces.dts";
+	};
+};
+
+&ethernet0 {
+	max-speed = <1000>;
+	eth-sophgo-config {
+		autoneg = "enable";
+	};
+};
+
+&soc {
+	gpio-poweroff {
+		compatible = "gpio-keys";
+		input-name = "gpio-keys";
+		pinctrl-names = "default";
+		pinctrl-0 = <&gpio2_acquire>;
+
+		power {
+			label = "GPIO Key Power";
+			linux,code = <KEY_POWER>;
+			gpios = <&port0a 2 GPIO_ACTIVE_HIGH>;
+			linux,input-type = <1>;
+			debounce-interval = <100>;
+		};
+	};
+};
+
+&port0a {
+	compatible = "snps,dw-apb-gpio-port", "sophgo,gpio0";
+
+	cpld_poweroff: cpld-poweroff {
+		compatible = "mango,cpld-poweroff";
+		gpios = <&port0a 3 GPIO_ACTIVE_HIGH>;
+	};
+
+	cpld_reboot: cpld-reboot {
+		compatible = "mango,cpld-reboot";
+		gpios = <&port0a 5 GPIO_ACTIVE_HIGH>;
+	};
+};
+
+/ {
+	 board-info {
+		/* compatible MUST be sophgo,board-info */
+		compatible = "sophgo,board-info";
+		/* valid values are: full-function, xmr */
+		chip-package = "full-function";
+		/* valid values are: x4, x8 */
+		ddr-pcb-type = "x8";
+	};
+};
+
+/delete-node/ &clint_mtimer0;
+/delete-node/ &clint_mtimer1;
+/delete-node/ &clint_mtimer2;
+/delete-node/ &clint_mtimer3;
+/delete-node/ &clint_mtimer4;
+/delete-node/ &clint_mtimer5;
+/delete-node/ &clint_mtimer6;
+/delete-node/ &clint_mtimer7;
+/delete-node/ &clint_mtimer8;
+/delete-node/ &clint_mtimer9;
+/delete-node/ &clint_mtimer10;
+/delete-node/ &clint_mtimer11;
+/delete-node/ &clint_mtimer12;
+/delete-node/ &clint_mtimer13;
+/delete-node/ &clint_mtimer14;
+/delete-node/ &clint_mtimer15;
+/delete-node/ &clint_mtimer16;
+/delete-node/ &clint_mtimer17;
+/delete-node/ &clint_mtimer18;
+/delete-node/ &clint_mtimer19;
+/delete-node/ &clint_mtimer20;
+/delete-node/ &clint_mtimer21;
+/delete-node/ &clint_mtimer22;
+/delete-node/ &clint_mtimer23;
+/delete-node/ &clint_mtimer24;
+/delete-node/ &clint_mtimer25;
+/delete-node/ &clint_mtimer26;
+/delete-node/ &clint_mtimer27;
+/delete-node/ &clint_mtimer28;
+/delete-node/ &clint_mtimer29;
+/delete-node/ &clint_mtimer30;
+/delete-node/ &clint_mtimer31;

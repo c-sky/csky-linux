@@ -1,0 +1,124 @@
+/ {
+	socket0-clocks {
+		#address-cells = <2>;
+		#size-cells = <2>;
+		ranges;
+
+		cgi: ctrystal {
+			compatible = "fixed-clock";
+			clock-frequency = <25000000>;
+			clock-output-names = "cgi";
+			#clock-cells = <0>;
+		};
+
+		/* pll clock */
+		mpll: mpll {
+			compatible = "mango, pll-clock";
+			#clock-cells = <0>;
+			id = <MPLL_CLK>;
+			mode = <NORMAL_MODE>;
+			subctrl-syscon = <&top_misc>;
+			clocks = <&cgi>;
+			clock-output-names = "mpll_clock";
+		};
+
+		fpll: fpll {
+			compatible = "mango, pll-clock";
+			#clock-cells = <0>;
+			id = <FPLL_CLK>;
+			mode = <NORMAL_MODE>;
+			subctrl-syscon = <&top_misc>;
+			clocks = <&cgi>;
+			clock-output-names = "fpll_clock";
+		};
+
+		dpll0: dpll0 {
+			compatible = "mango, pll-clock";
+			#clock-cells = <0>;
+			id = <DPLL0_CLK>;
+			mode = <NORMAL_MODE>;
+			subctrl-syscon = <&top_misc>;
+			clocks = <&cgi>;
+			clock-output-names = "dpll0_clock";
+		};
+
+		dpll1: dpll1 {
+			compatible = "mango, pll-clock";
+			#clock-cells = <0>;
+			mode = <NORMAL_MODE>;
+			subctrl-syscon = <&top_misc>;
+			clocks = <&cgi>;
+			id = <DPLL1_CLK>;
+			clock-output-names = "dpll1_clock";
+		};
+
+		div_clk: div_clk {
+			compatible = "mango, pll-child-clock";
+			#clock-cells = <1>;
+			id = <S0_DIV_CLK_TABLE>;
+			subctrl-syscon = <&top_misc>;
+		};
+
+		mux_clk: mux_clk {
+			compatible = "mango, pll-mux-clock";
+			#clock-cells = <1>;
+			id = <S0_MUX_CLK_TABLE>;
+			subctrl-syscon = <&top_misc>;
+		};
+
+		socket0_default_rates {
+			compatible = "mango, clk-default-rates";
+			#clock-cells = <1>;
+			subctrl-syscon = <&top_misc>;
+			clocks = \
+				<&mpll>, <&fpll>,
+
+				<&div_clk DIV_CLK_FPLL_RP_CPU_NORMAL_1>,
+				<&div_clk DIV_CLK_FPLL_50M_A53>,
+				<&div_clk DIV_CLK_FPLL_TOP_RP_CMN_DIV2>,
+				<&div_clk DIV_CLK_FPLL_UART_500M>,
+				<&div_clk DIV_CLK_FPLL_AHB_LPC>,
+				<&div_clk DIV_CLK_FPLL_EFUSE>,
+				<&div_clk DIV_CLK_FPLL_TX_ETH0>,
+				<&div_clk DIV_CLK_FPLL_PTP_REF_I_ETH0>,
+				<&div_clk DIV_CLK_FPLL_REF_ETH0>,
+				<&div_clk DIV_CLK_FPLL_EMMC>,
+				<&div_clk DIV_CLK_FPLL_SD>,
+				<&div_clk DIV_CLK_FPLL_TOP_AXI0>,
+				<&div_clk DIV_CLK_FPLL_TOP_AXI_HSPERI>,
+				<&div_clk DIV_CLK_FPLL_AXI_DDR_1>,
+				<&div_clk DIV_CLK_FPLL_DIV_TIMER1>,
+				<&div_clk DIV_CLK_FPLL_DIV_TIMER2>,
+				<&div_clk DIV_CLK_FPLL_DIV_TIMER3>,
+				<&div_clk DIV_CLK_FPLL_DIV_TIMER4>,
+				<&div_clk DIV_CLK_FPLL_DIV_TIMER5>,
+				<&div_clk DIV_CLK_FPLL_DIV_TIMER6>,
+				<&div_clk DIV_CLK_FPLL_DIV_TIMER7>,
+				<&div_clk DIV_CLK_FPLL_DIV_TIMER8>,
+				<&div_clk DIV_CLK_FPLL_100K_EMMC>,
+				<&div_clk DIV_CLK_FPLL_100K_SD>,
+				<&div_clk DIV_CLK_FPLL_GPIO_DB>,
+
+				<&div_clk DIV_CLK_MPLL_RP_CPU_NORMAL_0>,
+				<&div_clk DIV_CLK_MPLL_AXI_DDR_0>;
+
+			clock-rates = \
+				<2000000000>, <1000000000>,
+
+				<2000000000>, <50000000>,
+				<1000000000>, <500000000>,
+				<200000000>, <25000000>,
+				<125000000>, <50000000>,
+				<25000000>, <100000000>,
+				<100000000>, <100000000>,
+				<250000000>, <1000000000>,
+				<50000000>, <50000000>,
+				<50000000>, <50000000>,
+				<50000000>, <50000000>,
+				<50000000>, <50000000>,
+				<100000>, <100000>, <100000>,
+
+				<2000000001>, <1000000001>;
+		};
+	};
+};

@@ -1,0 +1,137 @@
+#include "mango.dtsi"
+#include "mango-pcie-3rc-v2.dtsi"
+
+/ {
+	info {
+		file-name = "mango-sophgo-x4evb.dts";
+	};
+};
+
+&i2c1 {
+	mcu: sg2042mcu@17 {
+		compatible = "sophgo,sg20xx-mcu";
+		reg = <0x17>;
+		#thermal-sensor-cells = <1>;
+	};
+
+	mango_srst: mango-reset@17 {
+		compatible = "mango,reset";
+		reg = <0x17>;
+	};
+};
+
+&i2c2 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&i2c2_acquire>;
+};
+
+&tach0 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&fan0_acquire>;
+};
+
+&tach1 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&fan1_acquire>;
+};
+
+&ethernet0 {
+	max-speed = <1000>;
+	eth-sophgo-config {
+		autoneg = "enable";
+	};
+};
+
+&soc {
+	/delete-node/ flash-controller@7000180000;
+};
+
+/ {
+	pwmfan: pwm-fan {
+		compatible = "pwm-fan";
+		pwms = <&pwm 0 40000>, <&pwm 1 40000>; // period_ns
+		pwm-names = "pwm0","pwm1";
+		pwm_inuse = "pwm0";
+		#cooling-cells = <2>;
+		cooling-levels = <102 127 178 229 254>;  //total 255
+	};
+
+	thermal_zones: thermal-zones {
+		soc {
+			polling-delay-passive = <1000>; /* milliseconds */
+			polling-delay = <1000>; /* milliseconds */
+			thermal-sensors = <&mcu 0>;
+
+			trips {
+				soc_pwmfan_trip1: soc_pwmfan_trip@1 {
+					temperature = <40000>; /* millicelsius */
+					hysteresis = <8000>; /* millicelsius */
+					type = "active";
+				};
+
+				soc_pwmfan_trip2: soc_pwmfan_trip@2 {
+					temperature = <58000>; /* millicelsius */
+					hysteresis = <12000>; /* millicelsius */
+					type = "active";
+				};
+
+				soc_pwmfan_trip3: soc_pwmfan_trip@3 {
+					temperature = <70000>; /* millicelsius */
+					hysteresis = <10000>; /* millicelsius */
+					type = "active";
+				};
+
+				soc_pwmfan_trip4: soc_pwmfan_trip@4 {
+					temperature = <85000>; /* millicelsius */
+					hysteresis = <5000>; /* millicelsius */
+					type = "active";
+				};
+			};
+
+			cooling-maps {
+				map0 {
+					trip = <&soc_pwmfan_trip1>;
+					cooling-device = <&pwmfan 0 1>;
+				};
+
+				map1 {
+					trip = <&soc_pwmfan_trip2>;
+					cooling-device = <&pwmfan 1 2>;
+				};
+
+				map2 {
+					trip = <&soc_pwmfan_trip3>;
+					cooling-device = <&pwmfan 2 3>;
+				};
+
+				map3 {
+					trip = <&soc_pwmfan_trip4>;
+					cooling-device = <&pwmfan 3 4>;
+				};
+			};
+
+		};
+
+		board {
+			polling-delay-passive = <1000>; /* milliseconds */
+			polling-delay = <1000>; /* milliseconds */
+			thermal-sensors = <&mcu 1>;
+
+			trips {
+				board_pwmfan_trip1: board_pwmfan_trip@1 {
+					temperature = <75000>; /* millicelsius */
+					hysteresis = <8000>; /* millicelsius */
+					type = "active";
+				};
+			};
+
+			cooling-maps {
+				map4 {
+					trip = <&board_pwmfan_trip1>;
+					cooling-device = <&pwmfan 3 4>;
+				};
+			};
+		};
+	};
+
+};

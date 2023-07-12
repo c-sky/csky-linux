@@ -1,0 +1,163 @@
+#include "mango.dtsi"
+#include "mango-pcie-4rc.dtsi"
+
+/ {
+	info {
+		file-name = "mango-milkv-pioneer.dts";
+	};
+};
+
+&i2c1 {
+	mcu: sg2042mcu@17 {
+		compatible = "sophgo,sg20xx-mcu";
+		reg = <0x17>;
+		#thermal-sensor-cells = <1>;
+	};
+
+	mango_srst: mango-reset@17 {
+		compatible = "mango,reset";
+		reg = <0x17>;
+	};
+};
+
+&i2c2 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&i2c2_acquire>;
+};
+
+&soc {
+	/delete-node/ ethernet@7040026000;
+	gpio-poweroff {
+		compatible = "gpio-keys";
+		input-name = "gpio-keys";
+		pinctrl-names = "default";
+		pinctrl-0 = <&pwr_key>;
+
+		power {
+			label = "GPIO Key Power";
+			linux,code = <KEY_POWER>;
+			gpios = <&port0a 22 GPIO_ACTIVE_HIGH>;
+			linux,input-type = <1>;
+			debounce-interval = <100>;
+		};
+	};
+
+	gpio-restart {
+		compatible = "gpio-keys";
+		input-name = "gpio-keys";
+		pinctrl-names = "default";
+		pinctrl-0 = <&restart_key>;
+
+		restart {
+			label = "GPIO Key Restart";
+			linux,code = <KEY_RESTART>;
+			gpios = <&port0a 23 GPIO_ACTIVE_HIGH>;
+			linux,input-type = <1>;
+			debounce-interval = <100>;
+		};
+	};
+};
+
+&tach0 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&fan0_acquire>;
+};
+
+&tach1 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&fan1_acquire>;
+};
+
+/ {
+	pwmfan: pwm-fan {
+		compatible = "pwm-fan";
+		pwms = <&pwm 0 40000>, <&pwm 1 40000>; // period_ns
+		pwm-names = "pwm0","pwm1";
+		pwm_inuse = "pwm0";
+		#cooling-cells = <2>;
+		cooling-levels = <1 1 1 1 1>;  //total 255
+	};
+
+	thermal_zones: thermal-zones {
+		soc {
+			polling-delay-passive = <1000>; /* milliseconds */
+			polling-delay = <1000>; /* milliseconds */
+			thermal-sensors = <&mcu 0>;
+
+			trips {
+				soc_pwmfan_trip1: soc_pwmfan_trip@1 {
+					temperature = <30000>; /* millicelsius */
+					hysteresis = <8000>; /* millicelsius */
+					type = "active";
+				};
+
+				soc_pwmfan_trip2: soc_pwmfan_trip@2 {
+					temperature = <40000>; /* millicelsius */
+					hysteresis = <12000>; /* millicelsius */
+					type = "active";
+				};
+
+				soc_pwmfan_trip3: soc_pwmfan_trip@3 {
+					temperature = <50000>; /* millicelsius */
+					hysteresis = <10000>; /* millicelsius */
+					type = "active";
+				};
+
+				soc_pwmfan_trip4: soc_pwmfan_trip@4 {
+					temperature = <60000>; /* millicelsius */
+					hysteresis = <5000>; /* millicelsius */
+					type = "active";
+				};
+			};
+
+			cooling-maps {
+				map0 {
+					trip = <&soc_pwmfan_trip1>;
+					cooling-device = <&pwmfan 0 1>;
+				};
+
+				map1 {
+					trip = <&soc_pwmfan_trip2>;
+					cooling-device = <&pwmfan 1 2>;
+				};
+
+				map2 {
+					trip = <&soc_pwmfan_trip3>;
+					cooling-device = <&pwmfan 2 3>;
+				};
+
+				map3 {
+					trip = <&soc_pwmfan_trip4>;
+					cooling-device = <&pwmfan 3 4>;
+				};
+			};
+
+		};
+
+		board {
+			polling-delay-passive = <1000>; /* milliseconds */
+			polling-delay = <1000>; /* milliseconds */
+			thermal-sensors = <&mcu 1>;
+
+			trips {
+				board_pwmfan_trip1: board_pwmfan_trip@1 {
+					temperature = <75000>; /* millicelsius */
+					hysteresis = <8000>; /* millicelsius */
+					type = "active";
+				};
+			};
+
+			cooling-maps {
+				map4 {
+					trip = <&board_pwmfan_trip1>;
+					cooling-device = <&pwmfan 3 4>;
+				};
+			};
+		};
+	};
+
+};
+
+&chosen {
+	bootargs = "console=ttyS0,115200 console=tty1 earlycon ignore_loglevel rdinit=/init root=/dev/ram0 rw initrd=0x30000000,32M retain_initrd maxcpus=1 nvme.use_threaded_interrupts=1 nvme_core.io_timeout=3000";
+};

@@ -1,0 +1,731 @@
+#define NR_CPUS 128
+
+#include "mango.dtsi"
+#if NR_CPUS > 64
+#include "mango-cpus-socket1.dtsi"
+#endif
+#include "mango-clock-socket1.dtsi"
+
+/ {
+	/delete-node/ distance-map;
+	distance-map {
+		compatible = "numa-distance-map-v1";
+		distance-matrix = <0 0 10>,	//chip0
+				  <0 1 15>,
+				  <0 2 25>,
+				  <0 3 30>,
+				  <0 4 110>,
+				  <0 5 115>,
+				  <0 6 125>,
+				  <0 7 130>,
+				  <1 0 15>,
+				  <1 1 10>,
+				  <1 2 30>,
+				  <1 3 25>,
+				  <1 4 115>,
+				  <1 5 110>,
+				  <1 6 130>,
+				  <1 7 125>,
+				  <2 0 25>,
+				  <2 1 30>,
+				  <2 2 10>,
+				  <2 3 15>,
+				  <2 4 125>,
+				  <2 5 130>,
+				  <2 6 110>,
+				  <2 7 115>,
+				  <3 0 30>,
+				  <3 1 25>,
+				  <3 2 15>,
+				  <3 3 10>,
+				  <3 4 130>,
+				  <3 5 125>,
+				  <3 6 115>,
+				  <3 7 110>,
+				  <4 0 110>,	//chip1
+				  <4 1 115>,
+				  <4 2 125>,
+				  <4 3 130>,
+				  <4 4 10>,
+				  <4 5 15>,
+				  <4 6 25>,
+				  <4 7 30>,
+				  <5 0 115>,
+				  <5 1 110>,
+				  <5 2 130>,
+				  <5 3 125>,
+				  <5 4 15>,
+				  <5 5 10>,
+				  <5 6 30>,
+				  <5 7 25>,
+				  <6 0 125>,
+				  <6 1 130>,
+				  <6 2 110>,
+				  <6 3 115>,
+				  <6 4 25>,
+				  <6 5 30>,
+				  <6 6 10>,
+				  <6 7 15>,
+				  <7 0 130>,
+				  <7 1 125>,
+				  <7 2 115>,
+				  <7 3 110>,
+				  <7 4 30>,
+				  <7 5 25>,
+				  <7 6 15>,
+				  <7 7 10>;
+	};
+
+	/* the mem node will be updated by ZSBL. */
+	/* chip 1 */
+	memory@4 {
+		device_type = "memory";
+		reg = <0x00000000 0x00000004 0x00000000 0x00000000>;
+		numa-node-id = <4>;
+	};
+	memory@5 {
+		device_type = "memory";
+		reg = <0x00000000 0x00000005 0x00000000 0x00000000>;
+		numa-node-id = <5>;
+	};
+	memory@6 {
+		device_type = "memory";
+		reg = <0x00000000 0x00000006 0x00000000 0x00000000>;
+		numa-node-id = <6>;
+	};
+	memory@7 {
+		device_type = "memory";
+		reg = <0x00000000 0x00000007 0x00000000 0x00000000>;
+		numa-node-id = <7>;
+	};
+
+	reserved-memory {
+		linux,cma {
+			size = <0x00000000 0x40000000>;
+			alloc-ranges = <0x00000000 0xc0000000
+					0x00000000 0x40000000>;
+		};
+	};
+
+	soc {
+#if NR_CPUS > 64
+		/delete-node/ clint-mswi@7094000000;
+		clint_mswi: clint-mswi@7094000000 {
+			compatible = "thead,c900-clint-mswi";
+			reg = <0x00000070 0x94000000 0x00000000 0x00004000>;
+			interrupts-extended = <
+				&cpu0_intc 3
+				&cpu1_intc 3
+				&cpu2_intc 3
+				&cpu3_intc 3
+				&cpu4_intc 3
+				&cpu5_intc 3
+				&cpu6_intc 3
+				&cpu7_intc 3
+				&cpu8_intc 3
+				&cpu9_intc 3
+				&cpu10_intc 3
+				&cpu11_intc 3
+				&cpu12_intc 3
+				&cpu13_intc 3
+				&cpu14_intc 3
+				&cpu15_intc 3
+				&cpu16_intc 3
+				&cpu17_intc 3
+				&cpu18_intc 3
+				&cpu19_intc 3
+				&cpu20_intc 3
+				&cpu21_intc 3
+				&cpu22_intc 3
+				&cpu23_intc 3
+				&cpu24_intc 3
+				&cpu25_intc 3
+				&cpu26_intc 3
+				&cpu27_intc 3
+				&cpu28_intc 3
+				&cpu29_intc 3
+				&cpu30_intc 3
+				&cpu31_intc 3
+				&cpu32_intc 3
+				&cpu33_intc 3
+				&cpu34_intc 3
+				&cpu35_intc 3
+				&cpu36_intc 3
+				&cpu37_intc 3
+				&cpu38_intc 3
+				&cpu39_intc 3
+				&cpu40_intc 3
+				&cpu41_intc 3
+				&cpu42_intc 3
+				&cpu43_intc 3
+				&cpu44_intc 3
+				&cpu45_intc 3
+				&cpu46_intc 3
+				&cpu47_intc 3
+				&cpu48_intc 3
+				&cpu49_intc 3
+				&cpu50_intc 3
+				&cpu51_intc 3
+				&cpu52_intc 3
+				&cpu53_intc 3
+				&cpu54_intc 3
+				&cpu55_intc 3
+				&cpu56_intc 3
+				&cpu57_intc 3
+				&cpu58_intc 3
+				&cpu59_intc 3
+				&cpu60_intc 3
+				&cpu61_intc 3
+				&cpu62_intc 3
+				&cpu63_intc 3
+
+				// chip 1
+				&cpu64_intc 3
+				&cpu65_intc 3
+				&cpu66_intc 3
+				&cpu67_intc 3
+				&cpu68_intc 3
+				&cpu69_intc 3
+				&cpu70_intc 3
+				&cpu71_intc 3
+				&cpu72_intc 3
+				&cpu73_intc 3
+				&cpu74_intc 3
+				&cpu75_intc 3
+				&cpu76_intc 3
+				&cpu77_intc 3
+				&cpu78_intc 3
+				&cpu79_intc 3
+				&cpu80_intc 3
+				&cpu81_intc 3
+				&cpu82_intc 3
+				&cpu83_intc 3
+				&cpu84_intc 3
+				&cpu85_intc 3
+				&cpu86_intc 3
+				&cpu87_intc 3
+				&cpu88_intc 3
+				&cpu89_intc 3
+				&cpu90_intc 3
+				&cpu91_intc 3
+				&cpu92_intc 3
+				&cpu93_intc 3
+				&cpu94_intc 3
+				&cpu95_intc 3
+				&cpu96_intc 3
+				&cpu97_intc 3
+				&cpu98_intc 3
+				&cpu99_intc 3
+				&cpu100_intc 3
+				&cpu101_intc 3
+				&cpu102_intc 3
+				&cpu103_intc 3
+				&cpu104_intc 3
+				&cpu105_intc 3
+				&cpu106_intc 3
+				&cpu107_intc 3
+				&cpu108_intc 3
+				&cpu109_intc 3
+				&cpu110_intc 3
+				&cpu111_intc 3
+				&cpu112_intc 3
+				&cpu113_intc 3
+				&cpu114_intc 3
+				&cpu115_intc 3
+				&cpu116_intc 3
+				&cpu117_intc 3
+				&cpu118_intc 3
+				&cpu119_intc 3
+				&cpu120_intc 3
+				&cpu121_intc 3
+				&cpu122_intc 3
+				&cpu123_intc 3
+				&cpu124_intc 3
+				&cpu125_intc 3
+				&cpu126_intc 3
+				&cpu127_intc 3
+				>;
+		};
+
+		clint_mtimer16: clint-mtimer@70ac100000 {
+			compatible = "thead,c900-clint-mtimer";
+			reg = <0x00000070 0xac100000 0x00000000 0x00007ff8>;
+			interrupts-extended = <
+				&cpu64_intc 7
+				&cpu65_intc 7
+				&cpu66_intc 7
+				&cpu67_intc 7
+				>;
+		};
+
+		clint_mtimer17: clint-mtimer@70ac110000 {
+			compatible = "thead,c900-clint-mtimer";
+			reg = <0x00000070 0xac110000 0x00000000 0x00007ff8>;
+			interrupts-extended = <
+				&cpu68_intc 7
+				&cpu69_intc 7
+				&cpu70_intc 7
+				&cpu71_intc 7
+				>;
+		};
+
+		clint_mtimer18: clint-mtimer@70ac120000 {
+			compatible = "thead,c900-clint-mtimer";
+			reg = <0x00000070 0xac120000 0x00000000 0x00007ff8>;
+			interrupts-extended = <
+				&cpu72_intc 7
+				&cpu73_intc 7
+				&cpu74_intc 7
+				&cpu75_intc 7
+				>;
+		};
+
+		clint_mtimer19: clint-mtimer@70ac130000 {
+			compatible = "thead,c900-clint-mtimer";
+			reg = <0x00000070 0xac130000 0x00000000 0x00007ff8>;
+			interrupts-extended = <
+				&cpu76_intc 7
+				&cpu77_intc 7
+				&cpu78_intc 7
+				&cpu79_intc 7
+				>;
+		};
+
+		clint_mtimer20: clint-mtimer@70ac140000 {
+			compatible = "thead,c900-clint-mtimer";
+			reg = <0x00000070 0xac140000 0x00000000 0x00007ff8>;
+			interrupts-extended = <
+				&cpu80_intc 7
+				&cpu81_intc 7
+				&cpu82_intc 7
+				&cpu83_intc 7
+				>;
+		};
+
+		clint_mtimer21: clint-mtimer@70ac150000 {
+			compatible = "thead,c900-clint-mtimer";
+			reg = <0x00000070 0xac150000 0x00000000 0x00007ff8>;
+			interrupts-extended = <
+				&cpu84_intc 7
+				&cpu85_intc 7
+				&cpu86_intc 7
+				&cpu87_intc 7
+				>;
+		};
+
+		clint_mtimer22: clint-mtimer@70ac160000 {
+			compatible = "thead,c900-clint-mtimer";
+			reg = <0x00000070 0xac160000 0x00000000 0x00007ff8>;
+			interrupts-extended = <
+				&cpu88_intc 7
+				&cpu89_intc 7
+				&cpu90_intc 7
+				&cpu91_intc 7
+				>;
+		};
+
+		clint_mtimer23: clint-mtimer@70ac170000 {
+			compatible = "thead,c900-clint-mtimer";
+			reg = <0x00000070 0xac170000 0x00000000 0x00007ff8>;
+			interrupts-extended = <
+				&cpu92_intc 7
+				&cpu93_intc 7
+				&cpu94_intc 7
+				&cpu95_intc 7
+				>;
+		};
+
+		clint_mtimer24: clint-mtimer@70ac180000 {
+			compatible = "thead,c900-clint-mtimer";
+			reg = <0x00000070 0xac180000 0x00000000 0x00007ff8>;
+			interrupts-extended = <
+				&cpu96_intc 7
+				&cpu97_intc 7
+				&cpu98_intc 7
+				&cpu99_intc 7
+				>;
+		};
+
+		clint_mtimer25: clint-mtimer@70ac190000 {
+			compatible = "thead,c900-clint-mtimer";
+			reg = <0x00000070 0xac190000 0x00000000 0x00007ff8>;
+			interrupts-extended = <
+				&cpu100_intc 7
+				&cpu101_intc 7
+				&cpu102_intc 7
+				&cpu103_intc 7
+				>;
+		};
+
+		clint_mtimer26: clint-mtimer@70ac1a0000 {
+			compatible = "thead,c900-clint-mtimer";
+			reg = <0x00000070 0xac1a0000 0x00000000 0x00007ff8>;
+			interrupts-extended = <
+				&cpu104_intc 7
+				&cpu105_intc 7
+				&cpu106_intc 7
+				&cpu107_intc 7
+				>;
+		};
+
+		clint_mtimer27: clint-mtimer@70ac1b0000 {
+			compatible = "thead,c900-clint-mtimer";
+			reg = <0x00000070 0xac1b0000 0x00000000 0x00007ff8>;
+			interrupts-extended = <
+				&cpu108_intc 7
+				&cpu109_intc 7
+				&cpu110_intc 7
+				&cpu111_intc 7
+				>;
+		};
+
+		clint_mtimer28: clint-mtimer@70ac1c0000 {
+			compatible = "thead,c900-clint-mtimer";
+			reg = <0x00000070 0xac1c0000 0x00000000 0x00007ff8>;
+			interrupts-extended = <
+				&cpu112_intc 7
+				&cpu113_intc 7
+				&cpu114_intc 7
+				&cpu115_intc 7
+				>;
+		};
+
+		clint_mtimer29: clint-mtimer@70ac1d0000 {
+			compatible = "thead,c900-clint-mtimer";
+			reg = <0x00000070 0xac1d0000 0x00000000 0x00007ff8>;
+			interrupts-extended = <
+				&cpu116_intc 7
+				&cpu117_intc 7
+				&cpu118_intc 7
+				&cpu119_intc 7
+				>;
+		};
+
+		clint_mtimer30: clint-mtimer@70ac1e0000 {
+			compatible = "thead,c900-clint-mtimer";
+			reg = <0x00000070 0xac1e0000 0x00000000 0x00007ff8>;
+			interrupts-extended = <
+				&cpu120_intc 7
+				&cpu121_intc 7
+				&cpu122_intc 7
+				&cpu123_intc 7
+				>;
+		};
+
+		clint_mtimer31: clint-mtimer@70ac1f0000 {
+			compatible = "thead,c900-clint-mtimer";
+			reg = <0x00000070 0xac1f0000 0x00000000 0x00007ff8>;
+			interrupts-extended = <
+				&cpu124_intc 7
+				&cpu125_intc 7
+				&cpu126_intc 7
+				&cpu127_intc 7
+				>;
+		};
+#endif
+
+		/delete-node/ interrupt-controller@7090000000;
+		intc: interrupt-controller@7090000000 {
+			#address-cells = <0>;
+			#interrupt-cells = <2>;
+			compatible = "thead,c900-plic";
+			interrupt-controller;
+			interrupts-extended = <
+				&cpu0_intc  0xffffffff &cpu0_intc  9
+				&cpu1_intc  0xffffffff &cpu1_intc  9
+				&cpu2_intc  0xffffffff &cpu2_intc  9
+				&cpu3_intc  0xffffffff &cpu3_intc  9
+				&cpu4_intc  0xffffffff &cpu4_intc  9
+				&cpu5_intc  0xffffffff &cpu5_intc  9
+				&cpu6_intc  0xffffffff &cpu6_intc  9
+				&cpu7_intc  0xffffffff &cpu7_intc  9
+				&cpu8_intc  0xffffffff &cpu8_intc  9
+				&cpu9_intc  0xffffffff &cpu9_intc  9
+				&cpu10_intc  0xffffffff &cpu10_intc  9
+				&cpu11_intc  0xffffffff &cpu11_intc  9
+				&cpu12_intc  0xffffffff &cpu12_intc  9
+				&cpu13_intc  0xffffffff &cpu13_intc  9
+				&cpu14_intc  0xffffffff &cpu14_intc  9
+				&cpu15_intc  0xffffffff &cpu15_intc  9
+				&cpu16_intc  0xffffffff &cpu16_intc  9
+				&cpu17_intc  0xffffffff &cpu17_intc  9
+				&cpu18_intc  0xffffffff &cpu18_intc  9
+				&cpu19_intc  0xffffffff &cpu19_intc  9
+				&cpu20_intc  0xffffffff &cpu20_intc  9
+				&cpu21_intc  0xffffffff &cpu21_intc  9
+				&cpu22_intc  0xffffffff &cpu22_intc  9
+				&cpu23_intc  0xffffffff &cpu23_intc  9
+				&cpu24_intc  0xffffffff &cpu24_intc  9
+				&cpu25_intc  0xffffffff &cpu25_intc  9
+				&cpu26_intc  0xffffffff &cpu26_intc  9
+				&cpu27_intc  0xffffffff &cpu27_intc  9
+				&cpu28_intc  0xffffffff &cpu28_intc  9
+				&cpu29_intc  0xffffffff &cpu29_intc  9
+				&cpu30_intc  0xffffffff &cpu30_intc  9
+				&cpu31_intc  0xffffffff &cpu31_intc  9
+				&cpu32_intc  0xffffffff &cpu32_intc  9
+				&cpu33_intc  0xffffffff &cpu33_intc  9
+				&cpu34_intc  0xffffffff &cpu34_intc  9
+				&cpu35_intc  0xffffffff &cpu35_intc  9
+				&cpu36_intc  0xffffffff &cpu36_intc  9
+				&cpu37_intc  0xffffffff &cpu37_intc  9
+				&cpu38_intc  0xffffffff &cpu38_intc  9
+				&cpu39_intc  0xffffffff &cpu39_intc  9
+				&cpu40_intc  0xffffffff &cpu40_intc  9
+				&cpu41_intc  0xffffffff &cpu41_intc  9
+				&cpu42_intc  0xffffffff &cpu42_intc  9
+				&cpu43_intc  0xffffffff &cpu43_intc  9
+				&cpu44_intc  0xffffffff &cpu44_intc  9
+				&cpu45_intc  0xffffffff &cpu45_intc  9
+				&cpu46_intc  0xffffffff &cpu46_intc  9
+				&cpu47_intc  0xffffffff &cpu47_intc  9
+				&cpu48_intc  0xffffffff &cpu48_intc  9
+				&cpu49_intc  0xffffffff &cpu49_intc  9
+				&cpu50_intc  0xffffffff &cpu50_intc  9
+				&cpu51_intc  0xffffffff &cpu51_intc  9
+				&cpu52_intc  0xffffffff &cpu52_intc  9
+				&cpu53_intc  0xffffffff &cpu53_intc  9
+				&cpu54_intc  0xffffffff &cpu54_intc  9
+				&cpu55_intc  0xffffffff &cpu55_intc  9
+				&cpu56_intc  0xffffffff &cpu56_intc  9
+				&cpu57_intc  0xffffffff &cpu57_intc  9
+				&cpu58_intc  0xffffffff &cpu58_intc  9
+				&cpu59_intc  0xffffffff &cpu59_intc  9
+				&cpu60_intc  0xffffffff &cpu60_intc  9
+				&cpu61_intc  0xffffffff &cpu61_intc  9
+				&cpu62_intc  0xffffffff &cpu62_intc  9
+				&cpu63_intc  0xffffffff &cpu63_intc  9
+
+#if NR_CPUS > 64
+				//chip 1
+				&cpu64_intc  0xffffffff &cpu64_intc  9
+				&cpu65_intc  0xffffffff &cpu65_intc  9
+				&cpu66_intc  0xffffffff &cpu66_intc  9
+				&cpu67_intc  0xffffffff &cpu67_intc  9
+				&cpu68_intc  0xffffffff &cpu68_intc  9
+				&cpu69_intc  0xffffffff &cpu69_intc  9
+				&cpu70_intc  0xffffffff &cpu70_intc  9
+				&cpu71_intc  0xffffffff &cpu71_intc  9
+				&cpu72_intc  0xffffffff &cpu72_intc  9
+				&cpu73_intc  0xffffffff &cpu73_intc  9
+				&cpu74_intc  0xffffffff &cpu74_intc  9
+				&cpu75_intc  0xffffffff &cpu75_intc  9
+				&cpu76_intc  0xffffffff &cpu76_intc  9
+				&cpu77_intc  0xffffffff &cpu77_intc  9
+				&cpu78_intc  0xffffffff &cpu78_intc  9
+				&cpu79_intc  0xffffffff &cpu79_intc  9
+				&cpu80_intc  0xffffffff &cpu80_intc  9
+				&cpu81_intc  0xffffffff &cpu81_intc  9
+				&cpu82_intc  0xffffffff &cpu82_intc  9
+				&cpu83_intc  0xffffffff &cpu83_intc  9
+				&cpu84_intc  0xffffffff &cpu84_intc  9
+				&cpu85_intc  0xffffffff &cpu85_intc  9
+				&cpu86_intc  0xffffffff &cpu86_intc  9
+				&cpu87_intc  0xffffffff &cpu87_intc  9
+				&cpu88_intc  0xffffffff &cpu88_intc  9
+				&cpu89_intc  0xffffffff &cpu89_intc  9
+				&cpu90_intc  0xffffffff &cpu90_intc  9
+				&cpu91_intc  0xffffffff &cpu91_intc  9
+				&cpu92_intc  0xffffffff &cpu92_intc  9
+				&cpu93_intc  0xffffffff &cpu93_intc  9
+				&cpu94_intc  0xffffffff &cpu94_intc  9
+				&cpu95_intc  0xffffffff &cpu95_intc  9
+				&cpu96_intc  0xffffffff &cpu96_intc  9
+				&cpu97_intc  0xffffffff &cpu97_intc  9
+				&cpu98_intc  0xffffffff &cpu98_intc  9
+				&cpu99_intc  0xffffffff &cpu99_intc  9
+				&cpu100_intc  0xffffffff &cpu100_intc  9
+				&cpu101_intc  0xffffffff &cpu101_intc  9
+				&cpu102_intc  0xffffffff &cpu102_intc  9
+				&cpu103_intc  0xffffffff &cpu103_intc  9
+				&cpu104_intc  0xffffffff &cpu104_intc  9
+				&cpu105_intc  0xffffffff &cpu105_intc  9
+				&cpu106_intc  0xffffffff &cpu106_intc  9
+				&cpu107_intc  0xffffffff &cpu107_intc  9
+				&cpu108_intc  0xffffffff &cpu108_intc  9
+				&cpu109_intc  0xffffffff &cpu109_intc  9
+				&cpu110_intc  0xffffffff &cpu110_intc  9
+				&cpu111_intc  0xffffffff &cpu111_intc  9
+				&cpu112_intc  0xffffffff &cpu112_intc  9
+				&cpu113_intc  0xffffffff &cpu113_intc  9
+				&cpu114_intc  0xffffffff &cpu114_intc  9
+				&cpu115_intc  0xffffffff &cpu115_intc  9
+				&cpu116_intc  0xffffffff &cpu116_intc  9
+				&cpu117_intc  0xffffffff &cpu117_intc  9
+				&cpu118_intc  0xffffffff &cpu118_intc  9
+				&cpu119_intc  0xffffffff &cpu119_intc  9
+				&cpu120_intc  0xffffffff &cpu120_intc  9
+				&cpu121_intc  0xffffffff &cpu121_intc  9
+				&cpu122_intc  0xffffffff &cpu122_intc  9
+				&cpu123_intc  0xffffffff &cpu123_intc  9
+				&cpu124_intc  0xffffffff &cpu124_intc  9
+				&cpu125_intc  0xffffffff &cpu125_intc  9
+				&cpu126_intc  0xffffffff &cpu126_intc  9
+				&cpu127_intc  0xffffffff &cpu127_intc  9
+#endif
+				>;
+			reg = <0x00000070 0x90000000 0x00000000 0x04000000>;
+			reg-names = "control";
+			riscv,max-priority = <7>;
+			riscv,ndev = <448>;
+		};
+
+		top1_misc: top_misc_ctrl@f030010000 {
+			compatible = "syscon";
+			reg = <0xf0 0x30010000 0x0 0x8000>;
+		};
+
+		rst1: reset1-controller {
+			#reset-cells = <1>;
+			compatible = "bitmain,reset";
+			subctrl-syscon = <&top1_misc>;
+			top_rst_offset = <0x3000>;
+			nr_resets = <RST_MAX_NUM>;
+		};
+
+		gpio3: gpio@f030009000 {
+			compatible = "snps,dw-apb-gpio";
+			reg = <0xf0 0x30009000 0x0 0x400>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+			clocks = <&s1_div_clk GATE_CLK_APB_GPIO>,
+				 <&s1_div_clk GATE_CLK_APB_GPIO_INTR>,
+				 <&s1_div_clk GATE_CLK_GPIO_DB>;
+			clock-names = "base_clk", "intr_clk", "db_clk";
+
+			port3a: gpio-controller@0 {
+				compatible = "snps,dw-apb-gpio-port";
+				bank-name = "port0a";
+				gpio-controller;
+				#gpio-cells = <2>;
+				snps,nr-gpios = <32>;
+				reg = <0>;
+				interrupt-controller;
+				#interrupt-cells = <2>;
+				interrupt-parent = <&intc>;
+				interrupts = <SOC_PERIPHERAL_IRQ(320) IRQ_TYPE_LEVEL_HIGH>;
+			};
+		};
+
+		ethernet1: ethernet@f040026000 {
+			compatible = "bitmain,ethernet";
+			reg = <0xf0 0x40026000 0x0 0x4000>;
+			interrupt-parent = <&intc>;
+			interrupts = <SOC_PERIPHERAL_IRQ(356) IRQ_TYPE_LEVEL_HIGH>;
+			interrupt-names = "macirq";
+			clock-names = "clk_tx", "gate_clk_tx", "stmmaceth", "ptp_ref", "gate_clk_ref";
+			clocks = <&s1_div_clk DIV_CLK_FPLL_TX_ETH0>,
+				   <&s1_div_clk GATE_CLK_TX_ETH0>,
+				   <&s1_div_clk GATE_CLK_AXI_ETH0>,
+				   <&s1_div_clk GATE_CLK_PTP_REF_I_ETH0>,
+				   <&s1_div_clk GATE_CLK_REF_ETH0>;
+
+			/* no hash filter and perfect filter support */
+			snps,multicast-filter-bins = <0>;
+			snps,perfect-filter-entries = <1>;
+
+			snps,txpbl = <32>;
+			snps,rxpbl = <32>;
+			snps,aal;
+
+			snps,axi-config = <&stmmac_axi_setup>;
+			snps,mtl-rx-config = <&mtl_rx_setup>;
+			snps,mtl-tx-config = <&mtl_tx_setup>;
+
+			phy-mode = "rgmii-txid";
+			phy-reset-gpios = <&port3a 27 0>;
+			phy-handle = <&phy1>;
+			mdio {
+				#address-cells = <0x1>;
+				#size-cells = <0x0>;
+				compatible = "snps,dwmac-mdio";
+				phy1: phy@0 {
+					compatible = "ethernet-phy-ieee802.3-c22";
+					device_type = "ethernet-phy";
+					reg = <0x0>;
+				};
+			};
+		};
+
+		emmc1: bm-emmc@f04002A000 {
+			compatible = "bitmain,bm-emmc";
+			reg = <0xf0 0x4002A000 0x0 0x1000>;
+			reg-names = "core_mem";
+			interrupt-parent = <&intc>;
+			interrupts = <SOC_PERIPHERAL_IRQ(358) IRQ_TYPE_LEVEL_HIGH>;
+			bus-width = <4>;
+			non-removable;
+			no-sdio;
+			no-sd;
+			resets = <&rst1 RST_EMMC>;
+			reset-names = "emmc";
+			clocks =
+				<&s1_div_clk GATE_CLK_EMMC_100M>,
+				<&s1_div_clk GATE_CLK_AXI_EMMC>,
+				<&s1_div_clk GATE_CLK_100K_EMMC>;
+			clock-names =
+				"clk_gate_emmc",
+				"clk_gate_axi_emmc",
+				"clk_gate_100k_emmc";
+		};
+
+		sd1: bm-sd@f04002B000 {
+			compatible = "bitmain,bm-sd";
+			reg = <0xf0 0x4002B000 0x0 0x1000>;
+			reg-names = "core_mem";
+			interrupt-parent = <&intc>;
+			interrupts = <SOC_PERIPHERAL_IRQ(360) IRQ_TYPE_LEVEL_HIGH>;
+			bus-width = <4>;
+			no-sdio;
+			no-mmc;
+			resets = <&rst1 RST_SD>;
+			reset-names = "sdio";
+			clocks =
+				<&s1_div_clk GATE_CLK_SD_100M>,
+				<&s1_div_clk GATE_CLK_AXI_SD>,
+				<&s1_div_clk GATE_CLK_100K_SD>;
+			clock-names =
+				"clk_gate_sd",
+				"clk_gate_axi_sd",
+				"clk_gate_100k_sd";
+		};
+	};
+
+	spifmc2: flash-controller@f000180000 {
+		compatible = "sophgo,spifmc";
+		reg = <0xf0 0x00180000 0x0 0x1000000>;
+		reg-names = "memory";
+		#address-cells = <1>;
+		#size-cells = <0>;
+		interrupt-parent = <&intc>;
+		interrupts = <SOC_PERIPHERAL_IRQ(332) IRQ_TYPE_LEVEL_HIGH>;
+		clock-frequency = <100000000>;
+		clocks = <&s1_div_clk GATE_CLK_AHB_SF>;
+		flash@0 {
+			reg = <0>;
+			compatible = "jedec,spi-nor";
+		};
+	};
+
+	spifmc3: flash-controller@f002180000 {
+		compatible = "sophgo,spifmc";
+		reg = <0xf0 0x02180000 0x0 0x1000000>;
+		reg-names = "memory";
+		#address-cells = <1>;
+		#size-cells = <0>;
+		interrupt-parent = <&intc>;
+		interrupts = <SOC_PERIPHERAL_IRQ(333) IRQ_TYPE_LEVEL_HIGH>;
+		clock-frequency = <100000000>;
+		clocks = <&s1_div_clk GATE_CLK_AHB_SF>;
+		flash@0 {
+			reg = <0>;
+			compatible = "jedec,spi-nor";
+		};
+	};
+
+	aliases {
+	        serial0 = &uart0;
+	        ethernet0 = &ethernet0;
+	        ethernet1 = &ethernet1;
+	};
+};
