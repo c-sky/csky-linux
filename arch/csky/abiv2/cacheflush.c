@@ -15,24 +15,26 @@ void update_mmu_cache(struct vm_area_struct *vma, unsigned long address,
 
 	flush_tlb_page(vma, address);
 
+	if (!(vma->vm_flags & VM_EXEC))
+		goto out;
+
 	if (!pfn_valid(pte_pfn(*pte)))
-		return;
+		goto out;
 
 	page = pfn_to_page(pte_pfn(*pte));
 	if (page == ZERO_PAGE(0))
-		return;
+		goto out;
 
 	if (test_and_set_bit(PG_dcache_clean, &page->flags))
-		return;
+		goto out;
 
 	addr = (unsigned long) kmap_atomic(page);
 
 	dcache_wb_range(addr, addr + PAGE_SIZE);
 
-	if (vma->vm_flags & VM_EXEC)
-		icache_inv_range(addr, addr + PAGE_SIZE);
-
 	kunmap_atomic((void *) addr);
+out:
+	icache_inv_range(address, address + PAGE_SIZE);
 }
 
 void flush_icache_deferred(struct mm_struct *mm)
