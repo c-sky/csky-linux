@@ -22,7 +22,7 @@ config PINCONF
 	bool "Support pin configuration controllers" if COMPILE_TEST
 
 config GENERIC_PINCONF
-	bool
+	bool "GENERIC_PINCONF"
 	select PINCONF
 
 config DEBUG_PINCTRL
