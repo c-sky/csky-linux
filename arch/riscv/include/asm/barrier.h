@@ -44,6 +44,18 @@ do {									\
 	___p1;								\
 })
 
+#define smp_cond_load_acquire(ptr, cond_expr) ({			\
+	typeof(ptr) __PTR = (ptr);					\
+	__unqual_scalar_typeof(*ptr) VAL;				\
+	for (;;) {							\
+		VAL = __smp_load_acquire(__PTR);			\
+		if (cond_expr)						\
+			break;						\
+		cpu_relax();						\
+	}								\
+	(typeof(*ptr))VAL;						\
+})
+
 /*
  * This is a very specific barrier: it's currently only used in two places in
  * the kernel, both in the scheduler.  See include/linux/spinlock.h for the two
