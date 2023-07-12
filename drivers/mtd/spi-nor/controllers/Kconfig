@@ -16,3 +16,14 @@ config SPI_NXP_SPIFI
 	  SPIFI is a specialized controller for connecting serial SPI
 	  Flash. Enable this option if you have a device with a SPIFI
 	  controller and want to access the Flash as a mtd device.
+
+config SPI_SOPHGO_SPIFMC
+	tristate "Sophgo SPI Flash Master Controller (SPIFMC)"
+	depends on SOC_SOPHGO || COMPILE_TEST
+	depends on HAS_IOMEM
+	help
+	  Enable support for the Sophgo SPI Flash Master controller.
+
+	  SPIFMC is a master controller to control serial SPI Flash.
+	  Enable this option if you have a device with a SPIFMC controller
+	  and want to access the Flash as a mtd device.
