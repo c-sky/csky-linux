@@ -111,6 +111,12 @@ static int ipmi_pci_probe(struct pci_dev *pdev,
 	io.regsize = DEFAULT_REGSIZE;
 	io.regshift = 0;
 
+#ifdef CONFIG_SOC_SOPHGO
+	io.addr_data = pci_resource_start(pdev, 1) + 0x0e80;
+	io.slave_addr = 0x20;
+	io.regspacing = 4;
+	io.regsize = 4;
+#endif
 	io.irq = pdev->irq;
 	if (io.irq)
 		io.irq_setup = ipmi_std_irq_setup;
