@@ -106,7 +106,7 @@ static bool dcn30_set_mpc_shaper_3dlut(struct pipe_ctx *pipe_ctx,
 		if (stream->func_shaper->type == TF_TYPE_HWPWL) {
 			shaper_lut = &stream->func_shaper->pwl;
 		} else if (stream->func_shaper->type == TF_TYPE_DISTRIBUTED_POINTS) {
-			cm_helper_translate_curve_to_hw_format(stream->func_shaper,
+			cm_helper_translate_curve_to_hw_format(stream->ctx, stream->func_shaper,
 							       &dpp_base->shaper_params, true);
 			shaper_lut = &dpp_base->shaper_params;
 		}
@@ -323,20 +323,13 @@ void dcn30_enable_writeback(
 {
 	struct dwbc *dwb;
 	struct mcif_wb *mcif_wb;
-	struct timing_generator *optc;
 
 	dwb = dc->res_pool->dwbc[wb_info->dwb_pipe_inst];
 	mcif_wb = dc->res_pool->mcif_wb[wb_info->dwb_pipe_inst];
 
-	/* set the OPTC source mux */
-	optc = dc->res_pool->timing_generators[dwb->otg_inst];
 	DC_LOG_DWB("%s dwb_pipe_inst = %d, mpcc_inst = %d",\
 		__func__, wb_info->dwb_pipe_inst,\
 		wb_info->mpcc_inst);
-	if (IS_DIAG_DC(dc->ctx->dce_environment)) {
-		/*till diags switch to warmup interface*/
-		dcn30_mmhubbub_warmup(dc, 1, wb_info);
-	}
 	/* Update writeback pipe */
 	dcn30_set_writeback(dc, wb_info, context);
 
@@ -450,28 +443,6 @@ void dcn30_init_hw(struct dc *dc)
 	if (res_pool->dccg->funcs->dccg_init)
 		res_pool->dccg->funcs->dccg_init(res_pool->dccg);
 
-	if (IS_FPGA_MAXIMUS_DC(dc->ctx->dce_environment)) {
-
-		REG_WRITE(REFCLK_CNTL, 0);
-		REG_UPDATE(DCHUBBUB_GLOBAL_TIMER_CNTL, DCHUBBUB_GLOBAL_TIMER_ENABLE, 1);
-		REG_WRITE(DIO_MEM_PWR_CTRL, 0);
-
-		if (!dc->debug.disable_clock_gate) {
-			/* enable all DCN clock gating */
-			REG_WRITE(DCCG_GATE_DISABLE_CNTL, 0);
-
-			REG_WRITE(DCCG_GATE_DISABLE_CNTL2, 0);
-
-			REG_UPDATE(DCFCLK_CNTL, DCFCLK_GATE_DIS, 0);
-		}
-
-		//Enable ability to power gate / don't force power on permanently
-		if (hws->funcs.enable_power_gating_plane)
-			hws->funcs.enable_power_gating_plane(hws, true);
-
-		return;
-	}
-
 	if (!dcb->funcs->is_accelerated_mode(dcb)) {
 		hws->funcs.bios_golden_init(dc);
 		hws->funcs.disable_vga(dc->hwseq);
@@ -494,23 +465,21 @@ void dcn30_init_hw(struct dc *dc)
 		res_pool->ref_clocks.xtalin_clock_inKhz =
 				dc->ctx->dc_bios->fw_info.pll_info.crystal_frequency;
 
-		if (!IS_FPGA_MAXIMUS_DC(dc->ctx->dce_environment)) {
-			if (res_pool->dccg && res_pool->hubbub) {
+		if (res_pool->dccg && res_pool->hubbub) {
 
-				(res_pool->dccg->funcs->get_dccg_ref_freq)(res_pool->dccg,
-						dc->ctx->dc_bios->fw_info.pll_info.crystal_frequency,
-						&res_pool->ref_clocks.dccg_ref_clock_inKhz);
+			(res_pool->dccg->funcs->get_dccg_ref_freq)(res_pool->dccg,
+					dc->ctx->dc_bios->fw_info.pll_info.crystal_frequency,
+					&res_pool->ref_clocks.dccg_ref_clock_inKhz);
 
-				(res_pool->hubbub->funcs->get_dchub_ref_freq)(res_pool->hubbub,
-						res_pool->ref_clocks.dccg_ref_clock_inKhz,
-						&res_pool->ref_clocks.dchub_ref_clock_inKhz);
-			} else {
-				// Not all ASICs have DCCG sw component
-				res_pool->ref_clocks.dccg_ref_clock_inKhz =
-						res_pool->ref_clocks.xtalin_clock_inKhz;
-				res_pool->ref_clocks.dchub_ref_clock_inKhz =
-						res_pool->ref_clocks.xtalin_clock_inKhz;
-			}
+			(res_pool->hubbub->funcs->get_dchub_ref_freq)(res_pool->hubbub,
+					res_pool->ref_clocks.dccg_ref_clock_inKhz,
+					&res_pool->ref_clocks.dchub_ref_clock_inKhz);
+		} else {
+			// Not all ASICs have DCCG sw component
+			res_pool->ref_clocks.dccg_ref_clock_inKhz =
+					res_pool->ref_clocks.xtalin_clock_inKhz;
+			res_pool->ref_clocks.dchub_ref_clock_inKhz =
+					res_pool->ref_clocks.xtalin_clock_inKhz;
 		}
 	} else
 		ASSERT_CRITICAL(false);
@@ -534,13 +503,8 @@ void dcn30_init_hw(struct dc *dc)
 		}
 	}
 
-	/* Power gate DSCs */
-	for (i = 0; i < res_pool->res_cap->num_dsc; i++)
-		if (hws->funcs.dsc_pg_control != NULL)
-			hws->funcs.dsc_pg_control(hws, res_pool->dscs[i]->inst, false);
-
 	/* we want to turn off all dp displays before doing detection */
-	link_blank_all_dp_displays(dc);
+	dc->link_srv->blank_all_dp_displays(dc);
 
 	if (hws->funcs.enable_power_gating_plane)
 		hws->funcs.enable_power_gating_plane(dc->hwseq, true);
@@ -567,7 +531,7 @@ void dcn30_init_hw(struct dc *dc)
 		struct dc_link *edp_links[MAX_NUM_EDP];
 		struct dc_link *edp_link = NULL;
 
-		get_edp_links(dc, edp_links, &edp_num);
+		dc_get_edp_links(dc, edp_links, &edp_num);
 		if (edp_num)
 			edp_link = edp_links[0];
 		if (edp_link && edp_link->link_enc->funcs->is_dig_enabled &&
@@ -629,7 +593,8 @@ void dcn30_init_hw(struct dc *dc)
 	if (dc->clk_mgr->funcs->notify_wm_ranges)
 		dc->clk_mgr->funcs->notify_wm_ranges(dc->clk_mgr);
 
-	if (dc->clk_mgr->funcs->set_hard_max_memclk)
+	//if softmax is enabled then hardmax will be set by a different call
+	if (dc->clk_mgr->funcs->set_hard_max_memclk && !dc->clk_mgr->dc_mode_softmax_enabled)
 		dc->clk_mgr->funcs->set_hard_max_memclk(dc->clk_mgr);
 
 	if (dc->res_pool->hubbub->funcs->force_pstate_change_control)
@@ -639,7 +604,7 @@ void dcn30_init_hw(struct dc *dc)
 		dc->res_pool->hubbub->funcs->init_crb(dc->res_pool->hubbub);
 
 	// Get DMCUB capabilities
-	dc_dmub_srv_query_caps_cmd(dc->ctx->dmub_srv->dmub);
+	dc_dmub_srv_query_caps_cmd(dc->ctx->dmub_srv);
 	dc->caps.dmub_caps.psr = dc->ctx->dmub_srv->dmub->feature_caps.psr;
 	dc->caps.dmub_caps.mclk_sw = dc->ctx->dmub_srv->dmub->feature_caps.fw_assisted_mclk_switch;
 }
@@ -743,8 +708,7 @@ bool dcn30_apply_idle_power_optimizations(struct dc *dc, bool enable)
 				cmd.mall.header.sub_type = DMUB_CMD__MALL_ACTION_NO_DF_REQ;
 				cmd.mall.header.payload_bytes = sizeof(cmd.mall) - sizeof(cmd.mall.header);
 
-				dc_dmub_srv_cmd_queue(dc->ctx->dmub_srv, &cmd);
-				dc_dmub_srv_cmd_execute(dc->ctx->dmub_srv);
+				dm_execute_dmub_cmd(dc->ctx, &cmd, DM_DMUB_WAIT_TYPE_NO_WAIT);
 
 				return true;
 			}
@@ -866,9 +830,7 @@ bool dcn30_apply_idle_power_optimizations(struct dc *dc, bool enable)
 					cmd.mall.cursor_height = cursor_attr.height;
 					cmd.mall.cursor_pitch = cursor_attr.pitch;
 
-					dc_dmub_srv_cmd_queue(dc->ctx->dmub_srv, &cmd);
-					dc_dmub_srv_cmd_execute(dc->ctx->dmub_srv);
-					dc_dmub_srv_wait_idle(dc->ctx->dmub_srv);
+					dm_execute_dmub_cmd(dc->ctx, &cmd, DM_DMUB_WAIT_TYPE_WAIT);
 
 					/* Use copied cursor, and it's okay to not switch back */
 					cursor_attr.address.quad_part = cmd.mall.cursor_copy_dst.quad_part;
@@ -884,8 +846,7 @@ bool dcn30_apply_idle_power_optimizations(struct dc *dc, bool enable)
 				cmd.mall.tmr_scale = tmr_scale;
 				cmd.mall.debug_bits = dc->debug.mall_error_as_fatal;
 
-				dc_dmub_srv_cmd_queue(dc->ctx->dmub_srv, &cmd);
-				dc_dmub_srv_cmd_execute(dc->ctx->dmub_srv);
+				dm_execute_dmub_cmd(dc->ctx, &cmd, DM_DMUB_WAIT_TYPE_NO_WAIT);
 
 				return true;
 			}
@@ -902,9 +863,7 @@ bool dcn30_apply_idle_power_optimizations(struct dc *dc, bool enable)
 	cmd.mall.header.payload_bytes =
 		sizeof(cmd.mall) - sizeof(cmd.mall.header);
 
-	dc_dmub_srv_cmd_queue(dc->ctx->dmub_srv, &cmd);
-	dc_dmub_srv_cmd_execute(dc->ctx->dmub_srv);
-	dc_dmub_srv_wait_idle(dc->ctx->dmub_srv);
+	dm_execute_dmub_cmd(dc->ctx, &cmd, DM_DMUB_WAIT_TYPE_WAIT);
 
 	return true;
 }
@@ -990,7 +949,7 @@ void dcn30_set_disp_pattern_generator(const struct dc *dc,
 }
 
 void dcn30_prepare_bandwidth(struct dc *dc,
- 	struct dc_state *context)
+			     struct dc_state *context)
 {
 	if (dc->clk_mgr->dc_mode_softmax_enabled)
 		if (dc->clk_mgr->clks.dramclk_khz <= dc->clk_mgr->bw_params->dc_mode_softmax_memclk * 1000 &&

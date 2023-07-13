@@ -6,16 +6,16 @@
  * High level machine check handler. Handles pages reported by the
  * hardware as being corrupted usually due to a multi-bit ECC memory or cache
  * failure.
- * 
+ *
  * In addition there is a "soft offline" entry point that allows stop using
  * not-yet-corrupted-by-suspicious pages without killing anything.
  *
  * Handles page cache pages in various states.	The tricky part
- * here is that we can access any page asynchronously in respect to 
- * other VM users, because memory failures could happen anytime and 
- * anywhere. This could violate some of their assumptions. This is why 
- * this code has to be extremely careful. Generally it tries to use 
- * normal locking rules, as in get the standard locks, even if that means 
+ * here is that we can access any page asynchronously in respect to
+ * other VM users, because memory failures could happen anytime and
+ * anywhere. This could violate some of their assumptions. This is why
+ * this code has to be extremely careful. Generally it tries to use
+ * normal locking rules, as in get the standard locks, even if that means
  * the error handling takes potentially a long time.
  *
  * It can be very tempting to add handling for obscure cases here.
@@ -25,12 +25,12 @@
  *   https://git.kernel.org/cgit/utils/cpu/mce/mce-test.git/
  * - The case actually shows up as a frequent (top 10) page state in
  *   tools/mm/page-types when running a real workload.
- * 
+ *
  * There are several operations here with exponential complexity because
- * of unsuitable VM data structures. For example the operation to map back 
- * from RMAP chains to processes has to walk the complete process list and 
+ * of unsuitable VM data structures. For example the operation to map back
+ * from RMAP chains to processes has to walk the complete process list and
  * has non linear complexity with the number. But since memory corruptions
- * are rare we hope to get away with this. This avoids impacting the core 
+ * are rare we hope to get away with this. This avoids impacting the core
  * VM.
  */
 
@@ -62,13 +62,14 @@
 #include <linux/page-isolation.h>
 #include <linux/pagewalk.h>
 #include <linux/shmem_fs.h>
+#include <linux/sysctl.h>
 #include "swap.h"
 #include "internal.h"
 #include "ras/ras_event.h"
 
-int sysctl_memory_failure_early_kill __read_mostly = 0;
+static int sysctl_memory_failure_early_kill __read_mostly;
 
-int sysctl_memory_failure_recovery __read_mostly = 1;
+static int sysctl_memory_failure_recovery __read_mostly = 1;
 
 atomic_long_t num_poisoned_pages __read_mostly = ATOMIC_LONG_INIT(0);
 
@@ -122,6 +123,28 @@ const struct attribute_group memory_failure_attr_group = {
 	.attrs = memory_failure_attr,
 };
 
+static struct ctl_table memory_failure_table[] = {
+	{
+		.procname	= "memory_failure_early_kill",
+		.data		= &sysctl_memory_failure_early_kill,
+		.maxlen		= sizeof(sysctl_memory_failure_early_kill),
+		.mode		= 0644,
+		.proc_handler	= proc_dointvec_minmax,
+		.extra1		= SYSCTL_ZERO,
+		.extra2		= SYSCTL_ONE,
+	},
+	{
+		.procname	= "memory_failure_recovery",
+		.data		= &sysctl_memory_failure_recovery,
+		.maxlen		= sizeof(sysctl_memory_failure_recovery),
+		.mode		= 0644,
+		.proc_handler	= proc_dointvec_minmax,
+		.extra1		= SYSCTL_ZERO,
+		.extra2		= SYSCTL_ONE,
+	},
+	{ }
+};
+
 /*
  * Return values:
  *   1:   the page is dissolved (if needed) and taken off from buddy,
@@ -168,7 +191,7 @@ static bool page_handle_poison(struct page *page, bool hugepage_or_freepage, boo
 	return true;
 }
 
-#if defined(CONFIG_HWPOISON_INJECT) || defined(CONFIG_HWPOISON_INJECT_MODULE)
+#if IS_ENABLED(CONFIG_HWPOISON_INJECT)
 
 u32 hwpoison_filter_enable = 0;
 u32 hwpoison_filter_dev_major = ~0U;
@@ -363,6 +386,7 @@ static unsigned long dev_pagemap_mapping_shift(struct vm_area_struct *vma,
 	pud_t *pud;
 	pmd_t *pmd;
 	pte_t *pte;
+	pte_t ptent;
 
 	VM_BUG_ON_VMA(address == -EFAULT, vma);
 	pgd = pgd_offset(vma->vm_mm, address);
@@ -382,7 +406,10 @@ static unsigned long dev_pagemap_mapping_shift(struct vm_area_struct *vma,
 	if (pmd_devmap(*pmd))
 		return PMD_SHIFT;
 	pte = pte_offset_map(pmd, address);
-	if (pte_present(*pte) && pte_devmap(*pte))
+	if (!pte)
+		return 0;
+	ptent = ptep_get(pte);
+	if (pte_present(ptent) && pte_devmap(ptent))
 		ret = PAGE_SHIFT;
 	pte_unmap(pte);
 	return ret;
@@ -405,9 +432,9 @@ static unsigned long dev_pagemap_mapping_shift(struct vm_area_struct *vma,
  * page->mapping are sufficient for mapping the page back to its
  * corresponding user virtual address.
  */
-static void add_to_kill(struct task_struct *tsk, struct page *p,
-			pgoff_t fsdax_pgoff, struct vm_area_struct *vma,
-			struct list_head *to_kill)
+static void __add_to_kill(struct task_struct *tsk, struct page *p,
+			  struct vm_area_struct *vma, struct list_head *to_kill,
+			  unsigned long ksm_addr, pgoff_t fsdax_pgoff)
 {
 	struct to_kill *tk;
 
@@ -417,7 +444,7 @@ static void add_to_kill(struct task_struct *tsk, struct page *p,
 		return;
 	}
 
-	tk->addr = page_address_in_vma(p, vma);
+	tk->addr = ksm_addr ? ksm_addr : page_address_in_vma(p, vma);
 	if (is_zone_device_page(p)) {
 		if (fsdax_pgoff != FSDAX_INVALID_PGOFF)
 			tk->addr = vma_pgoff_address(fsdax_pgoff, 1, vma);
@@ -448,6 +475,34 @@ static void add_to_kill(struct task_struct *tsk, struct page *p,
 	list_add_tail(&tk->nd, to_kill);
 }
 
+static void add_to_kill_anon_file(struct task_struct *tsk, struct page *p,
+				  struct vm_area_struct *vma,
+				  struct list_head *to_kill)
+{
+	__add_to_kill(tsk, p, vma, to_kill, 0, FSDAX_INVALID_PGOFF);
+}
+
+#ifdef CONFIG_KSM
+static bool task_in_to_kill_list(struct list_head *to_kill,
+				 struct task_struct *tsk)
+{
+	struct to_kill *tk, *next;
+
+	list_for_each_entry_safe(tk, next, to_kill, nd) {
+		if (tk->tsk == tsk)
+			return true;
+	}
+
+	return false;
+}
+void add_to_kill_ksm(struct task_struct *tsk, struct page *p,
+		     struct vm_area_struct *vma, struct list_head *to_kill,
+		     unsigned long ksm_addr)
+{
+	if (!task_in_to_kill_list(to_kill, tsk))
+		__add_to_kill(tsk, p, vma, to_kill, ksm_addr, FSDAX_INVALID_PGOFF);
+}
+#endif
 /*
  * Kill the processes that have been collected earlier.
  *
@@ -527,8 +582,7 @@ static struct task_struct *find_early_kill_thread(struct task_struct *tsk)
  * processes sharing the same error page,if the process is "early kill", the
  * task_struct of the dedicated thread will also be returned.
  */
-static struct task_struct *task_early_kill(struct task_struct *tsk,
-					   int force_early)
+struct task_struct *task_early_kill(struct task_struct *tsk, int force_early)
 {
 	if (!tsk->mm)
 		return NULL;
@@ -573,7 +627,7 @@ static void collect_procs_anon(struct page *page, struct list_head *to_kill,
 				continue;
 			if (!page_mapped_in_vma(page, vma))
 				continue;
-			add_to_kill(t, page, FSDAX_INVALID_PGOFF, vma, to_kill);
+			add_to_kill_anon_file(t, page, vma, to_kill);
 		}
 	}
 	read_unlock(&tasklist_lock);
@@ -609,8 +663,7 @@ static void collect_procs_file(struct page *page, struct list_head *to_kill,
 			 * to be informed of all such data corruptions.
 			 */
 			if (vma->vm_mm == t->mm)
-				add_to_kill(t, page, FSDAX_INVALID_PGOFF, vma,
-					    to_kill);
+				add_to_kill_anon_file(t, page, vma, to_kill);
 		}
 	}
 	read_unlock(&tasklist_lock);
@@ -618,6 +671,13 @@ static void collect_procs_file(struct page *page, struct list_head *to_kill,
 }
 
 #ifdef CONFIG_FS_DAX
+static void add_to_kill_fsdax(struct task_struct *tsk, struct page *p,
+			      struct vm_area_struct *vma,
+			      struct list_head *to_kill, pgoff_t pgoff)
+{
+	__add_to_kill(tsk, p, vma, to_kill, 0, pgoff);
+}
+
 /*
  * Collect processes when the error hit a fsdax page.
  */
@@ -637,7 +697,7 @@ static void collect_procs_fsdax(struct page *page,
 			continue;
 		vma_interval_tree_foreach(vma, &mapping->i_mmap, pgoff, pgoff) {
 			if (vma->vm_mm == t->mm)
-				add_to_kill(t, page, pgoff, vma, to_kill);
+				add_to_kill_fsdax(t, page, vma, to_kill, pgoff);
 		}
 	}
 	read_unlock(&tasklist_lock);
@@ -653,8 +713,9 @@ static void collect_procs(struct page *page, struct list_head *tokill,
 {
 	if (!page->mapping)
 		return;
-
-	if (PageAnon(page))
+	if (unlikely(PageKsm(page)))
+		collect_procs_ksm(page, tokill, force_early);
+	else if (PageAnon(page))
 		collect_procs_anon(page, tokill, force_early);
 	else
 		collect_procs_file(page, tokill, force_early);
@@ -734,13 +795,13 @@ static int hwpoison_pte_range(pmd_t *pmdp, unsigned long addr,
 		goto out;
 	}
 
-	if (pmd_trans_unstable(pmdp))
-		goto out;
-
 	mapped_pte = ptep = pte_offset_map_lock(walk->vma->vm_mm, pmdp,
 						addr, &ptl);
+	if (!ptep)
+		goto out;
+
 	for (; addr != end; ptep++, addr += PAGE_SIZE) {
-		ret = check_hwpoisoned_entry(*ptep, addr, PAGE_SHIFT,
+		ret = check_hwpoisoned_entry(ptep_get(ptep), addr, PAGE_SHIFT,
 					     hwp->pfn, &hwp->tk);
 		if (ret == 1)
 			break;
@@ -1508,11 +1569,6 @@ static bool hwpoison_user_mappings(struct page *p, unsigned long pfn,
 	 */
 	if (!page_mapped(hpage))
 		return true;
-
-	if (PageKsm(p)) {
-		pr_err("%#lx: can't handle KSM pages.\n", pfn);
-		return false;
-	}
 
 	if (PageSwapCache(p)) {
 		pr_err("%#lx: keeping poisoned page in swap cache\n", pfn);
@@ -2379,6 +2435,8 @@ static int __init memory_failure_init(void)
 		INIT_KFIFO(mf_cpu->fifo);
 		INIT_WORK(&mf_cpu->work, memory_failure_work_func);
 	}
+
+	register_sysctl_init("vm", memory_failure_table);
 
 	return 0;
 }

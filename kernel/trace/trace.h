@@ -148,6 +148,17 @@ struct kretprobe_trace_entry_head {
 	unsigned long		ret_ip;
 };
 
+struct fentry_trace_entry_head {
+	struct trace_entry	ent;
+	unsigned long		ip;
+};
+
+struct fexit_trace_entry_head {
+	struct trace_entry	ent;
+	unsigned long		func;
+	unsigned long		ret_ip;
+};
+
 #define TRACE_BUF_SIZE		1024
 
 struct trace_array;
@@ -619,6 +630,7 @@ bool trace_is_tracepoint_string(const char *str);
 const char *trace_event_format(struct trace_iterator *iter, const char *fmt);
 void trace_check_vprintf(struct trace_iterator *iter, const char *fmt,
 			 va_list ap) __printf(2, 0);
+char *trace_iter_expand_format(struct trace_iterator *iter);
 
 int trace_empty(struct trace_iterator *iter);
 
@@ -831,6 +843,8 @@ static __always_inline bool ftrace_hash_empty(struct ftrace_hash *hash)
 #define TRACE_GRAPH_PRINT_TAIL          0x100
 #define TRACE_GRAPH_SLEEP_TIME          0x200
 #define TRACE_GRAPH_GRAPH_TIME          0x400
+#define TRACE_GRAPH_PRINT_RETVAL        0x800
+#define TRACE_GRAPH_PRINT_RETVAL_HEX    0x1000
 #define TRACE_GRAPH_PRINT_FILL_SHIFT	28
 #define TRACE_GRAPH_PRINT_FILL_MASK	(0x3 << TRACE_GRAPH_PRINT_FILL_SHIFT)
 
@@ -1199,6 +1213,7 @@ extern int trace_get_user(struct trace_parser *parser, const char __user *ubuf,
 		C(HEX,			"hex"),			\
 		C(BIN,			"bin"),			\
 		C(BLOCK,		"block"),		\
+		C(FIELDS,		"fields"),		\
 		C(PRINTK,		"trace_printk"),	\
 		C(ANNOTATE,		"annotate"),		\
 		C(USERSTACKTRACE,	"userstacktrace"),	\

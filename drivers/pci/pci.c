@@ -64,6 +64,21 @@ struct pci_pme_device {
 
 #define PME_TIMEOUT 1000 /* How long between PME checks */
 
+/*
+ * Following exit from Conventional Reset, devices must be ready within 1 sec
+ * (PCIe r6.0 sec 6.6.1).  A D3cold to D0 transition implies a Conventional
+ * Reset (PCIe r6.0 sec 5.8).
+ */
+#define PCI_RESET_WAIT 1000 /* msec */
+
+/*
+ * Devices may extend the 1 sec period through Request Retry Status
+ * completions (PCIe r6.0 sec 2.3.1).  The spec does not provide an upper
+ * limit, but 60 sec ought to be enough for any device to become
+ * responsive.
+ */
+#define PCIE_RESET_READY_POLL_MS 60000 /* msec */
+
 static void pci_dev_d3_sleep(struct pci_dev *dev)
 {
 	unsigned int delay_ms = max(dev->d3hot_delay, pci_pm_d3hot_delay);
@@ -779,9 +794,8 @@ struct resource *pci_find_parent_resource(const struct pci_dev *dev,
 {
 	const struct pci_bus *bus = dev->bus;
 	struct resource *r;
-	int i;
 
-	pci_bus_for_each_resource(bus, r, i) {
+	pci_bus_for_each_resource(bus, r) {
 		if (!r)
 			continue;
 		if (resource_contains(r, res)) {
@@ -1149,7 +1163,14 @@ void pci_resume_bus(struct pci_bus *bus)
 static int pci_dev_wait(struct pci_dev *dev, char *reset_type, int timeout)
 {
 	int delay = 1;
-	u32 id;
+	bool retrain = false;
+	struct pci_dev *bridge;
+
+	if (pci_is_pcie(dev)) {
+		bridge = pci_upstream_bridge(dev);
+		if (bridge)
+			retrain = true;
+	}
 
 	/*
 	 * After reset, the device should not silently discard config
@@ -1163,21 +1184,33 @@ static int pci_dev_wait(struct pci_dev *dev, char *reset_type, int timeout)
 	 * Command register instead of Vendor ID so we don't have to
 	 * contend with the CRS SV value.
 	 */
-	pci_read_config_dword(dev, PCI_COMMAND, &id);
-	while (PCI_POSSIBLE_ERROR(id)) {
+	for (;;) {
+		u32 id;
+
+		pci_read_config_dword(dev, PCI_COMMAND, &id);
+		if (!PCI_POSSIBLE_ERROR(id))
+			break;
+
 		if (delay > timeout) {
 			pci_warn(dev, "not ready %dms after %s; giving up\n",
 				 delay - 1, reset_type);
 			return -ENOTTY;
 		}
 
-		if (delay > PCI_RESET_WAIT)
+		if (delay > PCI_RESET_WAIT) {
+			if (retrain) {
+				retrain = false;
+				if (pcie_failed_link_retrain(bridge)) {
+					delay = 1;
+					continue;
+				}
+			}
 			pci_info(dev, "not ready %dms after %s; waiting\n",
 				 delay - 1, reset_type);
+		}
 
 		msleep(delay);
 		delay *= 2;
-		pci_read_config_dword(dev, PCI_COMMAND, &id);
 	}
 
 	if (delay > PCI_RESET_WAIT)
@@ -2942,13 +2975,13 @@ static const struct dmi_system_id bridge_d3_blacklist[] = {
 	{
 		/*
 		 * Downstream device is not accessible after putting a root port
-		 * into D3cold and back into D0 on Elo i2.
+		 * into D3cold and back into D0 on Elo Continental Z2 board
 		 */
-		.ident = "Elo i2",
+		.ident = "Elo Continental Z2",
 		.matches = {
-			DMI_MATCH(DMI_SYS_VENDOR, "Elo Touch Solutions"),
-			DMI_MATCH(DMI_PRODUCT_NAME, "Elo i2"),
-			DMI_MATCH(DMI_PRODUCT_VERSION, "RevB"),
+			DMI_MATCH(DMI_BOARD_VENDOR, "Elo Touch Solutions"),
+			DMI_MATCH(DMI_BOARD_NAME, "Geminilake"),
+			DMI_MATCH(DMI_BOARD_VERSION, "Continental Z2"),
 		},
 	},
 #endif
@@ -4850,6 +4883,79 @@ static int pci_pm_reset(struct pci_dev *dev, bool probe)
 }
 
 /**
+ * pcie_wait_for_link_status - Wait for link status change
+ * @pdev: Device whose link to wait for.
+ * @use_lt: Use the LT bit if TRUE, or the DLLLA bit if FALSE.
+ * @active: Waiting for active or inactive?
+ *
+ * Return 0 if successful, or -ETIMEDOUT if status has not changed within
+ * PCIE_LINK_RETRAIN_TIMEOUT_MS milliseconds.
+ */
+static int pcie_wait_for_link_status(struct pci_dev *pdev,
+				     bool use_lt, bool active)
+{
+	u16 lnksta_mask, lnksta_match;
+	unsigned long end_jiffies;
+	u16 lnksta;
+
+	lnksta_mask = use_lt ? PCI_EXP_LNKSTA_LT : PCI_EXP_LNKSTA_DLLLA;
+	lnksta_match = active ? lnksta_mask : 0;
+
+	end_jiffies = jiffies + msecs_to_jiffies(PCIE_LINK_RETRAIN_TIMEOUT_MS);
+	do {
+		pcie_capability_read_word(pdev, PCI_EXP_LNKSTA, &lnksta);
+		if ((lnksta & lnksta_mask) == lnksta_match)
+			return 0;
+		msleep(1);
+	} while (time_before(jiffies, end_jiffies));
+
+	return -ETIMEDOUT;
+}
+
+/**
+ * pcie_retrain_link - Request a link retrain and wait for it to complete
+ * @pdev: Device whose link to retrain.
+ * @use_lt: Use the LT bit if TRUE, or the DLLLA bit if FALSE, for status.
+ *
+ * Retrain completion status is retrieved from the Link Status Register
+ * according to @use_lt.  It is not verified whether the use of the DLLLA
+ * bit is valid.
+ *
+ * Return 0 if successful, or -ETIMEDOUT if training has not completed
+ * within PCIE_LINK_RETRAIN_TIMEOUT_MS milliseconds.
+ */
+int pcie_retrain_link(struct pci_dev *pdev, bool use_lt)
+{
+	int rc;
+	u16 lnkctl;
+
+	/*
+	 * Ensure the updated LNKCTL parameters are used during link
+	 * training by checking that there is no ongoing link training to
+	 * avoid LTSSM race as recommended in Implementation Note at the
+	 * end of PCIe r6.0.1 sec 7.5.3.7.
+	 */
+	rc = pcie_wait_for_link_status(pdev, use_lt, !use_lt);
+	if (rc)
+		return rc;
+
+	pcie_capability_read_word(pdev, PCI_EXP_LNKCTL, &lnkctl);
+	lnkctl |= PCI_EXP_LNKCTL_RL;
+	pcie_capability_write_word(pdev, PCI_EXP_LNKCTL, lnkctl);
+	if (pdev->clear_retrain_link) {
+		/*
+		 * Due to an erratum in some devices the Retrain Link bit
+		 * needs to be cleared again manually to allow the link
+		 * training to succeed.
+		 */
+		lnkctl &= ~PCI_EXP_LNKCTL_RL;
+		pcie_capability_write_word(pdev, PCI_EXP_LNKCTL, lnkctl);
+	}
+
+	return pcie_wait_for_link_status(pdev, use_lt, !use_lt);
+}
+
+/**
  * pcie_wait_for_link_delay - Wait until link is active or inactive
  * @pdev: Bridge device
  * @active: waiting for active or inactive?
@@ -4860,16 +4966,14 @@ static int pci_pm_reset(struct pci_dev *dev, bool probe)
 static bool pcie_wait_for_link_delay(struct pci_dev *pdev, bool active,
 				     int delay)
 {
-	int timeout = 1000;
-	bool ret;
-	u16 lnk_status;
+	int rc;
 
 	/*
 	 * Some controllers might not implement link active reporting. In this
 	 * case, we wait for 1000 ms + any delay requested by the caller.
 	 */
 	if (!pdev->link_active_reporting) {
-		msleep(timeout + delay);
+		msleep(PCIE_LINK_RETRAIN_TIMEOUT_MS + delay);
 		return true;
 	}
 
@@ -4884,20 +4988,21 @@ static bool pcie_wait_for_link_delay(struct pci_dev *pdev, bool active,
 	 */
 	if (active)
 		msleep(20);
-	for (;;) {
-		pcie_capability_read_word(pdev, PCI_EXP_LNKSTA, &lnk_status);
-		ret = !!(lnk_status & PCI_EXP_LNKSTA_DLLLA);
-		if (ret == active)
-			break;
-		if (timeout <= 0)
-			break;
-		msleep(10);
-		timeout -= 10;
-	}
-	if (active && ret)
-		msleep(delay);
+	rc = pcie_wait_for_link_status(pdev, false, active);
+	if (active) {
+		if (rc)
+			rc = pcie_failed_link_retrain(pdev);
+		if (rc)
+			return false;
 
-	return ret == active;
+		msleep(delay);
+		return true;
+	}
+
+	if (rc)
+		return false;
+
+	return true;
 }
 
 /**
@@ -4939,7 +5044,6 @@ static int pci_bus_max_d3cold_delay(const struct pci_bus *bus)
  * pci_bridge_wait_for_secondary_bus - Wait for secondary bus to be accessible
  * @dev: PCI bridge
  * @reset_type: reset type in human-readable form
- * @timeout: maximum time to wait for devices on secondary bus (milliseconds)
  *
  * Handle necessary delays before access to the devices on the secondary
  * side of the bridge are permitted after D3cold to D0 transition
@@ -4952,8 +5056,7 @@ static int pci_bus_max_d3cold_delay(const struct pci_bus *bus)
  * Return 0 on success or -ENOTTY if the first device on the secondary bus
  * failed to become accessible.
  */
-int pci_bridge_wait_for_secondary_bus(struct pci_dev *dev, char *reset_type,
-				      int timeout)
+int pci_bridge_wait_for_secondary_bus(struct pci_dev *dev, char *reset_type)
 {
 	struct pci_dev *child;
 	int delay;
@@ -5006,11 +5109,9 @@ int pci_bridge_wait_for_secondary_bus(struct pci_dev *dev, char *reset_type,
 	 *
 	 * However, 100 ms is the minimum and the PCIe spec says the
 	 * software must allow at least 1s before it can determine that the
-	 * device that did not respond is a broken device. There is
-	 * evidence that 100 ms is not always enough, for example certain
-	 * Titan Ridge xHCI controller does not always respond to
-	 * configuration requests if we only wait for 100 ms (see
-	 * https://bugzilla.kernel.org/show_bug.cgi?id=203885).
+	 * device that did not respond is a broken device. Also device can
+	 * take longer than that to respond if it indicates so through Request
+	 * Retry Status completions.
 	 *
 	 * Therefore we wait for 100 ms and check for the device presence
 	 * until the timeout expires.
@@ -5019,19 +5120,40 @@ int pci_bridge_wait_for_secondary_bus(struct pci_dev *dev, char *reset_type,
 		return 0;
 
 	if (pcie_get_speed_cap(dev) <= PCIE_SPEED_5_0GT) {
+		u16 status;
+
 		pci_dbg(dev, "waiting %d ms for downstream link\n", delay);
 		msleep(delay);
-	} else {
-		pci_dbg(dev, "waiting %d ms for downstream link, after activation\n",
-			delay);
-		if (!pcie_wait_for_link_delay(dev, true, delay)) {
-			/* Did not train, no need to wait any further */
-			pci_info(dev, "Data Link Layer Link Active not set in 1000 msec\n");
+
+		if (!pci_dev_wait(child, reset_type, PCI_RESET_WAIT - delay))
+			return 0;
+
+		/*
+		 * If the port supports active link reporting we now check
+		 * whether the link is active and if not bail out early with
+		 * the assumption that the device is not present anymore.
+		 */
+		if (!dev->link_active_reporting)
 			return -ENOTTY;
-		}
+
+		pcie_capability_read_word(dev, PCI_EXP_LNKSTA, &status);
+		if (!(status & PCI_EXP_LNKSTA_DLLLA))
+			return -ENOTTY;
+
+		return pci_dev_wait(child, reset_type,
+				    PCIE_RESET_READY_POLL_MS - PCI_RESET_WAIT);
 	}
 
-	return pci_dev_wait(child, reset_type, timeout - delay);
+	pci_dbg(dev, "waiting %d ms for downstream link, after activation\n",
+		delay);
+	if (!pcie_wait_for_link_delay(dev, true, delay)) {
+		/* Did not train, no need to wait any further */
+		pci_info(dev, "Data Link Layer Link Active not set in 1000 msec\n");
+		return -ENOTTY;
+	}
+
+	return pci_dev_wait(child, reset_type,
+			    PCIE_RESET_READY_POLL_MS - delay);
 }
 
 void pci_reset_secondary_bus(struct pci_dev *dev)
@@ -5068,8 +5190,7 @@ int pci_bridge_secondary_bus_reset(struct pci_dev *dev)
 {
 	pcibios_reset_secondary_bus(dev);
 
-	return pci_bridge_wait_for_secondary_bus(dev, "bus reset",
-						 PCIE_RESET_READY_POLL_MS);
+	return pci_bridge_wait_for_secondary_bus(dev, "bus reset");
 }
 EXPORT_SYMBOL_GPL(pci_bridge_secondary_bus_reset);
 
@@ -6679,7 +6800,7 @@ void pci_reassigndev_resource_alignment(struct pci_dev *dev)
 	}
 }
 
-static ssize_t resource_alignment_show(struct bus_type *bus, char *buf)
+static ssize_t resource_alignment_show(const struct bus_type *bus, char *buf)
 {
 	size_t count = 0;
 
@@ -6691,7 +6812,7 @@ static ssize_t resource_alignment_show(struct bus_type *bus, char *buf)
 	return count;
 }
 
-static ssize_t resource_alignment_store(struct bus_type *bus,
+static ssize_t resource_alignment_store(const struct bus_type *bus,
 					const char *buf, size_t count)
 {
 	char *param, *old, *end;

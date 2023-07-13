@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0 OR BSD-3-Clause
 /*
- * Copyright (C) 2020-2022 Intel Corporation
+ * Copyright (C) 2020-2023 Intel Corporation
  */
 #include <net/tso.h>
 #include <linux/tcp.h>
@@ -648,6 +648,13 @@ struct iwl_tfh_tfd *iwl_txq_gen2_build_tfd(struct iwl_trans *trans,
 
 	/* There must be data left over for TB1 or this code must be changed */
 	BUILD_BUG_ON(sizeof(struct iwl_tx_cmd_gen2) < IWL_FIRST_TB_SIZE);
+	BUILD_BUG_ON(sizeof(struct iwl_cmd_header) +
+		     offsetofend(struct iwl_tx_cmd_gen2, dram_info) >
+		     IWL_FIRST_TB_SIZE);
+	BUILD_BUG_ON(sizeof(struct iwl_tx_cmd_gen3) < IWL_FIRST_TB_SIZE);
+	BUILD_BUG_ON(sizeof(struct iwl_cmd_header) +
+		     offsetofend(struct iwl_tx_cmd_gen3, dram_info) >
+		     IWL_FIRST_TB_SIZE);
 
 	memset(tfd, 0, sizeof(*tfd));
 
@@ -1026,6 +1033,9 @@ int iwl_txq_alloc(struct iwl_trans *trans, struct iwl_txq *txq, int slots_num,
 		trans->trans_cfg->base_params->max_tfd_queue_size;
 	size_t tb0_buf_sz;
 	int i;
+
+	if (WARN_ONCE(slots_num <= 0, "Invalid slots num:%d\n", slots_num))
+		return -EINVAL;
 
 	if (WARN_ON(txq->entries || txq->tfds))
 		return -EINVAL;
@@ -1554,13 +1564,17 @@ void iwl_txq_reclaim(struct iwl_trans *trans, int txq_id, int ssn,
 		     struct sk_buff_head *skbs)
 {
 	struct iwl_txq *txq = trans->txqs.txq[txq_id];
-	int tfd_num = iwl_txq_get_cmd_index(txq, ssn);
-	int read_ptr = iwl_txq_get_cmd_index(txq, txq->read_ptr);
-	int last_to_free;
+	int tfd_num, read_ptr, last_to_free;
 
 	/* This function is not meant to release cmd queue*/
 	if (WARN_ON(txq_id == trans->txqs.cmd.q_id))
 		return;
+
+	if (WARN_ON(!txq))
+		return;
+
+	tfd_num = iwl_txq_get_cmd_index(txq, ssn);
+	read_ptr = iwl_txq_get_cmd_index(txq, txq->read_ptr);
 
 	spin_lock_bh(&txq->lock);
 

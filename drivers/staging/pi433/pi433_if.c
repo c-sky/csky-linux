@@ -1019,7 +1019,6 @@ static int setup_gpio(struct pi433_device *device)
 		}
 
 		/* configure the pin */
-		gpiod_unexport(device->gpiod[i]);
 		retval = gpiod_direction_input(device->gpiod[i]);
 		if (retval)
 			return retval;
@@ -1400,7 +1399,7 @@ static int __init pi433_init(void)
 	if (status < 0)
 		return status;
 
-	pi433_class = class_create(THIS_MODULE, "pi433");
+	pi433_class = class_create("pi433");
 	if (IS_ERR(pi433_class)) {
 		unregister_chrdev(MAJOR(pi433_dev),
 				  pi433_spi_driver.driver.name);

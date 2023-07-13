@@ -35,6 +35,7 @@ properties:
 patternProperties:
   "^.*-pins?$":
     $ref: /schemas/pinctrl/pinmux-node.yaml#
+    additionalProperties: false
 
     properties:
       pins:
@@ -43,6 +44,7 @@ patternProperties:
             - GPIO0
             - GPIO1
             - GPIO2
+            - GPIO3
 
       function:
         enum:

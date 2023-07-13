@@ -1360,6 +1360,9 @@ static void tegra_xhci_id_work(struct work_struct *work)
 
 	mutex_unlock(&tegra->lock);
 
+	tegra->otg_usb3_port = tegra_xusb_padctl_get_usb3_companion(tegra->padctl,
+								    tegra->otg_usb2_port);
+
 	if (tegra->host_mode) {
 		/* switch to host mode */
 		if (tegra->otg_usb3_port >= 0) {
@@ -1474,9 +1477,6 @@ static int tegra_xhci_id_notify(struct notifier_block *nb,
 	}
 
 	tegra->otg_usb2_port = tegra_xusb_get_usb2_port(tegra, usbphy);
-	tegra->otg_usb3_port = tegra_xusb_padctl_get_usb3_companion(
-							tegra->padctl,
-							tegra->otg_usb2_port);
 
 	tegra->host_mode = (usbphy->last_event == USB_EVENT_ID) ? true : false;
 
@@ -1535,7 +1535,6 @@ static void tegra_xusb_deinit_usb_phy(struct tegra_xusb *tegra)
 
 static int tegra_xusb_probe(struct platform_device *pdev)
 {
-	struct of_phandle_args args;
 	struct tegra_xusb *tegra;
 	struct device_node *np;
 	struct resource *regs;
@@ -1594,15 +1593,13 @@ static int tegra_xusb_probe(struct platform_device *pdev)
 		goto put_padctl;
 	}
 
-	/* Older device-trees don't have padctrl interrupt */
-	err = of_irq_parse_one(np, 0, &args);
-	if (!err) {
-		tegra->padctl_irq = of_irq_get(np, 0);
-		if (tegra->padctl_irq <= 0) {
-			err = (tegra->padctl_irq == 0) ? -ENODEV : tegra->padctl_irq;
-			goto put_padctl;
-		}
-	} else {
+	tegra->padctl_irq = of_irq_get(np, 0);
+	if (tegra->padctl_irq == -EPROBE_DEFER) {
+		err = tegra->padctl_irq;
+		goto put_padctl;
+	} else if (tegra->padctl_irq <= 0) {
+		/* Older device-trees don't have padctrl interrupt */
+		tegra->padctl_irq = 0;
 		dev_dbg(&pdev->dev,
 			"%pOF is missing an interrupt, disabling PM support\n", np);
 	}
@@ -1831,6 +1828,9 @@ static int tegra_xusb_probe(struct platform_device *pdev)
 		goto remove_usb2;
 	}
 
+	if (HCC_MAX_PSA(xhci->hcc_params) >= 4)
+		xhci->shared_hcd->can_do_streams = 1;
+
 	err = usb_add_hcd(xhci->shared_hcd, tegra->xhci_irq, IRQF_SHARED);
 	if (err < 0) {
 		dev_err(&pdev->dev, "failed to add shared HCD: %d\n", err);
@@ -1912,7 +1912,7 @@ put_padctl:
 	return err;
 }
 
-static int tegra_xusb_remove(struct platform_device *pdev)
+static void tegra_xusb_remove(struct platform_device *pdev)
 {
 	struct tegra_xusb *tegra = platform_get_drvdata(pdev);
 	struct xhci_hcd *xhci = hcd_to_xhci(tegra->hcd);
@@ -1942,8 +1942,6 @@ static int tegra_xusb_remove(struct platform_device *pdev)
 	tegra_xusb_clk_disable(tegra);
 	regulator_bulk_disable(tegra->soc->num_supplies, tegra->supplies);
 	tegra_xusb_padctl_put(tegra->padctl);
-
-	return 0;
 }
 
 static bool xhci_hub_ports_suspended(struct xhci_hub *hub)
@@ -2275,7 +2273,7 @@ static int tegra_xusb_exit_elpg(struct tegra_xusb *tegra, bool runtime)
 	if (wakeup)
 		tegra_xhci_disable_phy_sleepwalk(tegra);
 
-	err = xhci_resume(xhci, 0);
+	err = xhci_resume(xhci, runtime ? PMSG_AUTO_RESUME : PMSG_RESUME);
 	if (err < 0) {
 		dev_err(tegra->dev, "failed to resume XHCI: %d\n", err);
 		goto disable_phy;
@@ -2653,7 +2651,7 @@ MODULE_DEVICE_TABLE(of, tegra_xusb_of_match);
 
 static struct platform_driver tegra_xusb_driver = {
 	.probe = tegra_xusb_probe,
-	.remove = tegra_xusb_remove,
+	.remove_new = tegra_xusb_remove,
 	.driver = {
 		.name = "tegra-xusb",
 		.pm = &tegra_xusb_pm_ops,
@@ -2665,7 +2663,6 @@ static void tegra_xhci_quirks(struct device *dev, struct xhci_hcd *xhci)
 {
 	struct tegra_xusb *tegra = dev_get_drvdata(dev);
 
-	xhci->quirks |= XHCI_PLAT;
 	if (tegra && tegra->soc->lpm_support)
 		xhci->quirks |= XHCI_LPM_SUPPORT;
 }

@@ -86,6 +86,7 @@ static const struct regmap_config dio48e_regmap_config = {
 	.volatile_table = &dio48e_volatile_table,
 	.precious_table = &dio48e_precious_table,
 	.cache_type = REGCACHE_FLAT,
+	.use_raw_spinlock = true,
 };
 
 /* only bit 3 on each respective Port C supports interrupts */
@@ -99,14 +100,23 @@ static const struct regmap_irq dio48e_regmap_irqs[] = {
 	DIO48E_REGMAP_IRQ(0), DIO48E_REGMAP_IRQ(1),
 };
 
-static int dio48e_handle_mask_sync(struct regmap *const map, const int index,
+/**
+ * struct dio48e_gpio - GPIO device private data structure
+ * @map:	Regmap for the device
+ * @irq_mask:	Current IRQ mask state on the device
+ */
+struct dio48e_gpio {
+	struct regmap *map;
+	unsigned int irq_mask;
+};
+
+static int dio48e_handle_mask_sync(const int index,
 				   const unsigned int mask_buf_def,
 				   const unsigned int mask_buf,
 				   void *const irq_drv_data)
 {
-	unsigned int *const irq_mask = irq_drv_data;
-	const unsigned int prev_mask = *irq_mask;
-	const unsigned int all_masked = GENMASK(1, 0);
+	struct dio48e_gpio *const dio48egpio = irq_drv_data;
+	const unsigned int prev_mask = dio48egpio->irq_mask;
 	int err;
 	unsigned int val;
 
@@ -115,19 +125,19 @@ static int dio48e_handle_mask_sync(struct regmap *const map, const int index,
 		return 0;
 
 	/* remember the current mask for the next mask sync */
-	*irq_mask = mask_buf;
+	dio48egpio->irq_mask = mask_buf;
 
 	/* if all previously masked, enable interrupts when unmasking */
-	if (prev_mask == all_masked) {
-		err = regmap_write(map, DIO48E_CLEAR_INTERRUPT, 0x00);
+	if (prev_mask == mask_buf_def) {
+		err = regmap_write(dio48egpio->map, DIO48E_CLEAR_INTERRUPT, 0x00);
 		if (err)
 			return err;
-		return regmap_write(map, DIO48E_ENABLE_INTERRUPT, 0x00);
+		return regmap_write(dio48egpio->map, DIO48E_ENABLE_INTERRUPT, 0x00);
 	}
 
 	/* if all are currently masked, disable interrupts */
-	if (mask_buf == all_masked)
-		return regmap_read(map, DIO48E_DISABLE_INTERRUPT, &val);
+	if (mask_buf == mask_buf_def)
+		return regmap_read(dio48egpio->map, DIO48E_DISABLE_INTERRUPT, &val);
 
 	return 0;
 }
@@ -168,7 +178,7 @@ static int dio48e_probe(struct device *dev, unsigned int id)
 	struct regmap *map;
 	int err;
 	struct regmap_irq_chip *chip;
-	unsigned int irq_mask;
+	struct dio48e_gpio *dio48egpio;
 	struct regmap_irq_chip_data *chip_data;
 
 	if (!devm_request_region(dev, base[id], DIO48E_EXTENT, name)) {
@@ -186,26 +196,25 @@ static int dio48e_probe(struct device *dev, unsigned int id)
 		return dev_err_probe(dev, PTR_ERR(map),
 				     "Unable to initialize register map\n");
 
+	dio48egpio = devm_kzalloc(dev, sizeof(*dio48egpio), GFP_KERNEL);
+	if (!dio48egpio)
+		return -ENOMEM;
+
+	dio48egpio->map = map;
+
 	chip = devm_kzalloc(dev, sizeof(*chip), GFP_KERNEL);
 	if (!chip)
 		return -ENOMEM;
 
-	chip->irq_drv_data = devm_kzalloc(dev, sizeof(irq_mask), GFP_KERNEL);
-	if (!chip->irq_drv_data)
-		return -ENOMEM;
-
 	chip->name = name;
-	/* No IRQ status register so use CLEAR_INTERRUPT register instead */
-	chip->status_base = DIO48E_CLEAR_INTERRUPT;
 	chip->mask_base = DIO48E_ENABLE_INTERRUPT;
 	chip->ack_base = DIO48E_CLEAR_INTERRUPT;
-	/* CLEAR_INTERRUPT doubles as status register so we need it cleared */
-	chip->clear_ack = true;
-	chip->status_invert = true;
+	chip->no_status = true;
 	chip->num_regs = 1;
 	chip->irqs = dio48e_regmap_irqs;
 	chip->num_irqs = ARRAY_SIZE(dio48e_regmap_irqs);
 	chip->handle_mask_sync = dio48e_handle_mask_sync;
+	chip->irq_drv_data = dio48egpio;
 
 	/* Initialize to prevent spurious interrupts before we're ready */
 	err = dio48e_irq_init_hw(map);

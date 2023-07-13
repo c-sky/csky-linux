@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * inode.c
  *
@@ -5,11 +6,6 @@
  *  Inode handling routines for the OSTA-UDF(tm) filesystem.
  *
  * COPYRIGHT
- *  This file is distributed under the terms of the GNU General Public
- *  License (GPL). Copies of the GPL can be obtained from:
- *    ftp://prep.ai.mit.edu/pub/gnu/GPL
- *  Each contributing author retains all rights to their own work.
- *
  *  (C) 1998 Dave Boynton
  *  (C) 1998-2004 Ben Fennema
  *  (C) 1999-2000 Stelias Computing Inc
@@ -188,14 +184,14 @@ static void udf_write_failed(struct address_space *mapping, loff_t to)
 static int udf_adinicb_writepage(struct folio *folio,
 				 struct writeback_control *wbc, void *data)
 {
-	struct page *page = &folio->page;
-	struct inode *inode = page->mapping->host;
+	struct inode *inode = folio->mapping->host;
 	struct udf_inode_info *iinfo = UDF_I(inode);
 
-	BUG_ON(!PageLocked(page));
-	memcpy_from_page(iinfo->i_data + iinfo->i_lenEAttr, page, 0,
+	BUG_ON(!folio_test_locked(folio));
+	BUG_ON(folio->index != 0);
+	memcpy_from_file_folio(iinfo->i_data + iinfo->i_lenEAttr, folio, 0,
 		       i_size_read(inode));
-	unlock_page(page);
+	folio_unlock(folio);
 	mark_inode_dirty(inode);
 
 	return 0;

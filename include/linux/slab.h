@@ -12,11 +12,13 @@
 #ifndef _LINUX_SLAB_H
 #define	_LINUX_SLAB_H
 
+#include <linux/cache.h>
 #include <linux/gfp.h>
 #include <linux/overflow.h>
 #include <linux/types.h>
 #include <linux/workqueue.h>
 #include <linux/percpu-refcount.h>
+#include <linux/cleanup.h>
 
 
 /*
@@ -53,16 +55,18 @@
  * stays valid, the trick to using this is relying on an independent
  * object validation pass. Something like:
  *
- *  rcu_read_lock()
- * again:
+ * begin:
+ *  rcu_read_lock();
  *  obj = lockless_lookup(key);
  *  if (obj) {
  *    if (!try_get_ref(obj)) // might fail for free objects
- *      goto again;
+ *      rcu_read_unlock();
+ *      goto begin;
  *
  *    if (obj->key != key) { // not the object we expected
  *      put_ref(obj);
- *      goto again;
+ *      rcu_read_unlock();
+ *      goto begin;
  *    }
  *  }
  *  rcu_read_unlock();
@@ -105,6 +109,18 @@
 
 /* Avoid kmemleak tracing */
 #define SLAB_NOLEAKTRACE	((slab_flags_t __force)0x00800000U)
+
+/*
+ * Prevent merging with compatible kmem caches. This flag should be used
+ * cautiously. Valid use cases:
+ *
+ * - caches created for self-tests (e.g. kunit)
+ * - general caches created and used by a subsystem, only when a
+ *   (subsystem-specific) debug option is enabled
+ * - performance critical caches, should be very rare and consulted with slab
+ *   maintainers, and not used together with CONFIG_SLUB_TINY
+ */
+#define SLAB_NO_MERGE		((slab_flags_t __force)0x01000000U)
 
 /* Fault injection mark */
 #ifdef CONFIG_FAILSLAB
@@ -167,7 +183,6 @@ struct mem_cgroup;
 /*
  * struct kmem_cache related prototypes
  */
-void __init kmem_cache_init(void);
 bool slab_is_available(void);
 
 struct kmem_cache *kmem_cache_create(const char *name, unsigned int size,
@@ -212,6 +227,8 @@ void kfree(const void *objp);
 void kfree_sensitive(const void *objp);
 size_t __ksize(const void *objp);
 
+DEFINE_FREE(kfree, void *, if (_T) kfree(_T))
+
 /**
  * ksize - Report actual allocation size of associated object
  *
@@ -236,12 +253,17 @@ void kmem_dump_obj(void *object);
  * alignment larger than the alignment of a 64-bit integer.
  * Setting ARCH_DMA_MINALIGN in arch headers allows that.
  */
-#if defined(ARCH_DMA_MINALIGN) && ARCH_DMA_MINALIGN > 8
+#ifdef ARCH_HAS_DMA_MINALIGN
+#if ARCH_DMA_MINALIGN > 8 && !defined(ARCH_KMALLOC_MINALIGN)
 #define ARCH_KMALLOC_MINALIGN ARCH_DMA_MINALIGN
-#define KMALLOC_MIN_SIZE ARCH_DMA_MINALIGN
-#define KMALLOC_SHIFT_LOW ilog2(ARCH_DMA_MINALIGN)
-#else
+#endif
+#endif
+
+#ifndef ARCH_KMALLOC_MINALIGN
 #define ARCH_KMALLOC_MINALIGN __alignof__(unsigned long long)
+#elif ARCH_KMALLOC_MINALIGN > 8
+#define KMALLOC_MIN_SIZE ARCH_KMALLOC_MINALIGN
+#define KMALLOC_SHIFT_LOW ilog2(KMALLOC_MIN_SIZE)
 #endif
 
 /*
@@ -284,7 +306,7 @@ static inline unsigned int arch_slab_minalign(void)
  * (PAGE_SIZE*2).  Larger requests are passed to the page allocator.
  */
 #define KMALLOC_SHIFT_HIGH	(PAGE_SHIFT + 1)
-#define KMALLOC_SHIFT_MAX	(MAX_ORDER + PAGE_SHIFT - 1)
+#define KMALLOC_SHIFT_MAX	(MAX_ORDER + PAGE_SHIFT)
 #ifndef KMALLOC_SHIFT_LOW
 #define KMALLOC_SHIFT_LOW	5
 #endif
@@ -292,20 +314,7 @@ static inline unsigned int arch_slab_minalign(void)
 
 #ifdef CONFIG_SLUB
 #define KMALLOC_SHIFT_HIGH	(PAGE_SHIFT + 1)
-#define KMALLOC_SHIFT_MAX	(MAX_ORDER + PAGE_SHIFT - 1)
-#ifndef KMALLOC_SHIFT_LOW
-#define KMALLOC_SHIFT_LOW	3
-#endif
-#endif
-
-#ifdef CONFIG_SLOB
-/*
- * SLOB passes all requests larger than one page to the page allocator.
- * No kmalloc array is necessary since objects of different sizes can
- * be allocated from the same page.
- */
-#define KMALLOC_SHIFT_HIGH	PAGE_SHIFT
-#define KMALLOC_SHIFT_MAX	(MAX_ORDER + PAGE_SHIFT - 1)
+#define KMALLOC_SHIFT_MAX	(MAX_ORDER + PAGE_SHIFT)
 #ifndef KMALLOC_SHIFT_LOW
 #define KMALLOC_SHIFT_LOW	3
 #endif
@@ -366,7 +375,6 @@ enum kmalloc_cache_type {
 	NR_KMALLOC_TYPES
 };
 
-#ifndef CONFIG_SLOB
 extern struct kmem_cache *
 kmalloc_caches[NR_KMALLOC_TYPES][KMALLOC_SHIFT_HIGH + 1];
 
@@ -458,7 +466,6 @@ static __always_inline unsigned int __kmalloc_index(size_t size,
 }
 static_assert(PAGE_SHIFT <= 20);
 #define kmalloc_index(s) __kmalloc_index(s, true)
-#endif /* !CONFIG_SLOB */
 
 void *__kmalloc(size_t size, gfp_t flags) __assume_kmalloc_alignment __alloc_size(1);
 
@@ -487,10 +494,6 @@ void kmem_cache_free(struct kmem_cache *s, void *objp);
 void kmem_cache_free_bulk(struct kmem_cache *s, size_t size, void **p);
 int kmem_cache_alloc_bulk(struct kmem_cache *s, gfp_t flags, size_t size, void **p);
 
-/*
- * Caller must not use kfree_bulk() on memory not originally allocated
- * by kmalloc(), because the SLOB allocator cannot handle this.
- */
 static __always_inline void kfree_bulk(size_t size, void **p)
 {
 	kmem_cache_free_bulk(NULL, size, p);
@@ -526,7 +529,7 @@ void *kmalloc_large_node(size_t size, gfp_t flags, int node) __assume_page_align
  * to be at least to the size.
  *
  * The @flags argument may be one of the GFP flags defined at
- * include/linux/gfp.h and described at
+ * include/linux/gfp_types.h and described at
  * :ref:`Documentation/core-api/mm-api.rst <mm-api-gfp-flags>`
  *
  * The recommended usage of the @flags is described at
@@ -567,7 +570,6 @@ void *kmalloc_large_node(size_t size, gfp_t flags, int node) __assume_page_align
  *	Try really hard to succeed the allocation but fail
  *	eventually.
  */
-#ifndef CONFIG_SLOB
 static __always_inline __alloc_size(1) void *kmalloc(size_t size, gfp_t flags)
 {
 	if (__builtin_constant_p(size) && size) {
@@ -583,17 +585,7 @@ static __always_inline __alloc_size(1) void *kmalloc(size_t size, gfp_t flags)
 	}
 	return __kmalloc(size, flags);
 }
-#else
-static __always_inline __alloc_size(1) void *kmalloc(size_t size, gfp_t flags)
-{
-	if (__builtin_constant_p(size) && size > KMALLOC_MAX_CACHE_SIZE)
-		return kmalloc_large(size, flags);
 
-	return __kmalloc(size, flags);
-}
-#endif
-
-#ifndef CONFIG_SLOB
 static __always_inline __alloc_size(1) void *kmalloc_node(size_t size, gfp_t flags, int node)
 {
 	if (__builtin_constant_p(size) && size) {
@@ -609,15 +601,6 @@ static __always_inline __alloc_size(1) void *kmalloc_node(size_t size, gfp_t fla
 	}
 	return __kmalloc_node(size, flags, node);
 }
-#else
-static __always_inline __alloc_size(1) void *kmalloc_node(size_t size, gfp_t flags, int node)
-{
-	if (__builtin_constant_p(size) && size > KMALLOC_MAX_CACHE_SIZE)
-		return kmalloc_large_node(size, flags, node);
-
-	return __kmalloc_node(size, flags, node);
-}
-#endif
 
 /**
  * kmalloc_array - allocate memory for an array.

@@ -49,6 +49,14 @@
 		startup-delay-us = <100>;
 		vin-supply = <&buck4>;
 	};
+
+	reg_vdd_3p3v_awo: regulator-vdd-3p3v-awo {	/* VDD_3V3_AWO */
+		compatible = "regulator-fixed";
+		regulator-always-on;
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		regulator-name = "VDD_3P3V_AWO";
+	};
 };
 
 &A53_0 {
@@ -83,7 +91,7 @@
 
 &eqos {	/* First ethernet */
 	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_eqos>;
+	pinctrl-0 = <&pinctrl_eqos_rgmii>;
 	phy-handle = <&ethphy0g>;
 	phy-mode = "rgmii-id";
 	status = "okay";
@@ -94,14 +102,14 @@
 		#size-cells = <0>;
 
 		/* Up to one of these two PHYs may be populated. */
-		ethphy0f: ethernet-phy@1 { /* SMSC LAN8740Ai */
+		ethphy0f: ethernet-phy@0 { /* SMSC LAN8740Ai */
 			compatible = "ethernet-phy-id0007.c110",
 				     "ethernet-phy-ieee802.3-c22";
 			interrupt-parent = <&gpio3>;
 			interrupts = <19 IRQ_TYPE_LEVEL_LOW>;
 			pinctrl-0 = <&pinctrl_ethphy0>;
 			pinctrl-names = "default";
-			reg = <1>;
+			reg = <0>;
 			reset-assert-us = <1000>;
 			reset-deassert-us = <1000>;
 			reset-gpios = <&gpio3 20 GPIO_ACTIVE_LOW>;
@@ -129,9 +137,9 @@
 
 &fec {	/* Second ethernet */
 	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_fec>;
+	pinctrl-0 = <&pinctrl_fec_rmii>;
 	phy-handle = <&ethphy1f>;
-	phy-mode = "rgmii";
+	phy-mode = "rmii";
 	fsl,magic-packet;
 	status = "okay";
 
@@ -231,6 +239,36 @@
 	scl-gpios = <&gpio5 18 (GPIO_ACTIVE_HIGH | GPIO_OPEN_DRAIN)>;
 	sda-gpios = <&gpio5 19 (GPIO_ACTIVE_HIGH | GPIO_OPEN_DRAIN)>;
 	status = "okay";
+
+	tc_bridge: bridge@f {
+		compatible = "toshiba,tc9595", "toshiba,tc358767";
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_tc9595>;
+		reg = <0xf>;
+		clock-names = "ref";
+		clocks = <&clk IMX8MP_CLK_CLKOUT2>;
+		assigned-clocks = <&clk IMX8MP_CLK_CLKOUT2_SEL>,
+				  <&clk IMX8MP_CLK_CLKOUT2>,
+				  <&clk IMX8MP_AUDIO_PLL2_OUT>;
+		assigned-clock-parents = <&clk IMX8MP_AUDIO_PLL2_OUT>;
+		assigned-clock-rates = <13000000>, <13000000>, <156000000>;
+		reset-gpios = <&gpio3 21 GPIO_ACTIVE_HIGH>;
+		status = "disabled";
+
+		ports {
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			port@0 {
+				reg = <0>;
+
+				tc_bridge_in: endpoint {
+					data-lanes = <1 2 3 4>;
+					remote-endpoint = <&dsi_out>;
+				};
+			};
+		};
+	};
 
 	pmic: pmic@25 {
 		compatible = "nxp,pca9450c";
@@ -398,6 +436,22 @@
 	status = "okay";
 };
 
+&mipi_dsi {
+	samsung,burst-clock-frequency = <160000000>;
+	samsung,esc-clock-frequency = <10000000>;
+
+	ports {
+		port@1 {
+			reg = <1>;
+
+			dsi_out: endpoint {
+				data-lanes = <1 2 3 4>;
+				remote-endpoint = <&tc_bridge_in>;
+			};
+		};
+	};
+};
+
 &pwm1 {
 	pinctrl-0 = <&pinctrl_pwm1>;
 	pinctrl-names = "default";
@@ -547,7 +601,7 @@
 		     &pinctrl_dhcom_d &pinctrl_dhcom_e &pinctrl_dhcom_f
 		     &pinctrl_dhcom_g &pinctrl_dhcom_h &pinctrl_dhcom_i
 		     &pinctrl_dhcom_j &pinctrl_dhcom_k &pinctrl_dhcom_l
-		     /* GPIO_M is connected to CLKOUT2 */
+		     /* GPIO_M is connected to CLKOUT1 */
 		     &pinctrl_dhcom_int>;
 	pinctrl-names = "default";
 
@@ -673,7 +727,7 @@
 		>;
 	};
 
-	pinctrl_eqos: dhcom-eqos-grp {	/* RGMII */
+	pinctrl_eqos_rgmii: dhcom-eqos-rgmii-grp {	/* RGMII */
 		fsl,pins = <
 			MX8MP_IOMUXC_ENET_MDC__ENET_QOS_MDC		0x3
 			MX8MP_IOMUXC_ENET_MDIO__ENET_QOS_MDIO		0x3
@@ -692,6 +746,22 @@
 		>;
 	};
 
+	pinctrl_eqos_rmii: dhcom-eqos-rmii-grp {	/* RMII */
+		fsl,pins = <
+			MX8MP_IOMUXC_ENET_MDC__ENET_QOS_MDC		0x3
+			MX8MP_IOMUXC_ENET_MDIO__ENET_QOS_MDIO		0x3
+			MX8MP_IOMUXC_ENET_TX_CTL__ENET_QOS_RGMII_TX_CTL	0x1f
+			MX8MP_IOMUXC_ENET_TD0__ENET_QOS_RGMII_TD0	0x1f
+			MX8MP_IOMUXC_ENET_TD1__ENET_QOS_RGMII_TD1	0x1f
+			MX8MP_IOMUXC_ENET_RXC__ENET_QOS_RX_ER		0x1f
+			MX8MP_IOMUXC_ENET_RX_CTL__ENET_QOS_RGMII_RX_CTL	0x91
+			MX8MP_IOMUXC_ENET_RD0__ENET_QOS_RGMII_RD0	0x91
+			MX8MP_IOMUXC_ENET_RD1__ENET_QOS_RGMII_RD1	0x91
+			/* Clock */
+			MX8MP_IOMUXC_ENET_TD2__CCM_ENET_QOS_CLOCK_GENERATE_REF_CLK	0x4000001f
+		>;
+	};
+
 	pinctrl_enet_vio: dhcom-enet-vio-grp {
 		fsl,pins = <
 			MX8MP_IOMUXC_SD1_RESET_B__GPIO2_IO10		0x22
@@ -700,9 +770,9 @@
 
 	pinctrl_ethphy0: dhcom-ethphy0-grp {
 		fsl,pins = <
-			/* ENET1_#RST Reset */
+			/* ENET_QOS_#RST Reset */
 			MX8MP_IOMUXC_SAI5_RXC__GPIO3_IO20		0x22
-			/* ENET1_#INT Interrupt */
+			/* ENET_QOS_#INT Interrupt */
 			MX8MP_IOMUXC_SAI5_RXFS__GPIO3_IO19		0x22
 		>;
 	};
@@ -716,7 +786,7 @@
 		>;
 	};
 
-	pinctrl_fec: dhcom-fec-grp {
+	pinctrl_fec_rgmii: dhcom-fec-rgmii-grp {	/* RGMII */
 		fsl,pins = <
 			MX8MP_IOMUXC_SAI1_MCLK__ENET1_TX_CLK		0x1f
 			MX8MP_IOMUXC_SAI1_RXD2__ENET1_MDC		0x3
@@ -734,6 +804,22 @@
 			MX8MP_IOMUXC_SAI1_TXD4__ENET1_RGMII_TX_CTL	0x1f
 			MX8MP_IOMUXC_SAI1_TXD5__ENET1_RGMII_TXC		0x1f
 			MX8MP_IOMUXC_SAI1_TXD6__ENET1_RX_ER		0x1f
+		>;
+	};
+
+	pinctrl_fec_rmii: dhcom-fec-rmii-grp {	/* RMII */
+		fsl,pins = <
+			MX8MP_IOMUXC_SAI1_RXD2__ENET1_MDC		0x3
+			MX8MP_IOMUXC_SAI1_RXD3__ENET1_MDIO		0x3
+			MX8MP_IOMUXC_SAI1_RXD4__ENET1_RGMII_RD0		0x91
+			MX8MP_IOMUXC_SAI1_RXD5__ENET1_RGMII_RD1		0x91
+			MX8MP_IOMUXC_SAI1_TXFS__ENET1_RGMII_RX_CTL	0x91
+			MX8MP_IOMUXC_SAI1_TXD6__ENET1_RX_ER		0x91
+			MX8MP_IOMUXC_SAI1_TXD0__ENET1_RGMII_TD0		0x1f
+			MX8MP_IOMUXC_SAI1_TXD1__ENET1_RGMII_TD1		0x1f
+			MX8MP_IOMUXC_SAI1_TXD4__ENET1_RGMII_TX_CTL	0x1f
+			/* Clock */
+			MX8MP_IOMUXC_SAI1_MCLK__ENET1_TX_CLK		0x4000001f
 		>;
 	};
 
@@ -828,6 +914,24 @@
 		fsl,pins = <
 			/* RTC_#INT Interrupt */
 			MX8MP_IOMUXC_SPDIF_EXT_CLK__GPIO5_IO05		0x40000080
+		>;
+	};
+
+	pinctrl_tc9595: dhcom-tc9595-grp {
+		fsl,pins = <
+			/* RESET_DSIBRIDGE */
+			MX8MP_IOMUXC_SAI1_RXC__GPIO4_IO01		0x40000146
+			/* DSI-CONV_INT Interrupt */
+			MX8MP_IOMUXC_SAI5_RXD0__GPIO3_IO21		0x141
+		>;
+	};
+
+	pinctrl_sai3: dhcom-sai3-grp {
+		fsl,pins = <
+			MX8MP_IOMUXC_SAI3_TXFS__AUDIOMIX_SAI3_TX_SYNC	0xd6
+			MX8MP_IOMUXC_SAI3_TXC__AUDIOMIX_SAI3_TX_BCLK	0xd6
+			MX8MP_IOMUXC_SAI3_RXD__AUDIOMIX_SAI3_RX_DATA00	0xd6
+			MX8MP_IOMUXC_SAI3_TXD__AUDIOMIX_SAI3_TX_DATA00	0xd6
 		>;
 	};
 

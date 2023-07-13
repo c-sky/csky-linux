@@ -37,6 +37,11 @@
 #include "abm.h"
 #define DC_LOGGER_INIT(logger)
 
+/* Travis */
+static const uint8_t DP_VGA_LVDS_CONVERTER_ID_2[] = "sivarT";
+/* Nutmeg */
+static const uint8_t DP_VGA_LVDS_CONVERTER_ID_3[] = "dnomlA";
+
 void dp_set_panel_mode(struct dc_link *link, enum dp_panel_mode panel_mode)
 {
 	union dpcd_edp_config edp_config_set;
@@ -78,6 +83,7 @@ void dp_set_panel_mode(struct dc_link *link, enum dp_panel_mode panel_mode)
 			ASSERT(result == DC_OK);
 		}
 	}
+	link->panel_mode = panel_mode;
 	DC_LOG_DETECTION_DP_CAPS("Link: %d eDP panel mode supported: %d "
 		 "eDP panel mode enabled: %d \n",
 		 link->link_index,
@@ -139,7 +145,7 @@ enum dp_panel_mode dp_get_panel_mode(struct dc_link *link)
 	return DP_PANEL_MODE_DEFAULT;
 }
 
-bool dc_link_set_backlight_level_nits(struct dc_link *link,
+bool edp_set_backlight_level_nits(struct dc_link *link,
 		bool isHDR,
 		uint32_t backlight_millinits,
 		uint32_t transition_time_in_ms)
@@ -159,19 +165,40 @@ bool dc_link_set_backlight_level_nits(struct dc_link *link,
 	*(uint16_t *)&dpcd_backlight_set.backlight_transition_time_ms = (uint16_t)transition_time_in_ms;
 
 
-	if (core_link_write_dpcd(link, DP_SOURCE_BACKLIGHT_LEVEL,
+	if (!link->dpcd_caps.panel_luminance_control) {
+		if (core_link_write_dpcd(link, DP_SOURCE_BACKLIGHT_LEVEL,
 			(uint8_t *)(&dpcd_backlight_set),
 			sizeof(dpcd_backlight_set)) != DC_OK)
-		return false;
+			return false;
 
-	if (core_link_write_dpcd(link, DP_SOURCE_BACKLIGHT_CONTROL,
+		if (core_link_write_dpcd(link, DP_SOURCE_BACKLIGHT_CONTROL,
 			&backlight_control, 1) != DC_OK)
-		return false;
+			return false;
+	} else {
+		const uint8_t backlight_enable = DP_EDP_PANEL_LUMINANCE_CONTROL_ENABLE;
+		struct target_luminance_value *target_luminance = NULL;
+
+		//if target luminance value is greater than 24 bits, clip the value to 24 bits
+		if (backlight_millinits > 0xFFFFFF)
+			backlight_millinits = 0xFFFFFF;
+
+		target_luminance = (struct target_luminance_value *)&backlight_millinits;
+
+		if (core_link_write_dpcd(link, DP_EDP_BACKLIGHT_MODE_SET_REGISTER,
+			&backlight_enable,
+			sizeof(backlight_enable)) != DC_OK)
+			return false;
+
+		if (core_link_write_dpcd(link, DP_EDP_PANEL_TARGET_LUMINANCE_VALUE,
+			(uint8_t *)(target_luminance),
+			sizeof(struct target_luminance_value)) != DC_OK)
+			return false;
+	}
 
 	return true;
 }
 
-bool dc_link_get_backlight_level_nits(struct dc_link *link,
+bool edp_get_backlight_level_nits(struct dc_link *link,
 		uint32_t *backlight_millinits_avg,
 		uint32_t *backlight_millinits_peak)
 {
@@ -201,7 +228,7 @@ bool dc_link_get_backlight_level_nits(struct dc_link *link,
 	return true;
 }
 
-bool link_backlight_enable_aux(struct dc_link *link, bool enable)
+bool edp_backlight_enable_aux(struct dc_link *link, bool enable)
 {
 	uint8_t backlight_enable = enable ? 1 : 0;
 
@@ -243,13 +270,13 @@ bool set_default_brightness_aux(struct dc_link *link)
 		if (default_backlight < 5000 || default_backlight > 5000000)
 			default_backlight = 150000; //
 
-		return dc_link_set_backlight_level_nits(link, true,
+		return edp_set_backlight_level_nits(link, true,
 				default_backlight, 0);
 	}
 	return false;
 }
 
-bool link_is_edp_ilr_optimization_required(struct dc_link *link,
+bool edp_is_ilr_optimization_required(struct dc_link *link,
 		struct dc_crtc_timing *crtc_timing)
 {
 	struct dc_link_settings link_setting;
@@ -285,7 +312,7 @@ bool link_is_edp_ilr_optimization_required(struct dc_link *link,
 	req_bw = dc_bandwidth_in_kbps_from_timing(crtc_timing);
 
 	if (!crtc_timing->flags.DSC)
-		dc_link_decide_edp_link_settings(link, &link_setting, req_bw);
+		edp_decide_link_settings(link, &link_setting, req_bw);
 	else
 		decide_edp_link_settings_with_dsc(link, &link_setting, req_bw, LINK_RATE_UNKNOWN);
 
@@ -299,7 +326,7 @@ bool link_is_edp_ilr_optimization_required(struct dc_link *link,
 	return false;
 }
 
-void dc_link_edp_panel_backlight_power_on(struct dc_link *link, bool wait_for_hpd)
+void edp_panel_backlight_power_on(struct dc_link *link, bool wait_for_hpd)
 {
 	if (link->connector_signal != SIGNAL_TYPE_EDP)
 		return;
@@ -311,7 +338,7 @@ void dc_link_edp_panel_backlight_power_on(struct dc_link *link, bool wait_for_hp
 		link->dc->hwss.edp_backlight_control(link, true);
 }
 
-bool dc_link_wait_for_t12(struct dc_link *link)
+bool edp_wait_for_t12(struct dc_link *link)
 {
 	if (link->connector_signal == SIGNAL_TYPE_EDP && link->dc->hwss.edp_wait_for_T12) {
 		link->dc->hwss.edp_wait_for_T12(link);
@@ -322,13 +349,13 @@ bool dc_link_wait_for_t12(struct dc_link *link)
 	return false;
 }
 
-void link_edp_add_delay_for_T9(struct dc_link *link)
+void edp_add_delay_for_T9(struct dc_link *link)
 {
 	if (link && link->panel_config.pps.extra_delay_backlight_off > 0)
-		udelay(link->panel_config.pps.extra_delay_backlight_off * 1000);
+		fsleep(link->panel_config.pps.extra_delay_backlight_off * 1000);
 }
 
-bool link_edp_receiver_ready_T9(struct dc_link *link)
+bool edp_receiver_ready_T9(struct dc_link *link)
 {
 	unsigned int tries = 0;
 	unsigned char sinkstatus = 0;
@@ -353,7 +380,7 @@ bool link_edp_receiver_ready_T9(struct dc_link *link)
 	return result;
 }
 
-bool link_edp_receiver_ready_T7(struct dc_link *link)
+bool edp_receiver_ready_T7(struct dc_link *link)
 {
 	unsigned char sinkstatus = 0;
 	unsigned char edpRev = 0;
@@ -383,12 +410,12 @@ bool link_edp_receiver_ready_T7(struct dc_link *link)
 	}
 
 	if (link && link->panel_config.pps.extra_t7_ms > 0)
-		udelay(link->panel_config.pps.extra_t7_ms * 1000);
+		fsleep(link->panel_config.pps.extra_t7_ms * 1000);
 
 	return result;
 }
 
-bool link_power_alpm_dpcd_enable(struct dc_link *link, bool enable)
+bool edp_power_alpm_dpcd_enable(struct dc_link *link, bool enable)
 {
 	bool ret = false;
 	union dpcd_alpm_configuration alpm_config;
@@ -422,7 +449,7 @@ static struct pipe_ctx *get_pipe_from_link(const struct dc_link *link)
 	return pipe_ctx;
 }
 
-bool dc_link_set_backlight_level(const struct dc_link *link,
+bool edp_set_backlight_level(const struct dc_link *link,
 		uint32_t backlight_pwm_u16_16,
 		uint32_t frame_ramp)
 {
@@ -453,7 +480,7 @@ bool dc_link_set_backlight_level(const struct dc_link *link,
 	return true;
 }
 
-bool dc_link_set_psr_allow_active(struct dc_link *link, const bool *allow_active,
+bool edp_set_psr_allow_active(struct dc_link *link, const bool *allow_active,
 		bool wait, bool force_static, const unsigned int *power_opts)
 {
 	struct dc  *dc = link->ctx->dc;
@@ -502,7 +529,7 @@ bool dc_link_set_psr_allow_active(struct dc_link *link, const bool *allow_active
 	return true;
 }
 
-bool dc_link_get_psr_state(const struct dc_link *link, enum dc_psr_state *state)
+bool edp_get_psr_state(const struct dc_link *link, enum dc_psr_state *state)
 {
 	struct dc  *dc = link->ctx->dc;
 	struct dmcu *dmcu = dc->res_pool->dmcu;
@@ -557,7 +584,7 @@ transmitter_to_phy_id(struct dc_link *link)
 	}
 }
 
-bool dc_link_setup_psr(struct dc_link *link,
+bool edp_setup_psr(struct dc_link *link,
 		const struct dc_stream_state *stream, struct psr_config *psr_config,
 		struct psr_context *psr_context)
 {
@@ -623,7 +650,7 @@ bool dc_link_setup_psr(struct dc_link *link,
 		sizeof(psr_configuration.raw));
 
 	if (link->psr_settings.psr_version == DC_PSR_VERSION_SU_1) {
-		link_power_alpm_dpcd_enable(link, true);
+		edp_power_alpm_dpcd_enable(link, true);
 		psr_context->su_granularity_required =
 			psr_config->su_granularity_required;
 		psr_context->su_y_granularity =
@@ -695,7 +722,6 @@ bool dc_link_setup_psr(struct dc_link *link,
 	psr_context->psr_level.u32all = 0;
 
 	/*skip power down the single pipe since it blocks the cstate*/
-#if defined(CONFIG_DRM_AMD_DC_DCN)
 	if (link->ctx->asic_id.chip_family >= FAMILY_RV) {
 		switch (link->ctx->asic_id.chip_family) {
 		case FAMILY_YELLOW_CARP:
@@ -709,10 +735,6 @@ bool dc_link_setup_psr(struct dc_link *link,
 			break;
 		}
 	}
-#else
-	if (link->ctx->asic_id.chip_family >= FAMILY_RV)
-		psr_context->psr_level.bits.SKIP_CRTC_DISABLE = true;
-#endif
 
 	/* SMU will perform additional powerdown sequence.
 	 * For unsupported ASICs, set psr_level flag to skip PSR
@@ -757,7 +779,7 @@ bool dc_link_setup_psr(struct dc_link *link,
 
 }
 
-void link_get_psr_residency(const struct dc_link *link, uint32_t *residency)
+void edp_get_psr_residency(const struct dc_link *link, uint32_t *residency)
 {
 	struct dc  *dc = link->ctx->dc;
 	struct dmub_psr *psr = dc->res_pool->psr;
@@ -772,7 +794,7 @@ void link_get_psr_residency(const struct dc_link *link, uint32_t *residency)
 	else
 		*residency = 0;
 }
-bool link_set_sink_vtotal_in_psr_active(const struct dc_link *link, uint16_t psr_vtotal_idle, uint16_t psr_vtotal_su)
+bool edp_set_sink_vtotal_in_psr_active(const struct dc_link *link, uint16_t psr_vtotal_idle, uint16_t psr_vtotal_su)
 {
 	struct dc *dc = link->ctx->dc;
 	struct dmub_psr *psr = dc->res_pool->psr;
@@ -803,7 +825,7 @@ static struct abm *get_abm_from_stream_res(const struct dc_link *link)
 	return abm;
 }
 
-int dc_link_get_backlight_level(const struct dc_link *link)
+int edp_get_backlight_level(const struct dc_link *link)
 {
 	struct abm *abm = get_abm_from_stream_res(link);
 	struct panel_cntl *panel_cntl = link->panel_cntl;
@@ -822,7 +844,7 @@ int dc_link_get_backlight_level(const struct dc_link *link)
 		return DC_ERROR_UNEXPECTED;
 }
 
-int dc_link_get_target_backlight_pwm(const struct dc_link *link)
+int edp_get_target_backlight_pwm(const struct dc_link *link)
 {
 	struct abm *abm = get_abm_from_stream_res(link);
 

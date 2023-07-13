@@ -69,8 +69,17 @@ int sdw_bus_master_add(struct sdw_bus *bus, struct device *parent,
 		return -EINVAL;
 	}
 
-	mutex_init(&bus->msg_lock);
-	mutex_init(&bus->bus_lock);
+	/*
+	 * Give each bus_lock and msg_lock a unique key so that lockdep won't
+	 * trigger a deadlock warning when the locks of several buses are
+	 * grabbed during configuration of a multi-bus stream.
+	 */
+	lockdep_register_key(&bus->msg_lock_key);
+	__mutex_init(&bus->msg_lock, "msg_lock", &bus->msg_lock_key);
+
+	lockdep_register_key(&bus->bus_lock_key);
+	__mutex_init(&bus->bus_lock, "bus_lock", &bus->bus_lock_key);
+
 	INIT_LIST_HEAD(&bus->slaves);
 	INIT_LIST_HEAD(&bus->m_rt_list);
 
@@ -181,6 +190,8 @@ void sdw_bus_master_delete(struct sdw_bus *bus)
 	sdw_master_device_del(bus);
 
 	sdw_bus_debugfs_exit(bus);
+	lockdep_unregister_key(&bus->bus_lock_key);
+	lockdep_unregister_key(&bus->msg_lock_key);
 	ida_free(&sdw_bus_ida, bus->id);
 }
 EXPORT_SYMBOL(sdw_bus_master_delete);
@@ -384,45 +395,73 @@ int sdw_fill_msg(struct sdw_msg *msg, struct sdw_slave *slave,
 
 /*
  * Read/Write IO functions.
- * no_pm versions can only be called by the bus, e.g. while enumerating or
- * handling suspend-resume sequences.
- * all clients need to use the pm versions
  */
 
-int sdw_nread_no_pm(struct sdw_slave *slave, u32 addr, size_t count, u8 *val)
+static int sdw_ntransfer_no_pm(struct sdw_slave *slave, u32 addr, u8 flags,
+			       size_t count, u8 *val)
 {
 	struct sdw_msg msg;
+	size_t size;
 	int ret;
 
-	ret = sdw_fill_msg(&msg, slave, addr, count,
-			   slave->dev_num, SDW_MSG_FLAG_READ, val);
-	if (ret < 0)
-		return ret;
+	while (count) {
+		// Only handle bytes up to next page boundary
+		size = min_t(size_t, count, (SDW_REGADDR + 1) - (addr & SDW_REGADDR));
 
-	ret = sdw_transfer(slave->bus, &msg);
-	if (slave->is_mockup_device)
-		ret = 0;
-	return ret;
+		ret = sdw_fill_msg(&msg, slave, addr, size, slave->dev_num, flags, val);
+		if (ret < 0)
+			return ret;
+
+		ret = sdw_transfer(slave->bus, &msg);
+		if (ret < 0 && !slave->is_mockup_device)
+			return ret;
+
+		addr += size;
+		val += size;
+		count -= size;
+	}
+
+	return 0;
+}
+
+/**
+ * sdw_nread_no_pm() - Read "n" contiguous SDW Slave registers with no PM
+ * @slave: SDW Slave
+ * @addr: Register address
+ * @count: length
+ * @val: Buffer for values to be read
+ *
+ * Note that if the message crosses a page boundary each page will be
+ * transferred under a separate invocation of the msg_lock.
+ */
+int sdw_nread_no_pm(struct sdw_slave *slave, u32 addr, size_t count, u8 *val)
+{
+	return sdw_ntransfer_no_pm(slave, addr, SDW_MSG_FLAG_READ, count, val);
 }
 EXPORT_SYMBOL(sdw_nread_no_pm);
 
+/**
+ * sdw_nwrite_no_pm() - Write "n" contiguous SDW Slave registers with no PM
+ * @slave: SDW Slave
+ * @addr: Register address
+ * @count: length
+ * @val: Buffer for values to be written
+ *
+ * Note that if the message crosses a page boundary each page will be
+ * transferred under a separate invocation of the msg_lock.
+ */
 int sdw_nwrite_no_pm(struct sdw_slave *slave, u32 addr, size_t count, const u8 *val)
 {
-	struct sdw_msg msg;
-	int ret;
-
-	ret = sdw_fill_msg(&msg, slave, addr, count,
-			   slave->dev_num, SDW_MSG_FLAG_WRITE, (u8 *)val);
-	if (ret < 0)
-		return ret;
-
-	ret = sdw_transfer(slave->bus, &msg);
-	if (slave->is_mockup_device)
-		ret = 0;
-	return ret;
+	return sdw_ntransfer_no_pm(slave, addr, SDW_MSG_FLAG_WRITE, count, (u8 *)val);
 }
 EXPORT_SYMBOL(sdw_nwrite_no_pm);
 
+/**
+ * sdw_write_no_pm() - Write a SDW Slave register with no PM
+ * @slave: SDW Slave
+ * @addr: Register address
+ * @value: Register value
+ */
 int sdw_write_no_pm(struct sdw_slave *slave, u32 addr, u8 value)
 {
 	return sdw_nwrite_no_pm(slave, addr, 1, &value);
@@ -495,6 +534,11 @@ int sdw_bwrite_no_pm_unlocked(struct sdw_bus *bus, u16 dev_num, u32 addr, u8 val
 }
 EXPORT_SYMBOL(sdw_bwrite_no_pm_unlocked);
 
+/**
+ * sdw_read_no_pm() - Read a SDW Slave register with no PM
+ * @slave: SDW Slave
+ * @addr: Register address
+ */
 int sdw_read_no_pm(struct sdw_slave *slave, u32 addr)
 {
 	u8 buf;
@@ -541,14 +585,21 @@ EXPORT_SYMBOL(sdw_update);
  * @addr: Register address
  * @count: length
  * @val: Buffer for values to be read
+ *
+ * This version of the function will take a PM reference to the slave
+ * device.
+ * Note that if the message crosses a page boundary each page will be
+ * transferred under a separate invocation of the msg_lock.
  */
 int sdw_nread(struct sdw_slave *slave, u32 addr, size_t count, u8 *val)
 {
 	int ret;
 
-	ret = pm_runtime_resume_and_get(&slave->dev);
-	if (ret < 0 && ret != -EACCES)
+	ret = pm_runtime_get_sync(&slave->dev);
+	if (ret < 0 && ret != -EACCES) {
+		pm_runtime_put_noidle(&slave->dev);
 		return ret;
+	}
 
 	ret = sdw_nread_no_pm(slave, addr, count, val);
 
@@ -565,14 +616,21 @@ EXPORT_SYMBOL(sdw_nread);
  * @addr: Register address
  * @count: length
  * @val: Buffer for values to be written
+ *
+ * This version of the function will take a PM reference to the slave
+ * device.
+ * Note that if the message crosses a page boundary each page will be
+ * transferred under a separate invocation of the msg_lock.
  */
 int sdw_nwrite(struct sdw_slave *slave, u32 addr, size_t count, const u8 *val)
 {
 	int ret;
 
-	ret = pm_runtime_resume_and_get(&slave->dev);
-	if (ret < 0 && ret != -EACCES)
+	ret = pm_runtime_get_sync(&slave->dev);
+	if (ret < 0 && ret != -EACCES) {
+		pm_runtime_put_noidle(&slave->dev);
 		return ret;
+	}
 
 	ret = sdw_nwrite_no_pm(slave, addr, count, val);
 
@@ -587,6 +645,9 @@ EXPORT_SYMBOL(sdw_nwrite);
  * sdw_read() - Read a SDW Slave register
  * @slave: SDW Slave
  * @addr: Register address
+ *
+ * This version of the function will take a PM reference to the slave
+ * device.
  */
 int sdw_read(struct sdw_slave *slave, u32 addr)
 {
@@ -606,6 +667,9 @@ EXPORT_SYMBOL(sdw_read);
  * @slave: SDW Slave
  * @addr: Register address
  * @value: Register value
+ *
+ * This version of the function will take a PM reference to the slave
+ * device.
  */
 int sdw_write(struct sdw_slave *slave, u32 addr, u8 value)
 {
@@ -715,6 +779,9 @@ static int sdw_assign_device_num(struct sdw_slave *slave)
 
 	/* After xfer of msg, restore dev_num */
 	slave->dev_num = slave->dev_num_sticky;
+
+	if (bus->ops && bus->ops->new_peripheral_assigned)
+		bus->ops->new_peripheral_assigned(bus, dev_num);
 
 	return 0;
 }
@@ -1535,15 +1602,16 @@ static int sdw_handle_slave_alerts(struct sdw_slave *slave)
 	unsigned long port;
 	bool slave_notify;
 	u8 sdca_cascade = 0;
-	u8 buf, buf2[2], _buf, _buf2[2];
+	u8 buf, buf2[2];
 	bool parity_check;
 	bool parity_quirk;
 
 	sdw_modify_slave_status(slave, SDW_SLAVE_ALERT);
 
-	ret = pm_runtime_resume_and_get(&slave->dev);
+	ret = pm_runtime_get_sync(&slave->dev);
 	if (ret < 0 && ret != -EACCES) {
 		dev_err(&slave->dev, "Failed to resume device: %d\n", ret);
+		pm_runtime_put_noidle(&slave->dev);
 		return ret;
 	}
 
@@ -1691,9 +1759,9 @@ static int sdw_handle_slave_alerts(struct sdw_slave *slave)
 				"SDW_SCP_INT1 recheck read failed:%d\n", ret);
 			goto io_err;
 		}
-		_buf = ret;
+		buf = ret;
 
-		ret = sdw_nread_no_pm(slave, SDW_SCP_INTSTAT2, 2, _buf2);
+		ret = sdw_nread_no_pm(slave, SDW_SCP_INTSTAT2, 2, buf2);
 		if (ret < 0) {
 			dev_err(&slave->dev,
 				"SDW_SCP_INT2/3 recheck read failed:%d\n", ret);
@@ -1711,12 +1779,8 @@ static int sdw_handle_slave_alerts(struct sdw_slave *slave)
 		}
 
 		/*
-		 * Make sure no interrupts are pending, but filter to limit loop
-		 * to interrupts identified in the first status read
+		 * Make sure no interrupts are pending
 		 */
-		buf &= _buf;
-		buf2[0] &= _buf2[0];
-		buf2[1] &= _buf2[1];
 		stat = buf || buf2[0] || buf2[1] || sdca_cascade;
 
 		/*

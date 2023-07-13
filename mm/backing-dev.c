@@ -20,7 +20,6 @@
 struct backing_dev_info noop_backing_dev_info;
 EXPORT_SYMBOL_GPL(noop_backing_dev_info);
 
-static struct class *bdi_class;
 static const char *bdi_unknown_name = "(unknown)";
 
 /*
@@ -263,7 +262,7 @@ static ssize_t min_bytes_store(struct device *dev,
 
 	return ret;
 }
-DEVICE_ATTR_RW(min_bytes);
+static DEVICE_ATTR_RW(min_bytes);
 
 static ssize_t max_bytes_show(struct device *dev,
 			      struct device_attribute *attr,
@@ -291,7 +290,7 @@ static ssize_t max_bytes_store(struct device *dev,
 
 	return ret;
 }
-DEVICE_ATTR_RW(max_bytes);
+static DEVICE_ATTR_RW(max_bytes);
 
 static ssize_t stable_pages_required_show(struct device *dev,
 					  struct device_attribute *attr,
@@ -345,13 +344,19 @@ static struct attribute *bdi_dev_attrs[] = {
 };
 ATTRIBUTE_GROUPS(bdi_dev);
 
+static const struct class bdi_class = {
+	.name		= "bdi",
+	.dev_groups	= bdi_dev_groups,
+};
+
 static __init int bdi_class_init(void)
 {
-	bdi_class = class_create(THIS_MODULE, "bdi");
-	if (IS_ERR(bdi_class))
-		return PTR_ERR(bdi_class);
+	int ret;
 
-	bdi_class->dev_groups = bdi_dev_groups;
+	ret = class_register(&bdi_class);
+	if (ret)
+		return ret;
+
 	bdi_debug_init();
 
 	return 0;
@@ -507,6 +512,15 @@ static LIST_HEAD(offline_cgwbs);
 static void cleanup_offline_cgwbs_workfn(struct work_struct *work);
 static DECLARE_WORK(cleanup_offline_cgwbs_work, cleanup_offline_cgwbs_workfn);
 
+static void cgwb_free_rcu(struct rcu_head *rcu_head)
+{
+	struct bdi_writeback *wb = container_of(rcu_head,
+			struct bdi_writeback, rcu);
+
+	percpu_ref_exit(&wb->refcnt);
+	kfree(wb);
+}
+
 static void cgwb_release_workfn(struct work_struct *work)
 {
 	struct bdi_writeback *wb = container_of(work, struct bdi_writeback,
@@ -529,11 +543,10 @@ static void cgwb_release_workfn(struct work_struct *work)
 	list_del(&wb->offline_node);
 	spin_unlock_irq(&cgwb_lock);
 
-	percpu_ref_exit(&wb->refcnt);
 	wb_exit(wb);
 	bdi_put(bdi);
 	WARN_ON_ONCE(!list_empty(&wb->b_attached));
-	kfree_rcu(wb, rcu);
+	call_rcu(&wb->rcu, cgwb_free_rcu);
 }
 
 static void cgwb_release(struct percpu_ref *refcnt)
@@ -993,7 +1006,7 @@ int bdi_register_va(struct backing_dev_info *bdi, const char *fmt, va_list args)
 		return 0;
 
 	vsnprintf(bdi->dev_name, sizeof(bdi->dev_name), fmt, args);
-	dev = device_create(bdi_class, NULL, MKDEV(0, 0), bdi, bdi->dev_name);
+	dev = device_create(&bdi_class, NULL, MKDEV(0, 0), bdi, bdi->dev_name);
 	if (IS_ERR(dev))
 		return PTR_ERR(dev);
 

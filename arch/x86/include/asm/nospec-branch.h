@@ -84,12 +84,12 @@
 	movq	$-1, PER_CPU_VAR(pcpu_hot + X86_call_depth);
 
 #define RESET_CALL_DEPTH					\
-	mov	$0x80, %rax;					\
-	shl	$56, %rax;					\
+	xor	%eax, %eax;					\
+	bts	$63, %rax;					\
 	movq	%rax, PER_CPU_VAR(pcpu_hot + X86_call_depth);
 
 #define RESET_CALL_DEPTH_FROM_CALL				\
-	mov	$0xfc, %rax;					\
+	movb	$0xfc, %al;					\
 	shl	$56, %rax;					\
 	movq	%rax, PER_CPU_VAR(pcpu_hot + X86_call_depth);	\
 	CALL_THUNKS_DEBUG_INC_CALLS
@@ -194,9 +194,9 @@
  * builds.
  */
 .macro ANNOTATE_RETPOLINE_SAFE
-	.Lannotate_\@:
+.Lhere_\@:
 	.pushsection .discard.retpoline_safe
-	_ASM_PTR .Lannotate_\@
+	.long .Lhere_\@ - .
 	.popsection
 .endm
 
@@ -210,8 +210,8 @@
  * Abuse ANNOTATE_RETPOLINE_SAFE on a NOP to indicate UNRET_END, should
  * eventually turn into it's own annotation.
  */
-.macro ANNOTATE_UNRET_END
-#ifdef CONFIG_DEBUG_ENTRY
+.macro VALIDATE_UNRET_END
+#if defined(CONFIG_NOINSTR_VALIDATION) && defined(CONFIG_CPU_UNRET_ENTRY)
 	ANNOTATE_RETPOLINE_SAFE
 	nop
 #endif
@@ -286,7 +286,7 @@
 .macro UNTRAIN_RET
 #if defined(CONFIG_CPU_UNRET_ENTRY) || defined(CONFIG_CPU_IBPB_ENTRY) || \
 	defined(CONFIG_CALL_DEPTH_TRACKING)
-	ANNOTATE_UNRET_END
+	VALIDATE_UNRET_END
 	ALTERNATIVE_3 "",						\
 		      CALL_ZEN_UNTRAIN_RET, X86_FEATURE_UNRET,		\
 		      "call entry_ibpb", X86_FEATURE_ENTRY_IBPB,	\
@@ -297,7 +297,7 @@
 .macro UNTRAIN_RET_FROM_CALL
 #if defined(CONFIG_CPU_UNRET_ENTRY) || defined(CONFIG_CPU_IBPB_ENTRY) || \
 	defined(CONFIG_CALL_DEPTH_TRACKING)
-	ANNOTATE_UNRET_END
+	VALIDATE_UNRET_END
 	ALTERNATIVE_3 "",						\
 		      CALL_ZEN_UNTRAIN_RET, X86_FEATURE_UNRET,		\
 		      "call entry_ibpb", X86_FEATURE_ENTRY_IBPB,	\
@@ -318,7 +318,7 @@
 #define ANNOTATE_RETPOLINE_SAFE					\
 	"999:\n\t"						\
 	".pushsection .discard.retpoline_safe\n\t"		\
-	_ASM_PTR " 999b\n\t"					\
+	".long 999b - .\n\t"					\
 	".popsection\n\t"
 
 typedef u8 retpoline_thunk_t[RETPOLINE_THUNK_SIZE];

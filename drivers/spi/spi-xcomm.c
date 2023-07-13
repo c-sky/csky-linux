@@ -58,7 +58,7 @@ static int spi_xcomm_sync_config(struct spi_xcomm *spi_xcomm, unsigned int len)
 static void spi_xcomm_chipselect(struct spi_xcomm *spi_xcomm,
 	struct spi_device *spi, int is_active)
 {
-	unsigned long cs = spi->chip_select;
+	unsigned long cs = spi_get_chipselect(spi, 0);
 	uint16_t chipselect = spi_xcomm->chipselect;
 
 	if (is_active)
@@ -241,7 +241,7 @@ static struct i2c_driver spi_xcomm_driver = {
 		.name	= "spi-xcomm",
 	},
 	.id_table	= spi_xcomm_ids,
-	.probe_new	= spi_xcomm_probe,
+	.probe		= spi_xcomm_probe,
 };
 module_i2c_driver(spi_xcomm_driver);
 

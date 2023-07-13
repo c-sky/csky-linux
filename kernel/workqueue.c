@@ -49,6 +49,7 @@
 #include <linux/moduleparam.h>
 #include <linux/uaccess.h>
 #include <linux/sched/isolation.h>
+#include <linux/sched/debug.h>
 #include <linux/nmi.h>
 #include <linux/kvm_para.h>
 
@@ -125,6 +126,12 @@ enum {
  *    cpu or grabbing pool->lock is enough for read access.  If
  *    POOL_DISASSOCIATED is set, it's identical to L.
  *
+ * K: Only modified by worker while holding pool->lock. Can be safely read by
+ *    self, while holding pool->lock or from IRQ context if %current is the
+ *    kworker.
+ *
+ * S: Only modified by worker self.
+ *
  * A: wq_pool_attach_mutex protected.
  *
  * PL: wq_pool_mutex protected.
@@ -141,6 +148,8 @@ enum {
  * WR: wq->mutex protected for writes.  RCU protected for reads.
  *
  * MD: wq_mayday_lock protected.
+ *
+ * WD: Used internally by the watchdog.
  */
 
 /* struct worker is defined in workqueue_internal.h */
@@ -153,6 +162,7 @@ struct worker_pool {
 	unsigned int		flags;		/* X: flags */
 
 	unsigned long		watchdog_ts;	/* L: watchdog timestamp */
+	bool			cpu_stall;	/* WD: stalled cpu bound pool */
 
 	/*
 	 * The counter is incremented in a process context on the associated CPU
@@ -196,6 +206,22 @@ struct worker_pool {
 };
 
 /*
+ * Per-pool_workqueue statistics. These can be monitored using
+ * tools/workqueue/wq_monitor.py.
+ */
+enum pool_workqueue_stats {
+	PWQ_STAT_STARTED,	/* work items started execution */
+	PWQ_STAT_COMPLETED,	/* work items completed execution */
+	PWQ_STAT_CPU_TIME,	/* total CPU time consumed */
+	PWQ_STAT_CPU_INTENSIVE,	/* wq_cpu_intensive_thresh_us violations */
+	PWQ_STAT_CM_WAKEUP,	/* concurrency-management worker wakeups */
+	PWQ_STAT_MAYDAY,	/* maydays to rescuer */
+	PWQ_STAT_RESCUED,	/* linked work items executed by rescuer */
+
+	PWQ_NR_STATS,
+};
+
+/*
  * The per-pool workqueue.  While queued, the lower WORK_STRUCT_FLAG_BITS
  * of work_struct->data are used for flags and the remaining high bits
  * point to the pwq; thus, pwqs need to be aligned at two's power of the
@@ -231,6 +257,8 @@ struct pool_workqueue {
 	struct list_head	inactive_works;	/* L: inactive works */
 	struct list_head	pwqs_node;	/* WR: node on wq->pwqs */
 	struct list_head	mayday_node;	/* MD: node on wq->maydays */
+
+	u64			stats[PWQ_NR_STATS];
 
 	/*
 	 * Release of unbound pwq is punted to system_wq.  See put_pwq()
@@ -305,6 +333,14 @@ static struct kmem_cache *pwq_cache;
 
 static cpumask_var_t *wq_numa_possible_cpumask;
 					/* possible CPUs of each node */
+
+/*
+ * Per-cpu work items which run for longer than the following threshold are
+ * automatically considered CPU intensive and excluded from concurrency
+ * management to prevent them from noticeably delaying other per-cpu work items.
+ */
+static unsigned long wq_cpu_intensive_thresh_us = 10000;
+module_param_named(cpu_intensive_thresh_us, wq_cpu_intensive_thresh_us, ulong, 0644);
 
 static bool wq_disable_numa;
 module_param_named(disable_numa, wq_disable_numa, bool, 0444);
@@ -701,12 +737,17 @@ static void clear_work_data(struct work_struct *work)
 	set_work_data(work, WORK_STRUCT_NO_POOL, 0);
 }
 
+static inline struct pool_workqueue *work_struct_pwq(unsigned long data)
+{
+	return (struct pool_workqueue *)(data & WORK_STRUCT_WQ_DATA_MASK);
+}
+
 static struct pool_workqueue *get_work_pwq(struct work_struct *work)
 {
 	unsigned long data = atomic_long_read(&work->data);
 
 	if (data & WORK_STRUCT_PWQ)
-		return (void *)(data & WORK_STRUCT_WQ_DATA_MASK);
+		return work_struct_pwq(data);
 	else
 		return NULL;
 }
@@ -734,8 +775,7 @@ static struct worker_pool *get_work_pool(struct work_struct *work)
 	assert_rcu_or_pool_mutex();
 
 	if (data & WORK_STRUCT_PWQ)
-		return ((struct pool_workqueue *)
-			(data & WORK_STRUCT_WQ_DATA_MASK))->pool;
+		return work_struct_pwq(data)->pool;
 
 	pool_id = data >> WORK_OFFQ_POOL_SHIFT;
 	if (pool_id == WORK_OFFQ_POOL_NONE)
@@ -756,8 +796,7 @@ static int get_work_pool_id(struct work_struct *work)
 	unsigned long data = atomic_long_read(&work->data);
 
 	if (data & WORK_STRUCT_PWQ)
-		return ((struct pool_workqueue *)
-			(data & WORK_STRUCT_WQ_DATA_MASK))->pool->id;
+		return work_struct_pwq(data)->pool->id;
 
 	return data >> WORK_OFFQ_POOL_SHIFT;
 }
@@ -860,108 +899,6 @@ static void wake_up_worker(struct worker_pool *pool)
 }
 
 /**
- * wq_worker_running - a worker is running again
- * @task: task waking up
- *
- * This function is called when a worker returns from schedule()
- */
-void wq_worker_running(struct task_struct *task)
-{
-	struct worker *worker = kthread_data(task);
-
-	if (!worker->sleeping)
-		return;
-
-	/*
-	 * If preempted by unbind_workers() between the WORKER_NOT_RUNNING check
-	 * and the nr_running increment below, we may ruin the nr_running reset
-	 * and leave with an unexpected pool->nr_running == 1 on the newly unbound
-	 * pool. Protect against such race.
-	 */
-	preempt_disable();
-	if (!(worker->flags & WORKER_NOT_RUNNING))
-		worker->pool->nr_running++;
-	preempt_enable();
-	worker->sleeping = 0;
-}
-
-/**
- * wq_worker_sleeping - a worker is going to sleep
- * @task: task going to sleep
- *
- * This function is called from schedule() when a busy worker is
- * going to sleep.
- */
-void wq_worker_sleeping(struct task_struct *task)
-{
-	struct worker *worker = kthread_data(task);
-	struct worker_pool *pool;
-
-	/*
-	 * Rescuers, which may not have all the fields set up like normal
-	 * workers, also reach here, let's not access anything before
-	 * checking NOT_RUNNING.
-	 */
-	if (worker->flags & WORKER_NOT_RUNNING)
-		return;
-
-	pool = worker->pool;
-
-	/* Return if preempted before wq_worker_running() was reached */
-	if (worker->sleeping)
-		return;
-
-	worker->sleeping = 1;
-	raw_spin_lock_irq(&pool->lock);
-
-	/*
-	 * Recheck in case unbind_workers() preempted us. We don't
-	 * want to decrement nr_running after the worker is unbound
-	 * and nr_running has been reset.
-	 */
-	if (worker->flags & WORKER_NOT_RUNNING) {
-		raw_spin_unlock_irq(&pool->lock);
-		return;
-	}
-
-	pool->nr_running--;
-	if (need_more_worker(pool))
-		wake_up_worker(pool);
-	raw_spin_unlock_irq(&pool->lock);
-}
-
-/**
- * wq_worker_last_func - retrieve worker's last work function
- * @task: Task to retrieve last work function of.
- *
- * Determine the last function a worker executed. This is called from
- * the scheduler to get a worker's last known identity.
- *
- * CONTEXT:
- * raw_spin_lock_irq(rq->lock)
- *
- * This function is called during schedule() when a kworker is going
- * to sleep. It's used by psi to identify aggregation workers during
- * dequeuing, to allow periodic aggregation to shut-off when that
- * worker is the last task in the system or cgroup to go to sleep.
- *
- * As this function doesn't involve any workqueue-related locking, it
- * only returns stable values when called from inside the scheduler's
- * queuing and dequeuing paths, when @task, which must be a kworker,
- * is guaranteed to not be processing any works.
- *
- * Return:
- * The last work function %current executed as a worker, NULL if it
- * hasn't executed any work yet.
- */
-work_func_t wq_worker_last_func(struct task_struct *task)
-{
-	struct worker *worker = kthread_data(task);
-
-	return worker->last_func;
-}
-
-/**
  * worker_set_flags - set worker flags and adjust nr_running accordingly
  * @worker: self
  * @flags: flags to set
@@ -1013,6 +950,261 @@ static inline void worker_clr_flags(struct worker *worker, unsigned int flags)
 	if ((flags & WORKER_NOT_RUNNING) && (oflags & WORKER_NOT_RUNNING))
 		if (!(worker->flags & WORKER_NOT_RUNNING))
 			pool->nr_running++;
+}
+
+#ifdef CONFIG_WQ_CPU_INTENSIVE_REPORT
+
+/*
+ * Concurrency-managed per-cpu work items that hog CPU for longer than
+ * wq_cpu_intensive_thresh_us trigger the automatic CPU_INTENSIVE mechanism,
+ * which prevents them from stalling other concurrency-managed work items. If a
+ * work function keeps triggering this mechanism, it's likely that the work item
+ * should be using an unbound workqueue instead.
+ *
+ * wq_cpu_intensive_report() tracks work functions which trigger such conditions
+ * and report them so that they can be examined and converted to use unbound
+ * workqueues as appropriate. To avoid flooding the console, each violating work
+ * function is tracked and reported with exponential backoff.
+ */
+#define WCI_MAX_ENTS 128
+
+struct wci_ent {
+	work_func_t		func;
+	atomic64_t		cnt;
+	struct hlist_node	hash_node;
+};
+
+static struct wci_ent wci_ents[WCI_MAX_ENTS];
+static int wci_nr_ents;
+static DEFINE_RAW_SPINLOCK(wci_lock);
+static DEFINE_HASHTABLE(wci_hash, ilog2(WCI_MAX_ENTS));
+
+static struct wci_ent *wci_find_ent(work_func_t func)
+{
+	struct wci_ent *ent;
+
+	hash_for_each_possible_rcu(wci_hash, ent, hash_node,
+				   (unsigned long)func) {
+		if (ent->func == func)
+			return ent;
+	}
+	return NULL;
+}
+
+static void wq_cpu_intensive_report(work_func_t func)
+{
+	struct wci_ent *ent;
+
+restart:
+	ent = wci_find_ent(func);
+	if (ent) {
+		u64 cnt;
+
+		/*
+		 * Start reporting from the fourth time and back off
+		 * exponentially.
+		 */
+		cnt = atomic64_inc_return_relaxed(&ent->cnt);
+		if (cnt >= 4 && is_power_of_2(cnt))
+			printk_deferred(KERN_WARNING "workqueue: %ps hogged CPU for >%luus %llu times, consider switching to WQ_UNBOUND\n",
+					ent->func, wq_cpu_intensive_thresh_us,
+					atomic64_read(&ent->cnt));
+		return;
+	}
+
+	/*
+	 * @func is a new violation. Allocate a new entry for it. If wcn_ents[]
+	 * is exhausted, something went really wrong and we probably made enough
+	 * noise already.
+	 */
+	if (wci_nr_ents >= WCI_MAX_ENTS)
+		return;
+
+	raw_spin_lock(&wci_lock);
+
+	if (wci_nr_ents >= WCI_MAX_ENTS) {
+		raw_spin_unlock(&wci_lock);
+		return;
+	}
+
+	if (wci_find_ent(func)) {
+		raw_spin_unlock(&wci_lock);
+		goto restart;
+	}
+
+	ent = &wci_ents[wci_nr_ents++];
+	ent->func = func;
+	atomic64_set(&ent->cnt, 1);
+	hash_add_rcu(wci_hash, &ent->hash_node, (unsigned long)func);
+
+	raw_spin_unlock(&wci_lock);
+}
+
+#else	/* CONFIG_WQ_CPU_INTENSIVE_REPORT */
+static void wq_cpu_intensive_report(work_func_t func) {}
+#endif	/* CONFIG_WQ_CPU_INTENSIVE_REPORT */
+
+/**
+ * wq_worker_running - a worker is running again
+ * @task: task waking up
+ *
+ * This function is called when a worker returns from schedule()
+ */
+void wq_worker_running(struct task_struct *task)
+{
+	struct worker *worker = kthread_data(task);
+
+	if (!READ_ONCE(worker->sleeping))
+		return;
+
+	/*
+	 * If preempted by unbind_workers() between the WORKER_NOT_RUNNING check
+	 * and the nr_running increment below, we may ruin the nr_running reset
+	 * and leave with an unexpected pool->nr_running == 1 on the newly unbound
+	 * pool. Protect against such race.
+	 */
+	preempt_disable();
+	if (!(worker->flags & WORKER_NOT_RUNNING))
+		worker->pool->nr_running++;
+	preempt_enable();
+
+	/*
+	 * CPU intensive auto-detection cares about how long a work item hogged
+	 * CPU without sleeping. Reset the starting timestamp on wakeup.
+	 */
+	worker->current_at = worker->task->se.sum_exec_runtime;
+
+	WRITE_ONCE(worker->sleeping, 0);
+}
+
+/**
+ * wq_worker_sleeping - a worker is going to sleep
+ * @task: task going to sleep
+ *
+ * This function is called from schedule() when a busy worker is
+ * going to sleep.
+ */
+void wq_worker_sleeping(struct task_struct *task)
+{
+	struct worker *worker = kthread_data(task);
+	struct worker_pool *pool;
+
+	/*
+	 * Rescuers, which may not have all the fields set up like normal
+	 * workers, also reach here, let's not access anything before
+	 * checking NOT_RUNNING.
+	 */
+	if (worker->flags & WORKER_NOT_RUNNING)
+		return;
+
+	pool = worker->pool;
+
+	/* Return if preempted before wq_worker_running() was reached */
+	if (READ_ONCE(worker->sleeping))
+		return;
+
+	WRITE_ONCE(worker->sleeping, 1);
+	raw_spin_lock_irq(&pool->lock);
+
+	/*
+	 * Recheck in case unbind_workers() preempted us. We don't
+	 * want to decrement nr_running after the worker is unbound
+	 * and nr_running has been reset.
+	 */
+	if (worker->flags & WORKER_NOT_RUNNING) {
+		raw_spin_unlock_irq(&pool->lock);
+		return;
+	}
+
+	pool->nr_running--;
+	if (need_more_worker(pool)) {
+		worker->current_pwq->stats[PWQ_STAT_CM_WAKEUP]++;
+		wake_up_worker(pool);
+	}
+	raw_spin_unlock_irq(&pool->lock);
+}
+
+/**
+ * wq_worker_tick - a scheduler tick occurred while a kworker is running
+ * @task: task currently running
+ *
+ * Called from scheduler_tick(). We're in the IRQ context and the current
+ * worker's fields which follow the 'K' locking rule can be accessed safely.
+ */
+void wq_worker_tick(struct task_struct *task)
+{
+	struct worker *worker = kthread_data(task);
+	struct pool_workqueue *pwq = worker->current_pwq;
+	struct worker_pool *pool = worker->pool;
+
+	if (!pwq)
+		return;
+
+	pwq->stats[PWQ_STAT_CPU_TIME] += TICK_USEC;
+
+	if (!wq_cpu_intensive_thresh_us)
+		return;
+
+	/*
+	 * If the current worker is concurrency managed and hogged the CPU for
+	 * longer than wq_cpu_intensive_thresh_us, it's automatically marked
+	 * CPU_INTENSIVE to avoid stalling other concurrency-managed work items.
+	 *
+	 * Set @worker->sleeping means that @worker is in the process of
+	 * switching out voluntarily and won't be contributing to
+	 * @pool->nr_running until it wakes up. As wq_worker_sleeping() also
+	 * decrements ->nr_running, setting CPU_INTENSIVE here can lead to
+	 * double decrements. The task is releasing the CPU anyway. Let's skip.
+	 * We probably want to make this prettier in the future.
+	 */
+	if ((worker->flags & WORKER_NOT_RUNNING) || READ_ONCE(worker->sleeping) ||
+	    worker->task->se.sum_exec_runtime - worker->current_at <
+	    wq_cpu_intensive_thresh_us * NSEC_PER_USEC)
+		return;
+
+	raw_spin_lock(&pool->lock);
+
+	worker_set_flags(worker, WORKER_CPU_INTENSIVE);
+	wq_cpu_intensive_report(worker->current_func);
+	pwq->stats[PWQ_STAT_CPU_INTENSIVE]++;
+
+	if (need_more_worker(pool)) {
+		pwq->stats[PWQ_STAT_CM_WAKEUP]++;
+		wake_up_worker(pool);
+	}
+
+	raw_spin_unlock(&pool->lock);
+}
+
+/**
+ * wq_worker_last_func - retrieve worker's last work function
+ * @task: Task to retrieve last work function of.
+ *
+ * Determine the last function a worker executed. This is called from
+ * the scheduler to get a worker's last known identity.
+ *
+ * CONTEXT:
+ * raw_spin_lock_irq(rq->lock)
+ *
+ * This function is called during schedule() when a kworker is going
+ * to sleep. It's used by psi to identify aggregation workers during
+ * dequeuing, to allow periodic aggregation to shut-off when that
+ * worker is the last task in the system or cgroup to go to sleep.
+ *
+ * As this function doesn't involve any workqueue-related locking, it
+ * only returns stable values when called from inside the scheduler's
+ * queuing and dequeuing paths, when @task, which must be a kworker,
+ * is guaranteed to not be processing any works.
+ *
+ * Return:
+ * The last work function %current executed as a worker, NULL if it
+ * hasn't executed any work yet.
+ */
+work_func_t wq_worker_last_func(struct task_struct *task)
+{
+	struct worker *worker = kthread_data(task);
+
+	return worker->last_func;
 }
 
 /**
@@ -1392,15 +1584,13 @@ static bool is_chained_work(struct workqueue_struct *wq)
  */
 static int wq_select_unbound_cpu(int cpu)
 {
-	static bool printed_dbg_warning;
 	int new_cpu;
 
 	if (likely(!wq_debug_force_rr_cpu)) {
 		if (cpumask_test_cpu(cpu, wq_unbound_cpumask))
 			return cpu;
-	} else if (!printed_dbg_warning) {
-		pr_warn("workqueue: round-robin CPU selection forced, expect performance impact\n");
-		printed_dbg_warning = true;
+	} else {
+		pr_warn_once("workqueue: round-robin CPU selection forced, expect performance impact\n");
 	}
 
 	if (cpumask_empty(wq_unbound_cpumask))
@@ -1537,6 +1727,8 @@ out:
  * We queue the work to a specific CPU, the caller must ensure it
  * can't go away.  Callers that fail to ensure that the specified
  * CPU cannot go away will execute on a randomly chosen CPU.
+ * But note well that callers specifying a CPU that never has been
+ * online will get a splat.
  *
  * Return: %false if @work was already on a queue, %true otherwise.
  */
@@ -1938,12 +2130,17 @@ static struct worker *create_worker(struct worker_pool *pool)
 
 	/* ID is needed to determine kthread name */
 	id = ida_alloc(&pool->worker_ida, GFP_KERNEL);
-	if (id < 0)
+	if (id < 0) {
+		pr_err_once("workqueue: Failed to allocate a worker ID: %pe\n",
+			    ERR_PTR(id));
 		return NULL;
+	}
 
 	worker = alloc_worker(pool->node);
-	if (!worker)
+	if (!worker) {
+		pr_err_once("workqueue: Failed to allocate a worker\n");
 		goto fail;
+	}
 
 	worker->id = id;
 
@@ -1955,8 +2152,16 @@ static struct worker *create_worker(struct worker_pool *pool)
 
 	worker->task = kthread_create_on_node(worker_thread, worker, pool->node,
 					      "kworker/%s", id_buf);
-	if (IS_ERR(worker->task))
+	if (IS_ERR(worker->task)) {
+		if (PTR_ERR(worker->task) == -EINTR) {
+			pr_err("workqueue: Interrupted when creating a worker thread \"kworker/%s\"\n",
+			       id_buf);
+		} else {
+			pr_err_once("workqueue: Failed to create a worker thread: %pe",
+				    worker->task);
+		}
 		goto fail;
+	}
 
 	set_user_nice(worker->task, pool->attrs->nice);
 	kthread_bind_mask(worker->task, pool->attrs->cpumask);
@@ -2148,6 +2353,7 @@ static void send_mayday(struct work_struct *work)
 		get_pwq(pwq);
 		list_add_tail(&pwq->mayday_node, &wq->maydays);
 		wake_up_process(wq->rescuer->task);
+		pwq->stats[PWQ_STAT_MAYDAY]++;
 	}
 }
 
@@ -2285,7 +2491,6 @@ __acquires(&pool->lock)
 {
 	struct pool_workqueue *pwq = get_work_pwq(work);
 	struct worker_pool *pool = worker->pool;
-	bool cpu_intensive = pwq->wq->flags & WQ_CPU_INTENSIVE;
 	unsigned long work_data;
 	struct worker *collision;
 #ifdef CONFIG_LOCKDEP
@@ -2322,6 +2527,7 @@ __acquires(&pool->lock)
 	worker->current_work = work;
 	worker->current_func = work->func;
 	worker->current_pwq = pwq;
+	worker->current_at = worker->task->se.sum_exec_runtime;
 	work_data = *work_data_bits(work);
 	worker->current_color = get_work_color(work_data);
 
@@ -2339,7 +2545,7 @@ __acquires(&pool->lock)
 	 * of concurrency management and the next code block will chain
 	 * execution of the pending work items.
 	 */
-	if (unlikely(cpu_intensive))
+	if (unlikely(pwq->wq->flags & WQ_CPU_INTENSIVE))
 		worker_set_flags(worker, WORKER_CPU_INTENSIVE);
 
 	/*
@@ -2386,6 +2592,7 @@ __acquires(&pool->lock)
 	 * workqueues), so hiding them isn't a problem.
 	 */
 	lockdep_invariant_state(true);
+	pwq->stats[PWQ_STAT_STARTED]++;
 	trace_workqueue_execute_start(work);
 	worker->current_func(work);
 	/*
@@ -2393,6 +2600,7 @@ __acquires(&pool->lock)
 	 * point will only record its address.
 	 */
 	trace_workqueue_execute_end(work, worker->current_func);
+	pwq->stats[PWQ_STAT_COMPLETED]++;
 	lock_map_release(&lockdep_map);
 	lock_map_release(&pwq->wq->lockdep_map);
 
@@ -2417,9 +2625,12 @@ __acquires(&pool->lock)
 
 	raw_spin_lock_irq(&pool->lock);
 
-	/* clear cpu intensive status */
-	if (unlikely(cpu_intensive))
-		worker_clr_flags(worker, WORKER_CPU_INTENSIVE);
+	/*
+	 * In addition to %WQ_CPU_INTENSIVE, @worker may also have been marked
+	 * CPU intensive by wq_worker_tick() if @work hogged CPU longer than
+	 * wq_cpu_intensive_thresh_us. Clear it.
+	 */
+	worker_clr_flags(worker, WORKER_CPU_INTENSIVE);
 
 	/* tag the worker for identification in schedule() */
 	worker->last_func = worker->current_func;
@@ -2636,6 +2847,7 @@ repeat:
 				if (first)
 					pool->watchdog_ts = jiffies;
 				move_linked_works(work, scheduled, &n);
+				pwq->stats[PWQ_STAT_RESCUED]++;
 			}
 			first = false;
 		}
@@ -4380,13 +4592,18 @@ static int init_rescuer(struct workqueue_struct *wq)
 		return 0;
 
 	rescuer = alloc_worker(NUMA_NO_NODE);
-	if (!rescuer)
+	if (!rescuer) {
+		pr_err("workqueue: Failed to allocate a rescuer for wq \"%s\"\n",
+		       wq->name);
 		return -ENOMEM;
+	}
 
 	rescuer->rescue_wq = wq;
 	rescuer->task = kthread_create(rescuer_thread, rescuer, "%s", wq->name);
 	if (IS_ERR(rescuer->task)) {
 		ret = PTR_ERR(rescuer->task);
+		pr_err("workqueue: Failed to create a rescuer kthread for wq \"%s\": %pe",
+		       wq->name, ERR_PTR(ret));
 		kfree(rescuer);
 		return ret;
 	}
@@ -5002,10 +5219,16 @@ static void show_one_worker_pool(struct worker_pool *pool)
 	struct worker *worker;
 	bool first = true;
 	unsigned long flags;
+	unsigned long hung = 0;
 
 	raw_spin_lock_irqsave(&pool->lock, flags);
 	if (pool->nr_workers == pool->nr_idle)
 		goto next_pool;
+
+	/* How long the first pending work is waiting for a worker. */
+	if (!list_empty(&pool->worklist))
+		hung = jiffies_to_msecs(jiffies - pool->watchdog_ts) / 1000;
+
 	/*
 	 * Defer printing to avoid deadlocks in console drivers that
 	 * queue work while holding locks also taken in their write
@@ -5014,9 +5237,7 @@ static void show_one_worker_pool(struct worker_pool *pool)
 	printk_deferred_enter();
 	pr_info("pool %d:", pool->id);
 	pr_cont_pool_info(pool);
-	pr_cont(" hung=%us workers=%d",
-		jiffies_to_msecs(jiffies - pool->watchdog_ts) / 1000,
-		pool->nr_workers);
+	pr_cont(" hung=%lus workers=%d", hung, pool->nr_workers);
 	if (pool->manager)
 		pr_cont(" manager: %d",
 			task_pid_nr(pool->manager->task));
@@ -5041,8 +5262,7 @@ next_pool:
 /**
  * show_all_workqueues - dump workqueue state
  *
- * Called from a sysrq handler or try_to_freeze_tasks() and prints out
- * all busy workqueues and pools.
+ * Called from a sysrq handler and prints out all busy workqueues and pools.
  */
 void show_all_workqueues(void)
 {
@@ -5059,6 +5279,29 @@ void show_all_workqueues(void)
 
 	for_each_pool(pool, pi)
 		show_one_worker_pool(pool);
+
+	rcu_read_unlock();
+}
+
+/**
+ * show_freezable_workqueues - dump freezable workqueue state
+ *
+ * Called from try_to_freeze_tasks() and prints out all freezable workqueues
+ * still busy.
+ */
+void show_freezable_workqueues(void)
+{
+	struct workqueue_struct *wq;
+
+	rcu_read_lock();
+
+	pr_info("Showing freezable workqueues that are still busy:\n");
+
+	list_for_each_entry_rcu(wq, &workqueues, list) {
+		if (!(wq->flags & WQ_FREEZABLE))
+			continue;
+		show_one_workqueue(wq);
+	}
 
 	rcu_read_unlock();
 }
@@ -5826,13 +6069,19 @@ static struct device_attribute wq_sysfs_cpumask_attr =
 
 static int __init wq_sysfs_init(void)
 {
+	struct device *dev_root;
 	int err;
 
 	err = subsys_virtual_register(&wq_subsys, NULL);
 	if (err)
 		return err;
 
-	return device_create_file(wq_subsys.dev_root, &wq_sysfs_cpumask_attr);
+	dev_root = bus_get_dev_root(&wq_subsys);
+	if (dev_root) {
+		err = device_create_file(dev_root, &wq_sysfs_cpumask_attr);
+		put_device(dev_root);
+	}
+	return err;
 }
 core_initcall(wq_sysfs_init);
 
@@ -5956,6 +6205,57 @@ static struct timer_list wq_watchdog_timer;
 static unsigned long wq_watchdog_touched = INITIAL_JIFFIES;
 static DEFINE_PER_CPU(unsigned long, wq_watchdog_touched_cpu) = INITIAL_JIFFIES;
 
+/*
+ * Show workers that might prevent the processing of pending work items.
+ * The only candidates are CPU-bound workers in the running state.
+ * Pending work items should be handled by another idle worker
+ * in all other situations.
+ */
+static void show_cpu_pool_hog(struct worker_pool *pool)
+{
+	struct worker *worker;
+	unsigned long flags;
+	int bkt;
+
+	raw_spin_lock_irqsave(&pool->lock, flags);
+
+	hash_for_each(pool->busy_hash, bkt, worker, hentry) {
+		if (task_is_running(worker->task)) {
+			/*
+			 * Defer printing to avoid deadlocks in console
+			 * drivers that queue work while holding locks
+			 * also taken in their write paths.
+			 */
+			printk_deferred_enter();
+
+			pr_info("pool %d:\n", pool->id);
+			sched_show_task(worker->task);
+
+			printk_deferred_exit();
+		}
+	}
+
+	raw_spin_unlock_irqrestore(&pool->lock, flags);
+}
+
+static void show_cpu_pools_hogs(void)
+{
+	struct worker_pool *pool;
+	int pi;
+
+	pr_info("Showing backtraces of running workers in stalled CPU-bound worker pools:\n");
+
+	rcu_read_lock();
+
+	for_each_pool(pool, pi) {
+		if (pool->cpu_stall)
+			show_cpu_pool_hog(pool);
+
+	}
+
+	rcu_read_unlock();
+}
+
 static void wq_watchdog_reset_touched(void)
 {
 	int cpu;
@@ -5969,6 +6269,7 @@ static void wq_watchdog_timer_fn(struct timer_list *unused)
 {
 	unsigned long thresh = READ_ONCE(wq_watchdog_thresh) * HZ;
 	bool lockup_detected = false;
+	bool cpu_pool_stall = false;
 	unsigned long now = jiffies;
 	struct worker_pool *pool;
 	int pi;
@@ -5981,6 +6282,7 @@ static void wq_watchdog_timer_fn(struct timer_list *unused)
 	for_each_pool(pool, pi) {
 		unsigned long pool_ts, touched, ts;
 
+		pool->cpu_stall = false;
 		if (list_empty(&pool->worklist))
 			continue;
 
@@ -6005,17 +6307,26 @@ static void wq_watchdog_timer_fn(struct timer_list *unused)
 		/* did we stall? */
 		if (time_after(now, ts + thresh)) {
 			lockup_detected = true;
+			if (pool->cpu >= 0) {
+				pool->cpu_stall = true;
+				cpu_pool_stall = true;
+			}
 			pr_emerg("BUG: workqueue lockup - pool");
 			pr_cont_pool_info(pool);
 			pr_cont(" stuck for %us!\n",
 				jiffies_to_msecs(now - pool_ts) / 1000);
 		}
+
+
 	}
 
 	rcu_read_unlock();
 
 	if (lockup_detected)
 		show_all_workqueues();
+
+	if (cpu_pool_stall)
+		show_cpu_pools_hogs();
 
 	wq_watchdog_reset_touched();
 	mod_timer(&wq_watchdog_timer, jiffies + thresh);

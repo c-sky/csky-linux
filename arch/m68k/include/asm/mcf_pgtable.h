@@ -46,7 +46,7 @@
 #define _CACHEMASK040		(~0x060)
 #define _PAGE_GLOBAL040		0x400   /* 68040 global bit, used for kva descs */
 
-/* We borrow bit 24 to store the exclusive marker in swap PTEs. */
+/* We borrow bit 7 to store the exclusive marker in swap PTEs. */
 #define _PAGE_SWP_EXCLUSIVE	CF_PAGE_NOCACHE
 
 /*
@@ -115,7 +115,7 @@ static inline void pgd_set(pgd_t *pgdp, pmd_t *pmdp)
 	pgd_val(*pgdp) = virt_to_phys(pmdp);
 }
 
-#define __pte_page(pte)	((unsigned long) (pte_val(pte) & PAGE_MASK))
+#define __pte_page(pte)	((void *) (pte_val(pte) & PAGE_MASK))
 #define pmd_page_vaddr(pmd)	((unsigned long) (pmd_val(pmd)))
 
 static inline int pte_none(pte_t pte)
@@ -134,7 +134,6 @@ static inline void pte_clear(struct mm_struct *mm, unsigned long addr,
 	pte_val(*ptep) = 0;
 }
 
-#define pte_pagenr(pte)	((__pte_page(pte) - PAGE_OFFSET) >> PAGE_SHIFT)
 #define pte_page(pte)	virt_to_page(__pte_page(pte))
 
 static inline int pmd_none2(pmd_t *pmd) { return !pmd_val(*pmd); }

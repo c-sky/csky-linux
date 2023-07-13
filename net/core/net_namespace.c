@@ -20,6 +20,7 @@
 #include <linux/sched/task.h>
 #include <linux/uidgid.h>
 #include <linux/cookie.h>
+#include <linux/proc_fs.h>
 
 #include <net/sock.h>
 #include <net/netlink.h>
@@ -307,7 +308,7 @@ EXPORT_SYMBOL_GPL(get_net_ns_by_id);
 /* init code that must occur even if setup_net() is not called. */
 static __net_init void preinit_net(struct net *net)
 {
-	ref_tracker_dir_init(&net->notrefcnt_tracker, 128);
+	ref_tracker_dir_init(&net->notrefcnt_tracker, 128, "net notrefcnt");
 }
 
 /*
@@ -321,7 +322,7 @@ static __net_init int setup_net(struct net *net, struct user_namespace *user_ns)
 	LIST_HEAD(net_exit_list);
 
 	refcount_set(&net->ns.count, 1);
-	ref_tracker_dir_init(&net->refcnt_tracker, 128);
+	ref_tracker_dir_init(&net->refcnt_tracker, 128, "net refcnt");
 
 	refcount_set(&net->passive, 1);
 	get_random_bytes(&net->hash_mix, sizeof(u32));
@@ -676,21 +677,19 @@ EXPORT_SYMBOL_GPL(get_net_ns);
 
 struct net *get_net_ns_by_fd(int fd)
 {
-	struct file *file;
-	struct ns_common *ns;
-	struct net *net;
+	struct fd f = fdget(fd);
+	struct net *net = ERR_PTR(-EINVAL);
 
-	file = proc_ns_fget(fd);
-	if (IS_ERR(file))
-		return ERR_CAST(file);
+	if (!f.file)
+		return ERR_PTR(-EBADF);
 
-	ns = get_proc_ns(file_inode(file));
-	if (ns->ops == &netns_operations)
-		net = get_net(container_of(ns, struct net, ns));
-	else
-		net = ERR_PTR(-EINVAL);
+	if (proc_ns_file(f.file)) {
+		struct ns_common *ns = get_proc_ns(file_inode(f.file));
+		if (ns->ops == &netns_operations)
+			net = get_net(container_of(ns, struct net, ns));
+	}
+	fdput(f);
 
-	fput(file);
 	return net;
 }
 EXPORT_SYMBOL_GPL(get_net_ns_by_fd);

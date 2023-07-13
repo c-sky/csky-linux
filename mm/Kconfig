@@ -46,6 +46,22 @@ config ZSWAP_DEFAULT_ON
 	  The selection made here can be overridden by using the kernel
 	  command line 'zswap.enabled=' option.
 
+config ZSWAP_EXCLUSIVE_LOADS_DEFAULT_ON
+	bool "Invalidate zswap entries when pages are loaded"
+	depends on ZSWAP
+	help
+	  If selected, exclusive loads for zswap will be enabled at boot,
+	  otherwise it will be disabled.
+
+	  If exclusive loads are enabled, when a page is loaded from zswap,
+	  the zswap entry is invalidated at once, as opposed to leaving it
+	  in zswap until the swap entry is freed.
+
+	  This avoids having two copies of the same page in memory
+	  (compressed and uncompressed) after faulting in a page from zswap.
+	  The cost is that if the page was never dirtied and needs to be
+	  swapped out again, it will be re-compressed.
+
 choice
 	prompt "Default compressor"
 	depends on ZSWAP
@@ -218,18 +234,23 @@ choice
 	help
 	   This option allows to select a slab allocator.
 
-config SLAB
-	bool "SLAB"
+config SLAB_DEPRECATED
+	bool "SLAB (DEPRECATED)"
 	depends on !PREEMPT_RT
-	select HAVE_HARDENED_USERCOPY_ALLOCATOR
 	help
+	  Deprecated and scheduled for removal in a few cycles. Replaced by
+	  SLUB.
+
+	  If you cannot migrate to SLUB, please contact linux-mm@kvack.org
+	  and the people listed in the SLAB ALLOCATOR section of MAINTAINERS
+	  file, explaining why.
+
 	  The regular slab allocator that is established and known to work
 	  well in all environments. It organizes cache hot objects in
 	  per cpu and per node queues.
 
 config SLUB
 	bool "SLUB (Unqueued Allocator)"
-	select HAVE_HARDENED_USERCOPY_ALLOCATOR
 	help
 	   SLUB is a slab allocator that minimizes cache line usage
 	   instead of managing queues of cached objects (SLAB approach).
@@ -238,29 +259,12 @@ config SLUB
 	   and has enhanced diagnostics. SLUB is the default choice for
 	   a slab allocator.
 
-config SLOB_DEPRECATED
-	depends on EXPERT
-	bool "SLOB (Simple Allocator - DEPRECATED)"
-	depends on !PREEMPT_RT
-	help
-	   Deprecated and scheduled for removal in a few cycles. SLUB
-	   recommended as replacement. CONFIG_SLUB_TINY can be considered
-	   on systems with 16MB or less RAM.
-
-	   If you need SLOB to stay, please contact linux-mm@kvack.org and
-	   people listed in the SLAB ALLOCATOR section of MAINTAINERS file,
-	   with your use case.
-
-	   SLOB replaces the stock allocator with a drastically simpler
-	   allocator. SLOB is generally more space efficient but
-	   does not perform as well on large systems.
-
 endchoice
 
-config SLOB
+config SLAB
 	bool
 	default y
-	depends on SLOB_DEPRECATED
+	depends on SLAB_DEPRECATED
 
 config SLUB_TINY
 	bool "Configure SLUB for minimal memory footprint"
@@ -346,9 +350,9 @@ config SHUFFLE_PAGE_ALLOCATOR
 	  the presence of a memory-side-cache. There are also incidental
 	  security benefits as it reduces the predictability of page
 	  allocations to compliment SLAB_FREELIST_RANDOM, but the
-	  default granularity of shuffling on the "MAX_ORDER - 1" i.e,
-	  10th order of pages is selected based on cache utilization
-	  benefits on x86.
+	  default granularity of shuffling on the MAX_ORDER i.e, 10th
+	  order of pages is selected based on cache utilization benefits
+	  on x86.
 
 	  While the randomization improves cache utilization it may
 	  negatively impact workloads on platforms without a cache. For
@@ -479,6 +483,12 @@ config SPARSEMEM_VMEMMAP
 	  SPARSEMEM_VMEMMAP uses a virtually mapped memmap to optimise
 	  pfn_to_page and page_to_pfn operations.  This is the most
 	  efficient option when sufficient kernel resources are available.
+#
+# Select this config option from the architecture Kconfig, if it is preferred
+# to enable the feature of HugeTLB/dev_dax vmemmap optimization.
+#
+config ARCH_WANT_OPTIMIZE_VMEMMAP
+	bool
 
 config HAVE_MEMBLOCK_PHYS_MAP
 	bool
@@ -666,8 +676,8 @@ config HUGETLB_PAGE_SIZE_VARIABLE
 	  HUGETLB_PAGE_ORDER when there are multiple HugeTLB page sizes available
 	  on a platform.
 
-	  Note that the pageblock_order cannot exceed MAX_ORDER - 1 and will be
-	  clamped down to MAX_ORDER - 1.
+	  Note that the pageblock_order cannot exceed MAX_ORDER and will be
+	  clamped down to MAX_ORDER.
 
 config CONTIG_ALLOC
 	def_bool (MEMORY_ISOLATION && COMPACTION) || CMA
@@ -686,7 +696,6 @@ config BOUNCE
 
 config MMU_NOTIFIER
 	bool
-	select SRCU
 	select INTERVAL_TREE
 
 config KSM
@@ -1100,6 +1109,15 @@ comment "GUP_TEST needs to have DEBUG_FS enabled"
 config GUP_GET_PXX_LOW_HIGH
 	bool
 
+config DMAPOOL_TEST
+	tristate "Enable a module to run time tests on dma_pool"
+	depends on HAS_DMA
+	help
+	  Provides a test module that will allocate and free many blocks of
+	  various sizes and report how long it takes. This is intended to
+	  provide a consistent way to measure how changes to the
+	  dma_pool_alloc/free routines affect performance.
+
 config ARCH_HAS_PTE_SPECIAL
 	bool
 
@@ -1201,6 +1219,22 @@ config LRU_GEN_STATS
 
 	  This option has a per-memcg and per-node memory overhead.
 # }
+
+config ARCH_SUPPORTS_PER_VMA_LOCK
+       def_bool n
+
+config PER_VMA_LOCK
+	def_bool y
+	depends on ARCH_SUPPORTS_PER_VMA_LOCK && MMU && SMP
+	help
+	  Allow per-vma locking during page fault handling.
+
+	  This feature allows locking each virtual memory area separately when
+	  handling page faults instead of taking mmap_lock.
+
+config LOCK_MM_AND_FIND_VMA
+	bool
+	depends on !STACK_GROWSUP
 
 source "mm/damon/Kconfig"
 

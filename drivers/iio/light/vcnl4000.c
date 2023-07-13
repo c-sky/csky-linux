@@ -208,7 +208,6 @@ static int vcnl4000_init(struct vcnl4000_data *data)
 
 	data->rev = ret & 0xf;
 	data->al_scale = 250000;
-	mutex_init(&data->vcnl4000_lock);
 
 	return data->chip_spec->set_power_state(data, true);
 };
@@ -1078,7 +1077,7 @@ static irqreturn_t vcnl4010_irq_thread(int irq, void *p)
 	}
 
 	if (isr & VCNL4010_INT_DRDY && iio_buffer_enabled(indio_dev))
-		iio_trigger_poll_chained(indio_dev->trig);
+		iio_trigger_poll_nested(indio_dev->trig);
 
 end:
 	return IRQ_HANDLED;
@@ -1367,6 +1366,8 @@ static int vcnl4000_probe(struct i2c_client *client)
 	data->id = id->driver_data;
 	data->chip_spec = &vcnl4000_chip_spec_cfg[data->id];
 
+	mutex_init(&data->vcnl4000_lock);
+
 	ret = data->chip_spec->init(data);
 	if (ret < 0)
 		return ret;
@@ -1499,7 +1500,7 @@ static struct i2c_driver vcnl4000_driver = {
 		.pm	= pm_ptr(&vcnl4000_pm_ops),
 		.of_match_table = vcnl_4000_of_match,
 	},
-	.probe_new = vcnl4000_probe,
+	.probe = vcnl4000_probe,
 	.id_table = vcnl4000_id,
 	.remove	= vcnl4000_remove,
 };

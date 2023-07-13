@@ -39,9 +39,11 @@
 #include "mlx5_core.h"
 #include "lib/eq.h"
 #include "lib/mlx5.h"
+#include "lib/events.h"
 #include "lib/pci_vsc.h"
 #include "lib/tout.h"
 #include "diag/fw_tracer.h"
+#include "diag/reporter_vnic.h"
 
 enum {
 	MAX_MISSES			= 3,
@@ -325,6 +327,10 @@ int mlx5_health_wait_pci_up(struct mlx5_core_dev *dev)
 	while (sensor_pci_not_working(dev)) {
 		if (time_after(jiffies, end))
 			return -ETIMEDOUT;
+		if (test_bit(MLX5_BREAK_FW_WAIT, &dev->intf_state)) {
+			mlx5_core_warn(dev, "device is being removed, stop waiting for PCI\n");
+			return -ENODEV;
+		}
 		msleep(100);
 	}
 	return 0;
@@ -714,7 +720,7 @@ static const struct devlink_health_reporter_ops mlx5_fw_fatal_reporter_ops = {
 #define MLX5_FW_REPORTER_VF_GRACEFUL_PERIOD 30000
 #define MLX5_FW_REPORTER_DEFAULT_GRACEFUL_PERIOD MLX5_FW_REPORTER_VF_GRACEFUL_PERIOD
 
-static void mlx5_fw_reporters_create(struct mlx5_core_dev *dev)
+void mlx5_fw_reporters_create(struct mlx5_core_dev *dev)
 {
 	struct mlx5_core_health *health = &dev->priv.health;
 	struct devlink *devlink = priv_to_devlink(dev);
@@ -730,17 +736,17 @@ static void mlx5_fw_reporters_create(struct mlx5_core_dev *dev)
 	}
 
 	health->fw_reporter =
-		devlink_health_reporter_create(devlink, &mlx5_fw_reporter_ops,
-					       0, dev);
+		devl_health_reporter_create(devlink, &mlx5_fw_reporter_ops,
+					    0, dev);
 	if (IS_ERR(health->fw_reporter))
 		mlx5_core_warn(dev, "Failed to create fw reporter, err = %ld\n",
 			       PTR_ERR(health->fw_reporter));
 
 	health->fw_fatal_reporter =
-		devlink_health_reporter_create(devlink,
-					       &mlx5_fw_fatal_reporter_ops,
-					       grace_period,
-					       dev);
+		devl_health_reporter_create(devlink,
+					    &mlx5_fw_fatal_reporter_ops,
+					    grace_period,
+					    dev);
 	if (IS_ERR(health->fw_fatal_reporter))
 		mlx5_core_warn(dev, "Failed to create fw fatal reporter, err = %ld\n",
 			       PTR_ERR(health->fw_fatal_reporter));
@@ -772,7 +778,8 @@ void mlx5_trigger_health_work(struct mlx5_core_dev *dev)
 {
 	struct mlx5_core_health *health = &dev->priv.health;
 
-	queue_work(health->wq, &health->fatal_report_work);
+	if (!mlx5_dev_is_lightweight(dev))
+		queue_work(health->wq, &health->fatal_report_work);
 }
 
 #define MLX5_MSEC_PER_HOUR (MSEC_PER_SEC * 60 * 60)
@@ -894,15 +901,22 @@ void mlx5_health_cleanup(struct mlx5_core_dev *dev)
 
 	cancel_delayed_work_sync(&health->update_fw_log_ts_work);
 	destroy_workqueue(health->wq);
+	mlx5_reporter_vnic_destroy(dev);
 	mlx5_fw_reporters_destroy(dev);
 }
 
 int mlx5_health_init(struct mlx5_core_dev *dev)
 {
+	struct devlink *devlink = priv_to_devlink(dev);
 	struct mlx5_core_health *health;
 	char *name;
 
-	mlx5_fw_reporters_create(dev);
+	if (!mlx5_dev_is_lightweight(dev)) {
+		devl_lock(devlink);
+		mlx5_fw_reporters_create(dev);
+		devl_unlock(devlink);
+	}
+	mlx5_reporter_vnic_create(dev);
 
 	health = &dev->priv.health;
 	name = kmalloc(64, GFP_KERNEL);
@@ -922,6 +936,7 @@ int mlx5_health_init(struct mlx5_core_dev *dev)
 	return 0;
 
 out_err:
+	mlx5_reporter_vnic_destroy(dev);
 	mlx5_fw_reporters_destroy(dev);
 	return -ENOMEM;
 }

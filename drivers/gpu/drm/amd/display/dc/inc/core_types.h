@@ -37,6 +37,7 @@
 #include "dwb.h"
 #include "mcif_wb.h"
 #include "panel_cntl.h"
+#include "dmub/inc/dmub_cmd.h"
 
 #define MAX_CLOCK_SOURCES 7
 #define MAX_SVP_PHANTOM_STREAMS 2
@@ -51,9 +52,7 @@ void enable_surface_flip_reporting(struct dc_plane_state *plane_state,
 #include "clock_source.h"
 #include "audio.h"
 #include "dm_pp_smu.h"
-#ifdef CONFIG_DRM_AMD_DC_HDCP
 #include "dm_cp_psp.h"
-#endif
 #include "link_hwss.h"
 
 /********** DAL Core*********************/
@@ -376,6 +375,7 @@ union pipe_update_flags {
 		uint32_t viewport : 1;
 		uint32_t plane_changed : 1;
 		uint32_t det_size : 1;
+		uint32_t unbounded_req : 1;
 	} bits;
 	uint32_t raw;
 };
@@ -428,6 +428,8 @@ struct pipe_ctx {
 	struct dwbc *dwbc;
 	struct mcif_wb *mcif_wb;
 	union pipe_update_flags update_flags;
+	struct tg_color visual_confirm_color;
+	bool has_vactive_margin;
 };
 
 /* Data used for dynamic link encoder assignment.
@@ -498,6 +500,11 @@ struct bw_context {
 	struct display_mode_lib dml;
 };
 
+struct dc_dmub_cmd {
+	union dmub_rb_cmd dmub_cmd;
+	enum dm_dmub_wait_type wait_type;
+};
+
 /**
  * struct dc_state - The full description of a state requested by users
  */
@@ -545,6 +552,11 @@ struct dc_state {
 	 * initially copied into every context.
 	 */
 	struct bw_context bw_ctx;
+
+	struct block_sequence block_sequence[50];
+	unsigned int block_sequence_steps;
+	struct dc_dmub_cmd dc_dmub_cmd[10];
+	unsigned int dmub_cmd_count;
 
 	/**
 	 * @refcount: refcount reference

@@ -3,7 +3,7 @@
  * drivers/soc/tegra/pmc.c
  *
  * Copyright (c) 2010 Google, Inc
- * Copyright (c) 2018-2022, NVIDIA CORPORATION. All rights reserved.
+ * Copyright (c) 2018-2023, NVIDIA CORPORATION. All rights reserved.
  *
  * Author:
  *	Colin Cross <ccross@google.com>
@@ -177,6 +177,7 @@
 /* Tegra186 and later */
 #define WAKE_AOWAKE_CNTRL(x) (0x000 + ((x) << 2))
 #define WAKE_AOWAKE_CNTRL_LEVEL (1 << 3)
+#define WAKE_AOWAKE_CNTRL_SR_CAPTURE_EN (1 << 1)
 #define WAKE_AOWAKE_MASK_W(x) (0x180 + ((x) << 2))
 #define WAKE_AOWAKE_MASK_R(x) (0x300 + ((x) << 2))
 #define WAKE_AOWAKE_STATUS_W(x) (0x30c + ((x) << 2))
@@ -190,6 +191,8 @@
 
 #define WAKE_AOWAKE_CTRL 0x4f4
 #define  WAKE_AOWAKE_CTRL_INTR_POLARITY BIT(0)
+
+#define SW_WAKE_ID		83 /* wake83 */
 
 /* for secure PMC */
 #define TEGRA_SMC_PMC		0xc2fffe00
@@ -355,6 +358,7 @@ struct tegra_pmc_soc {
 	void (*setup_irq_polarity)(struct tegra_pmc *pmc,
 				   struct device_node *np,
 				   bool invert);
+	void (*set_wake_filters)(struct tegra_pmc *pmc);
 	int (*irq_set_wake)(struct irq_data *data, unsigned int on);
 	int (*irq_set_type)(struct irq_data *data, unsigned int type);
 	int (*powergate_set)(struct tegra_pmc *pmc, unsigned int id,
@@ -392,7 +396,6 @@ struct tegra_pmc_soc {
  * @clk: pointer to pclk clock
  * @soc: pointer to SoC data structure
  * @tz_only: flag specifying if the PMC can only be accessed via TrustZone
- * @debugfs: pointer to debugfs entry
  * @rate: currently configured rate of pclk
  * @suspend_mode: lowest suspend mode available
  * @cpu_good_time: CPU power good time (in microseconds)
@@ -427,7 +430,6 @@ struct tegra_pmc {
 	void __iomem *aotag;
 	void __iomem *scratch;
 	struct clk *clk;
-	struct dentry *debugfs;
 
 	const struct tegra_pmc_soc *soc;
 	bool tz_only;
@@ -1185,16 +1187,6 @@ static int powergate_show(struct seq_file *s, void *data)
 }
 
 DEFINE_SHOW_ATTRIBUTE(powergate);
-
-static int tegra_powergate_debugfs_init(void)
-{
-	pmc->debugfs = debugfs_create_file("powergate", S_IRUGO, NULL, NULL,
-					   &powergate_fops);
-	if (!pmc->debugfs)
-		return -ENOMEM;
-
-	return 0;
-}
 
 static int tegra_powergate_of_get_clks(struct tegra_powergate *pg,
 				       struct device_node *np)
@@ -2416,6 +2408,17 @@ static int tegra210_pmc_irq_set_type(struct irq_data *data, unsigned int type)
 	return 0;
 }
 
+static void tegra186_pmc_set_wake_filters(struct tegra_pmc *pmc)
+{
+	u32 value;
+
+	/* SW Wake (wake83) needs SR_CAPTURE filter to be enabled */
+	value = readl(pmc->wake + WAKE_AOWAKE_CNTRL(SW_WAKE_ID));
+	value |= WAKE_AOWAKE_CNTRL_SR_CAPTURE_EN;
+	writel(value, pmc->wake + WAKE_AOWAKE_CNTRL(SW_WAKE_ID));
+	dev_dbg(pmc->dev, "WAKE_AOWAKE_CNTRL_83 = 0x%x\n", value);
+}
+
 static int tegra186_pmc_irq_set_wake(struct irq_data *data, unsigned int on)
 {
 	struct tegra_pmc *pmc = irq_data_get_irq_chip_data(data);
@@ -2989,7 +2992,8 @@ static int tegra_pmc_probe(struct platform_device *pdev)
 	 */
 	if (pmc->clk) {
 		pmc->clk_nb.notifier_call = tegra_pmc_clk_notify_cb;
-		err = clk_notifier_register(pmc->clk, &pmc->clk_nb);
+		err = devm_clk_notifier_register(&pdev->dev, pmc->clk,
+						 &pmc->clk_nb);
 		if (err) {
 			dev_err(&pdev->dev,
 				"failed to register clk notifier\n");
@@ -3011,19 +3015,13 @@ static int tegra_pmc_probe(struct platform_device *pdev)
 
 	tegra_pmc_reset_sysfs_init(pmc);
 
-	if (IS_ENABLED(CONFIG_DEBUG_FS)) {
-		err = tegra_powergate_debugfs_init();
-		if (err < 0)
-			goto cleanup_sysfs;
-	}
-
 	err = tegra_pmc_pinctrl_init(pmc);
 	if (err)
-		goto cleanup_debugfs;
+		goto cleanup_sysfs;
 
 	err = tegra_pmc_regmap_init(pmc);
 	if (err < 0)
-		goto cleanup_debugfs;
+		goto cleanup_sysfs;
 
 	err = tegra_powergate_init(pmc, pdev->dev.of_node);
 	if (err < 0)
@@ -3042,16 +3040,19 @@ static int tegra_pmc_probe(struct platform_device *pdev)
 	platform_set_drvdata(pdev, pmc);
 	tegra_pm_init_suspend();
 
+	/* Some wakes require specific filter configuration */
+	if (pmc->soc->set_wake_filters)
+		pmc->soc->set_wake_filters(pmc);
+
+	debugfs_create_file("powergate", 0444, NULL, NULL, &powergate_fops);
+
 	return 0;
 
 cleanup_powergates:
 	tegra_powergate_remove_all(pdev->dev.of_node);
-cleanup_debugfs:
-	debugfs_remove(pmc->debugfs);
 cleanup_sysfs:
 	device_remove_file(&pdev->dev, &dev_attr_reset_reason);
 	device_remove_file(&pdev->dev, &dev_attr_reset_level);
-	clk_notifier_unregister(pmc->clk, &pmc->clk_nb);
 
 	return err;
 }
@@ -3938,6 +3939,7 @@ static const struct tegra_pmc_soc tegra186_pmc_soc = {
 	.regs = &tegra186_pmc_regs,
 	.init = tegra186_pmc_init,
 	.setup_irq_polarity = tegra186_pmc_setup_irq_polarity,
+	.set_wake_filters = tegra186_pmc_set_wake_filters,
 	.irq_set_wake = tegra186_pmc_irq_set_wake,
 	.irq_set_type = tegra186_pmc_irq_set_type,
 	.reset_sources = tegra186_reset_sources,
@@ -4122,6 +4124,7 @@ static const struct tegra_pmc_soc tegra194_pmc_soc = {
 	.regs = &tegra194_pmc_regs,
 	.init = tegra186_pmc_init,
 	.setup_irq_polarity = tegra186_pmc_setup_irq_polarity,
+	.set_wake_filters = tegra186_pmc_set_wake_filters,
 	.irq_set_wake = tegra186_pmc_irq_set_wake,
 	.irq_set_type = tegra186_pmc_irq_set_type,
 	.reset_sources = tegra194_reset_sources,
@@ -4225,8 +4228,11 @@ static const char * const tegra234_reset_sources[] = {
 };
 
 static const struct tegra_wake_event tegra234_wake_events[] = {
+	TEGRA_WAKE_IRQ("pmu", 24, 209),
 	TEGRA_WAKE_GPIO("power", 29, 1, TEGRA234_AON_GPIO(EE, 4)),
+	TEGRA_WAKE_GPIO("mgbe", 56, 0, TEGRA234_MAIN_GPIO(Y, 3)),
 	TEGRA_WAKE_IRQ("rtc", 73, 10),
+	TEGRA_WAKE_IRQ("sw-wake", SW_WAKE_ID, 179),
 };
 
 static const struct tegra_pmc_soc tegra234_pmc_soc = {
@@ -4247,6 +4253,7 @@ static const struct tegra_pmc_soc tegra234_pmc_soc = {
 	.regs = &tegra234_pmc_regs,
 	.init = tegra186_pmc_init,
 	.setup_irq_polarity = tegra186_pmc_setup_irq_polarity,
+	.set_wake_filters = tegra186_pmc_set_wake_filters,
 	.irq_set_wake = tegra186_pmc_irq_set_wake,
 	.irq_set_type = tegra186_pmc_irq_set_type,
 	.reset_sources = tegra234_reset_sources,

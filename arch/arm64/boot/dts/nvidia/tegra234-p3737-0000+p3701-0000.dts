@@ -3,6 +3,7 @@
 
 #include <dt-bindings/input/linux-event-codes.h>
 #include <dt-bindings/input/gpio-keys.h>
+#include <dt-bindings/sound/rt5640.h>
 
 #include "tegra234-p3701-0000.dtsi"
 #include "tegra234-p3737-0000.dtsi"
@@ -49,7 +50,7 @@
 
 							i2s1_dap: endpoint {
 								dai-format = "i2s";
-								/* placeholder for external codec */
+								remote-endpoint = <&rt5640_ep>;
 							};
 						};
 					};
@@ -2017,6 +2018,30 @@
 			status = "okay";
 		};
 
+		i2c@31e0000 {
+			status = "okay";
+
+			audio-codec@1c {
+				compatible = "realtek,rt5640";
+				reg = <0x1c>;
+				interrupt-parent = <&gpio>;
+				interrupts = <TEGRA234_MAIN_GPIO(AC, 5) GPIO_ACTIVE_HIGH>;
+				clocks = <&bpmp TEGRA234_CLK_AUD_MCLK>;
+				clock-names = "mclk";
+				realtek,dmic1-data-pin = <RT5640_DMIC1_DATA_PIN_NONE>;
+				realtek,dmic2-data-pin = <RT5640_DMIC2_DATA_PIN_NONE>;
+				realtek,jack-detect-source = <RT5640_JD_SRC_HDA_HEADER>;
+				sound-name-prefix = "CVB-RT";
+
+				port {
+					rt5640_ep: endpoint {
+						remote-endpoint = <&i2s1_dap>;
+						mclk-fs = <256>;
+					};
+				};
+			};
+		};
+
 		pwm@32a0000 {
 			assigned-clocks = <&bpmp TEGRA234_CLK_PWM3>;
 			assigned-clock-parents = <&bpmp TEGRA234_CLK_PLLP_OUT0>;
@@ -2071,13 +2096,24 @@
 
 			ports {
 				usb2-0 {
-					mode = "host";
+					mode = "otg";
+					usb-role-switch;
 					status = "okay";
+					port {
+						hs_typec_p1: endpoint {
+							remote-endpoint = <&hs_ucsi_ccg_p1>;
+						};
+					};
 				};
 
 				usb2-1 {
 					mode = "host";
 					status = "okay";
+					port {
+						hs_typec_p0: endpoint {
+							remote-endpoint = <&hs_ucsi_ccg_p0>;
+						};
+					};
 				};
 
 				usb2-2 {
@@ -2093,11 +2129,21 @@
 				usb3-0 {
 					nvidia,usb2-companion = <1>;
 					status = "okay";
+					port {
+						ss_typec_p0: endpoint {
+							remote-endpoint = <&ss_ucsi_ccg_p0>;
+						};
+					};
 				};
 
 				usb3-1 {
 					nvidia,usb2-companion = <0>;
 					status = "okay";
+					port {
+						ss_typec_p1: endpoint {
+							remote-endpoint = <&ss_ucsi_ccg_p1>;
+						};
+					};
 				};
 
 				usb3-2 {
@@ -2105,6 +2151,14 @@
 					status = "okay";
 				};
 			};
+		};
+
+		usb@3550000 {
+			status = "okay";
+
+			phys = <&{/bus@0/padctl@3520000/pads/usb2/lanes/usb2-0}>,
+			       <&{/bus@0/padctl@3520000/pads/usb3/lanes/usb3-1}>;
+			phy-names = "usb2-0", "usb3-0";
 		};
 
 		usb@3610000 {
@@ -2190,6 +2244,74 @@
 			phy-names = "p2u-0", "p2u-1", "p2u-2", "p2u-3", "p2u-4",
 				    "p2u-5", "p2u-6", "p2u-7";
 		};
+
+		i2c@c240000 {
+			status = "okay";
+
+			typec@8 {
+				compatible = "cypress,cypd4226";
+				reg = <0x08>;
+				interrupt-parent = <&gpio>;
+				interrupts = <TEGRA234_MAIN_GPIO(Y, 4) IRQ_TYPE_LEVEL_LOW>;
+				firmware-name = "nvidia,jetson-agx-xavier";
+				status = "okay";
+
+				#address-cells = <1>;
+				#size-cells = <0>;
+
+				ccg_typec_con0: connector@0 {
+					compatible = "usb-c-connector";
+					reg = <0>;
+					label = "USB-C";
+					data-role = "host";
+
+					ports {
+						#address-cells = <1>;
+						#size-cells = <0>;
+
+						port@0 {
+							reg = <0>;
+							hs_ucsi_ccg_p0: endpoint {
+								remote-endpoint = <&hs_typec_p0>;
+							};
+						};
+
+						port@1 {
+							reg = <1>;
+							ss_ucsi_ccg_p0: endpoint {
+								remote-endpoint = <&ss_typec_p0>;
+							};
+						};
+					};
+				};
+
+				ccg_typec_con1: connector@1 {
+					compatible = "usb-c-connector";
+					reg = <1>;
+					label = "USB-C";
+					data-role = "dual";
+
+					ports {
+						#address-cells = <1>;
+						#size-cells = <0>;
+
+						port@0 {
+							reg = <0>;
+							hs_ucsi_ccg_p1: endpoint {
+								remote-endpoint = <&hs_typec_p1>;
+							};
+						};
+
+						port@1 {
+							reg = <1>;
+							ss_ucsi_ccg_p1: endpoint {
+								remote-endpoint = <&ss_typec_p1>;
+							};
+						};
+					};
+				};
+			};
+		};
 	};
 
 	gpio-keys {
@@ -2221,11 +2343,7 @@
 	};
 
 	pwm-fan {
-		compatible = "pwm-fan";
-		pwms = <&pwm3 0 45334>;
-
-		cooling-levels = <0 95 178 255>;
-		#cooling-cells = <2>;
+		cooling-levels = <66 215 255>;
 	};
 
 	serial {
@@ -2233,9 +2351,8 @@
 	};
 
 	sound {
-		status = "okay";
-
 		compatible = "nvidia,tegra186-audio-graph-card";
+		status = "okay";
 
 		dais = /* ADMAIF (FE) Ports */
 		       <&admaif0_port>, <&admaif1_port>, <&admaif2_port>, <&admaif3_port>,
@@ -2293,5 +2410,39 @@
 		       <&dmic3_port>;
 
 		label = "NVIDIA Jetson AGX Orin APE";
+
+		widgets = "Microphone",	"CVB-RT MIC Jack",
+			  "Microphone",	"CVB-RT MIC",
+			  "Headphone",	"CVB-RT HP Jack",
+			  "Speaker",	"CVB-RT SPK";
+
+		routing = /* I2S1 <-> RT5640 */
+			  "CVB-RT AIF1 Playback",	"I2S1 DAP-Playback",
+			  "I2S1 DAP-Capture",		"CVB-RT AIF1 Capture",
+			  /* RT5640 codec controls */
+			  "CVB-RT HP Jack",		"CVB-RT HPOL",
+			  "CVB-RT HP Jack",		"CVB-RT HPOR",
+			  "CVB-RT IN1P",		"CVB-RT MIC Jack",
+			  "CVB-RT IN2P",		"CVB-RT MIC Jack",
+			  "CVB-RT SPK",			"CVB-RT SPOLP",
+			  "CVB-RT SPK",			"CVB-RT SPORP",
+			  "CVB-RT DMIC1",		"CVB-RT MIC",
+			  "CVB-RT DMIC2",		"CVB-RT MIC";
+	};
+
+	thermal-zones {
+		tj-thermal {
+			cooling-maps {
+				map-active-0 {
+					cooling-device = <&fan 0 1>;
+					trip = <&tj_trip_active0>;
+				};
+
+				map-active-1 {
+					cooling-device = <&fan 1 2>;
+					trip = <&tj_trip_active1>;
+				};
+			};
+		};
 	};
 };

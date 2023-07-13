@@ -1014,39 +1014,6 @@ static int imx7_csi_enum_mbus_formats(u32 *code, u32 index)
 	return -EINVAL;
 }
 
-static int imx7_csi_mbus_fmt_to_pix_fmt(struct v4l2_pix_format *pix,
-					const struct v4l2_mbus_framefmt *mbus,
-					const struct imx7_csi_pixfmt *cc)
-{
-	u32 width;
-	u32 stride;
-
-	if (!cc) {
-		cc = imx7_csi_find_mbus_format(mbus->code);
-		if (!cc)
-			return -EINVAL;
-	}
-
-	/* Round up width for minimum burst size */
-	width = round_up(mbus->width, 8);
-
-	/* Round up stride for IDMAC line start address alignment */
-	stride = round_up((width * cc->bpp) >> 3, 8);
-
-	pix->width = width;
-	pix->height = mbus->height;
-	pix->pixelformat = cc->fourcc;
-	pix->colorspace = mbus->colorspace;
-	pix->xfer_func = mbus->xfer_func;
-	pix->ycbcr_enc = mbus->ycbcr_enc;
-	pix->quantization = mbus->quantization;
-	pix->field = mbus->field;
-	pix->bytesperline = stride;
-	pix->sizeimage = stride * pix->height;
-
-	return 0;
-}
-
 /* -----------------------------------------------------------------------------
  * Video Capture Device - IOCTLs
  */
@@ -1145,8 +1112,13 @@ static const struct imx7_csi_pixfmt *
 __imx7_csi_video_try_fmt(struct v4l2_pix_format *pixfmt,
 			 struct v4l2_rect *compose)
 {
-	struct v4l2_mbus_framefmt fmt_src;
 	const struct imx7_csi_pixfmt *cc;
+	u32 walign;
+
+	if (compose) {
+		compose->width = pixfmt->width;
+		compose->height = pixfmt->height;
+	}
 
 	/*
 	 * Find the pixel format, default to the first supported format if not
@@ -1158,27 +1130,19 @@ __imx7_csi_video_try_fmt(struct v4l2_pix_format *pixfmt,
 		cc = imx7_csi_find_pixel_format(pixfmt->pixelformat);
 	}
 
-	/* Allow IDMAC interweave but enforce field order from source. */
-	if (V4L2_FIELD_IS_INTERLACED(pixfmt->field)) {
-		switch (pixfmt->field) {
-		case V4L2_FIELD_SEQ_TB:
-			pixfmt->field = V4L2_FIELD_INTERLACED_TB;
-			break;
-		case V4L2_FIELD_SEQ_BT:
-			pixfmt->field = V4L2_FIELD_INTERLACED_BT;
-			break;
-		default:
-			break;
-		}
-	}
+	/*
+	 * The width alignment is 8 bytes as indicated by the
+	 * CSI_IMAG_PARA.IMAGE_WIDTH documentation. Convert it to pixels.
+	 *
+	 * TODO: Implement configurable stride support.
+	 */
+	walign = 8 * 8 / cc->bpp;
+	v4l_bound_align_image(&pixfmt->width, 1, 0xffff, walign,
+			      &pixfmt->height, 1, 0xffff, 1, 0);
 
-	v4l2_fill_mbus_format(&fmt_src, pixfmt, 0);
-	imx7_csi_mbus_fmt_to_pix_fmt(pixfmt, &fmt_src, cc);
-
-	if (compose) {
-		compose->width = fmt_src.width;
-		compose->height = fmt_src.height;
-	}
+	pixfmt->bytesperline = pixfmt->width * cc->bpp / 8;
+	pixfmt->sizeimage = pixfmt->bytesperline * pixfmt->height;
+	pixfmt->field = V4L2_FIELD_NONE;
 
 	return cc;
 }
@@ -1213,6 +1177,9 @@ static int imx7_csi_video_g_selection(struct file *file, void *fh,
 				      struct v4l2_selection *s)
 {
 	struct imx7_csi *csi = video_drvdata(file);
+
+	if (s->type != V4L2_BUF_TYPE_VIDEO_CAPTURE)
+		return -EINVAL;
 
 	switch (s->target) {
 	case V4L2_SEL_TGT_COMPOSE:
@@ -1603,21 +1570,14 @@ static struct imx7_csi_vb2_buffer *imx7_csi_video_next_buf(struct imx7_csi *csi)
 	return buf;
 }
 
-static int imx7_csi_video_init_format(struct imx7_csi *csi)
+static void imx7_csi_video_init_format(struct imx7_csi *csi)
 {
-	struct v4l2_mbus_framefmt format = { };
+	struct v4l2_pix_format *pixfmt = &csi->vdev_fmt;
 
-	format.code = IMX7_CSI_DEF_MBUS_CODE;
-	format.width = IMX7_CSI_DEF_PIX_WIDTH;
-	format.height = IMX7_CSI_DEF_PIX_HEIGHT;
+	pixfmt->width = IMX7_CSI_DEF_PIX_WIDTH;
+	pixfmt->height = IMX7_CSI_DEF_PIX_HEIGHT;
 
-	imx7_csi_mbus_fmt_to_pix_fmt(&csi->vdev_fmt, &format, NULL);
-	csi->vdev_compose.width = format.width;
-	csi->vdev_compose.height = format.height;
-
-	csi->vdev_cc = imx7_csi_find_pixel_format(csi->vdev_fmt.pixelformat);
-
-	return 0;
+	csi->vdev_cc = __imx7_csi_video_try_fmt(pixfmt, &csi->vdev_compose);
 }
 
 static int imx7_csi_video_register(struct imx7_csi *csi)
@@ -1630,9 +1590,7 @@ static int imx7_csi_video_register(struct imx7_csi *csi)
 	vdev->v4l2_dev = v4l2_dev;
 
 	/* Initialize the default format and compose rectangle. */
-	ret = imx7_csi_video_init_format(csi);
-	if (ret < 0)
-		return ret;
+	imx7_csi_video_init_format(csi);
 
 	/* Register the video device. */
 	ret = video_register_device(vdev, VFL_TYPE_VIDEO, -1);
@@ -2107,18 +2065,21 @@ static int imx7_csi_async_register(struct imx7_csi *csi)
 
 	ep = fwnode_graph_get_endpoint_by_id(dev_fwnode(csi->dev), 0, 0,
 					     FWNODE_GRAPH_ENDPOINT_NEXT);
-	if (ep) {
-		asd = v4l2_async_nf_add_fwnode_remote(&csi->notifier, ep,
-						      struct v4l2_async_subdev);
+	if (!ep) {
+		ret = dev_err_probe(csi->dev, -ENOTCONN,
+				    "Failed to get remote endpoint\n");
+		goto error;
+	}
 
-		fwnode_handle_put(ep);
+	asd = v4l2_async_nf_add_fwnode_remote(&csi->notifier, ep,
+					      struct v4l2_async_subdev);
 
-		if (IS_ERR(asd)) {
-			ret = PTR_ERR(asd);
-			/* OK if asd already exists */
-			if (ret != -EEXIST)
-				goto error;
-		}
+	fwnode_handle_put(ep);
+
+	if (IS_ERR(asd)) {
+		ret = dev_err_probe(csi->dev, PTR_ERR(asd),
+				    "Failed to add remote subdev to notifier\n");
+		goto error;
 	}
 
 	csi->notifier.ops = &imx7_csi_notify_ops;
@@ -2278,7 +2239,7 @@ err_media_cleanup:
 	return ret;
 }
 
-static int imx7_csi_remove(struct platform_device *pdev)
+static void imx7_csi_remove(struct platform_device *pdev)
 {
 	struct imx7_csi *csi = platform_get_drvdata(pdev);
 
@@ -2287,8 +2248,6 @@ static int imx7_csi_remove(struct platform_device *pdev)
 	v4l2_async_nf_unregister(&csi->notifier);
 	v4l2_async_nf_cleanup(&csi->notifier);
 	v4l2_async_unregister_subdev(&csi->sd);
-
-	return 0;
 }
 
 static const struct of_device_id imx7_csi_of_match[] = {
@@ -2301,7 +2260,7 @@ MODULE_DEVICE_TABLE(of, imx7_csi_of_match);
 
 static struct platform_driver imx7_csi_driver = {
 	.probe = imx7_csi_probe,
-	.remove = imx7_csi_remove,
+	.remove_new = imx7_csi_remove,
 	.driver = {
 		.of_match_table = imx7_csi_of_match,
 		.name = "imx7-csi",

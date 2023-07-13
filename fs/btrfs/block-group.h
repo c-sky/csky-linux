@@ -91,14 +91,6 @@ struct btrfs_caching_control {
 /* Once caching_thread() finds this much free space, it will wake up waiters. */
 #define CACHING_CTL_WAKE_UP SZ_2M
 
-/*
- * Tree to record all locked full stripes of a RAID5/6 block group
- */
-struct btrfs_full_stripe_locks_tree {
-	struct rb_root root;
-	struct mutex lock;
-};
-
 struct btrfs_block_group {
 	struct btrfs_fs_info *fs_info;
 	struct inode *inode;
@@ -170,7 +162,14 @@ struct btrfs_block_group {
 	 */
 	struct list_head cluster_list;
 
-	/* For delayed block group creation or deletion of empty block groups */
+	/*
+	 * Used for several lists:
+	 *
+	 * 1) struct btrfs_fs_info::unused_bgs
+	 * 2) struct btrfs_fs_info::reclaim_bgs
+	 * 3) struct btrfs_transaction::deleted_bgs
+	 * 4) struct btrfs_trans_handle::new_bgs
+	 */
 	struct list_head bg_list;
 
 	/* For read-only block groups */
@@ -228,9 +227,6 @@ struct btrfs_block_group {
 	 * All accesses protected by the spinlock 'lock'.
 	 */
 	int swap_extents;
-
-	/* Record locked full stripes for RAID5/6 block group */
-	struct btrfs_full_stripe_locks_tree full_stripe_locks_root;
 
 	/*
 	 * Allocation offset for the block group to implement sequential
@@ -302,7 +298,7 @@ void btrfs_reclaim_bgs(struct btrfs_fs_info *fs_info);
 void btrfs_mark_bg_to_reclaim(struct btrfs_block_group *bg);
 int btrfs_read_block_groups(struct btrfs_fs_info *info);
 struct btrfs_block_group *btrfs_make_block_group(struct btrfs_trans_handle *trans,
-						 u64 bytes_used, u64 type,
+						 u64 type,
 						 u64 chunk_offset, u64 size);
 void btrfs_create_pending_block_groups(struct btrfs_trans_handle *trans);
 int btrfs_inc_block_group_ro(struct btrfs_block_group *cache,

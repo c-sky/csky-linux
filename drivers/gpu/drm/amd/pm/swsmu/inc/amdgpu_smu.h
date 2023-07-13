@@ -573,6 +573,8 @@ struct smu_context
 	u32 debug_param_reg;
 	u32 debug_msg_reg;
 	u32 debug_resp_reg;
+
+	struct delayed_work		swctf_delayed_work;
 };
 
 struct i2c_adapter;
@@ -720,6 +722,18 @@ struct pptable_funcs {
 	 */
 	int (*read_sensor)(struct smu_context *smu, enum amd_pp_sensors sensor,
 			   void *data, uint32_t *size);
+
+	/**
+	 * @get_apu_thermal_limit: get apu core limit from smu
+	 * &limit: current limit temperature in millidegrees Celsius
+	 */
+	int (*get_apu_thermal_limit)(struct smu_context *smu, uint32_t *limit);
+
+	/**
+	 * @set_apu_thermal_limit: update all controllers with new limit
+	 * &limit: limit temperature to be setted, in millidegrees Celsius
+	 */
+	int (*set_apu_thermal_limit)(struct smu_context *smu, uint32_t limit);
 
 	/**
 	 * @pre_display_config_changed: Prepare GPU for a display configuration

@@ -102,12 +102,42 @@ static inline int srcu_read_lock_held(const struct srcu_struct *ssp)
 	return lock_is_held(&ssp->dep_map);
 }
 
+/*
+ * Annotations provide deadlock detection for SRCU.
+ *
+ * Similar to other lockdep annotations, except there is an additional
+ * srcu_lock_sync(), which is basically an empty *write*-side critical section,
+ * see lock_sync() for more information.
+ */
+
+/* Annotates a srcu_read_lock() */
+static inline void srcu_lock_acquire(struct lockdep_map *map)
+{
+	lock_map_acquire_read(map);
+}
+
+/* Annotates a srcu_read_lock() */
+static inline void srcu_lock_release(struct lockdep_map *map)
+{
+	lock_map_release(map);
+}
+
+/* Annotates a synchronize_srcu() */
+static inline void srcu_lock_sync(struct lockdep_map *map)
+{
+	lock_map_sync(map);
+}
+
 #else /* #ifdef CONFIG_DEBUG_LOCK_ALLOC */
 
 static inline int srcu_read_lock_held(const struct srcu_struct *ssp)
 {
 	return 1;
 }
+
+#define srcu_lock_acquire(m) do { } while (0)
+#define srcu_lock_release(m) do { } while (0)
+#define srcu_lock_sync(m) do { } while (0)
 
 #endif /* #else #ifdef CONFIG_DEBUG_LOCK_ALLOC */
 
@@ -182,7 +212,7 @@ static inline int srcu_read_lock(struct srcu_struct *ssp) __acquires(ssp)
 
 	srcu_check_nmi_safety(ssp, false);
 	retval = __srcu_read_lock(ssp);
-	rcu_lock_acquire(&(ssp)->dep_map);
+	srcu_lock_acquire(&ssp->dep_map);
 	return retval;
 }
 
@@ -199,7 +229,7 @@ static inline int srcu_read_lock_nmisafe(struct srcu_struct *ssp) __acquires(ssp
 
 	srcu_check_nmi_safety(ssp, true);
 	retval = __srcu_read_lock_nmisafe(ssp);
-	rcu_lock_acquire(&(ssp)->dep_map);
+	rcu_lock_acquire(&ssp->dep_map);
 	return retval;
 }
 
@@ -254,7 +284,7 @@ static inline void srcu_read_unlock(struct srcu_struct *ssp, int idx)
 {
 	WARN_ON_ONCE(idx & ~0x1);
 	srcu_check_nmi_safety(ssp, false);
-	rcu_lock_release(&(ssp)->dep_map);
+	srcu_lock_release(&ssp->dep_map);
 	__srcu_read_unlock(ssp, idx);
 }
 
@@ -270,7 +300,7 @@ static inline void srcu_read_unlock_nmisafe(struct srcu_struct *ssp, int idx)
 {
 	WARN_ON_ONCE(idx & ~0x1);
 	srcu_check_nmi_safety(ssp, true);
-	rcu_lock_release(&(ssp)->dep_map);
+	rcu_lock_release(&ssp->dep_map);
 	__srcu_read_unlock_nmisafe(ssp, idx);
 }
 
@@ -312,5 +342,10 @@ static inline void smp_mb__after_srcu_read_unlock(void)
 {
 	/* __srcu_read_unlock has smp_mb() internally so nothing to do here. */
 }
+
+DEFINE_LOCK_GUARD_1(srcu, struct srcu_struct,
+		    _T->idx = srcu_read_lock(_T->lock),
+		    srcu_read_unlock(_T->lock, _T->idx),
+		    int idx)
 
 #endif

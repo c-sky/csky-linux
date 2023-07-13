@@ -854,11 +854,11 @@ static unsigned long tc358746_find_pll_settings(struct tc358746 *tc358746,
 			m_best = mul;
 			min_delta = delta;
 			best_freq = tmp;
-		};
+		}
 
 		if (delta == 0)
 			break;
-	};
+	}
 
 	if (!best_freq) {
 		dev_err(dev, "Failed find PLL frequency\n");
@@ -1686,7 +1686,7 @@ static struct i2c_driver tc358746_driver = {
 		.pm = pm_ptr(&tc358746_pm_ops),
 		.of_match_table = tc358746_of_match,
 	},
-	.probe_new = tc358746_probe,
+	.probe = tc358746_probe,
 	.remove = tc358746_remove,
 };
 

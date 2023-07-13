@@ -9,6 +9,7 @@
 
 #include "std.h"
 #include <linux/time.h>
+#include <linux/stat.h>
 
 
 /* Only the generic macros and types may be defined here. The arch-specific
@@ -16,7 +17,11 @@
  * the layout of sys_stat_struct must not be defined here.
  */
 
-/* stat flags (WARNING, octal here) */
+/* stat flags (WARNING, octal here). We need to check for an existing
+ * definition because linux/stat.h may omit to define those if it finds
+ * that any glibc header was already included.
+ */
+#if !defined(S_IFMT)
 #define S_IFDIR        0040000
 #define S_IFCHR        0020000
 #define S_IFBLK        0060000
@@ -33,6 +38,22 @@
 #define S_ISFIFO(mode) (((mode) & S_IFMT) == S_IFIFO)
 #define S_ISLNK(mode)  (((mode) & S_IFMT) == S_IFLNK)
 #define S_ISSOCK(mode) (((mode) & S_IFMT) == S_IFSOCK)
+
+#define S_IRWXU 00700
+#define S_IRUSR 00400
+#define S_IWUSR 00200
+#define S_IXUSR 00100
+
+#define S_IRWXG 00070
+#define S_IRGRP 00040
+#define S_IWGRP 00020
+#define S_IXGRP 00010
+
+#define S_IRWXO 00007
+#define S_IROTH 00004
+#define S_IWOTH 00002
+#define S_IXOTH 00001
+#endif
 
 /* dirent types */
 #define DT_UNKNOWN     0x0
@@ -60,27 +81,16 @@
 #define MAXPATHLEN     (PATH_MAX)
 #endif
 
-/* Special FD used by all the *at functions */
-#ifndef AT_FDCWD
-#define AT_FDCWD       (-100)
-#endif
-
 /* whence values for lseek() */
 #define SEEK_SET       0
 #define SEEK_CUR       1
 #define SEEK_END       2
 
-/* cmd for reboot() */
-#define LINUX_REBOOT_MAGIC1         0xfee1dead
-#define LINUX_REBOOT_MAGIC2         0x28121969
-#define LINUX_REBOOT_CMD_HALT       0xcdef0123
-#define LINUX_REBOOT_CMD_POWER_OFF  0x4321fedc
-#define LINUX_REBOOT_CMD_RESTART    0x01234567
-#define LINUX_REBOOT_CMD_SW_SUSPEND 0xd000fce2
-
 /* Macros used on waitpid()'s return status */
 #define WEXITSTATUS(status) (((status) & 0xff00) >> 8)
 #define WIFEXITED(status)   (((status) & 0x7f) == 0)
+#define WTERMSIG(status)    ((status) & 0x7f)
+#define WIFSIGNALED(status) ((status) - 1 < 0xff)
 
 /* waitpid() flags */
 #define WNOHANG      1
@@ -188,9 +198,9 @@ struct stat {
 	off_t     st_size;    /* total size, in bytes */
 	blksize_t st_blksize; /* blocksize for file system I/O */
 	blkcnt_t  st_blocks;  /* number of 512B blocks allocated */
-	time_t    st_atime;   /* time of last access */
-	time_t    st_mtime;   /* time of last modification */
-	time_t    st_ctime;   /* time of last status change */
+	union { time_t st_atime; struct timespec st_atim; }; /* time of last access */
+	union { time_t st_mtime; struct timespec st_mtim; }; /* time of last modification */
+	union { time_t st_ctime; struct timespec st_ctim; }; /* time of last status change */
 };
 
 /* WARNING, it only deals with the 4096 first majors and 256 first minors */

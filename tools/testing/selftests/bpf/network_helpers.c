@@ -95,7 +95,7 @@ static int __start_server(int type, int protocol, const struct sockaddr *addr,
 	if (reuseport &&
 	    setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, &on, sizeof(on))) {
 		log_err("Failed to set SO_REUSEPORT");
-		return -1;
+		goto error_close;
 	}
 
 	if (bind(fd, addr, addrlen) < 0) {
@@ -426,4 +426,27 @@ void close_netns(struct nstoken *token)
 	ASSERT_OK(setns(token->orig_netns_fd, CLONE_NEWNET), "setns");
 	close(token->orig_netns_fd);
 	free(token);
+}
+
+int get_socket_local_port(int sock_fd)
+{
+	struct sockaddr_storage addr;
+	socklen_t addrlen = sizeof(addr);
+	int err;
+
+	err = getsockname(sock_fd, (struct sockaddr *)&addr, &addrlen);
+	if (err < 0)
+		return err;
+
+	if (addr.ss_family == AF_INET) {
+		struct sockaddr_in *sin = (struct sockaddr_in *)&addr;
+
+		return sin->sin_port;
+	} else if (addr.ss_family == AF_INET6) {
+		struct sockaddr_in6 *sin = (struct sockaddr_in6 *)&addr;
+
+		return sin->sin6_port;
+	}
+
+	return -1;
 }

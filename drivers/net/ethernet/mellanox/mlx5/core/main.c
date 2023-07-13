@@ -46,12 +46,10 @@
 #include <linux/kmod.h>
 #include <linux/mlx5/mlx5_ifc.h>
 #include <linux/mlx5/vport.h>
-#ifdef CONFIG_RFS_ACCEL
-#include <linux/cpu_rmap.h>
-#endif
 #include <linux/version.h>
 #include <net/devlink.h>
 #include "mlx5_core.h"
+#include "thermal.h"
 #include "lib/eq.h"
 #include "fs_core.h"
 #include "lib/mpfs.h"
@@ -102,15 +100,19 @@ enum {
 static struct mlx5_profile profile[] = {
 	[0] = {
 		.mask           = 0,
+		.num_cmd_caches = MLX5_NUM_COMMAND_CACHES,
 	},
 	[1] = {
 		.mask		= MLX5_PROF_MASK_QP_SIZE,
 		.log_max_qp	= 12,
+		.num_cmd_caches = MLX5_NUM_COMMAND_CACHES,
+
 	},
 	[2] = {
 		.mask		= MLX5_PROF_MASK_QP_SIZE |
 				  MLX5_PROF_MASK_MR_CACHE,
 		.log_max_qp	= LOG_MAX_SUPPORTED_QPS,
+		.num_cmd_caches = MLX5_NUM_COMMAND_CACHES,
 		.mr_cache[0]	= {
 			.size	= 500,
 			.limit	= 250
@@ -176,6 +178,11 @@ static struct mlx5_profile profile[] = {
 			.limit	= 4
 		},
 	},
+	[3] = {
+		.mask		= MLX5_PROF_MASK_QP_SIZE,
+		.log_max_qp	= LOG_MAX_SUPPORTED_QPS,
+		.num_cmd_caches = 0,
+	},
 };
 
 static int wait_fw_init(struct mlx5_core_dev *dev, u32 max_wait_mili,
@@ -191,7 +198,7 @@ static int wait_fw_init(struct mlx5_core_dev *dev, u32 max_wait_mili,
 		if (!(fw_initializing >> 31))
 			break;
 		if (time_after(jiffies, end) ||
-		    test_and_clear_bit(MLX5_BREAK_FW_WAIT, &dev->intf_state)) {
+		    test_bit(MLX5_BREAK_FW_WAIT, &dev->intf_state)) {
 			err = -EBUSY;
 			break;
 		}
@@ -612,6 +619,9 @@ static int handle_hca_cap(struct mlx5_core_dev *dev, void *set_ctx)
 
 	if (MLX5_CAP_GEN_MAX(dev, pci_sync_for_fw_update_event))
 		MLX5_SET(cmd_hca_cap, set_hca_cap, pci_sync_for_fw_update_event, 1);
+	if (MLX5_CAP_GEN_MAX(dev, pci_sync_for_fw_update_with_driver_unload))
+		MLX5_SET(cmd_hca_cap, set_hca_cap,
+			 pci_sync_for_fw_update_with_driver_unload, 1);
 
 	if (MLX5_CAP_GEN_MAX(dev, num_vhca_ports))
 		MLX5_SET(cmd_hca_cap,
@@ -684,6 +694,9 @@ static int handle_hca_cap_roce(struct mlx5_core_dev *dev, void *set_ctx)
 	       MLX5_ST_SZ_BYTES(roce_cap));
 	MLX5_SET(roce_cap, set_hca_cap, sw_r_roce_src_udp_port, 1);
 
+	if (MLX5_CAP_ROCE_MAX(dev, qp_ooo_transmit_default))
+		MLX5_SET(roce_cap, set_hca_cap, qp_ooo_transmit_default, 1);
+
 	err = set_caps(dev, set_ctx, MLX5_SET_HCA_CAP_OP_MOD_ROCE);
 	return err;
 }
@@ -710,7 +723,7 @@ static int handle_hca_cap_port_selection(struct mlx5_core_dev *dev,
 	       MLX5_ST_SZ_BYTES(port_selection_cap));
 	MLX5_SET(port_selection_cap, set_hca_cap, port_select_flow_table_bypass, 1);
 
-	err = set_caps(dev, set_ctx, MLX5_SET_HCA_CAP_OP_MODE_PORT_SELECTION);
+	err = set_caps(dev, set_ctx, MLX5_SET_HCA_CAP_OP_MOD_PORT_SELECTION);
 
 	return err;
 }
@@ -913,11 +926,9 @@ static int mlx5_pci_init(struct mlx5_core_dev *dev, struct pci_dev *pdev,
 	}
 
 	mlx5_pci_vsc_init(dev);
-	dev->caps.embedded_cpu = mlx5_read_embedded_cpu(dev);
 	return 0;
 
 err_clr_master:
-	pci_clear_master(dev->pdev);
 	release_bar(dev->pdev);
 err_disable:
 	mlx5_pci_disable_device(dev);
@@ -932,7 +943,6 @@ static void mlx5_pci_close(struct mlx5_core_dev *dev)
 	 */
 	mlx5_drain_health_wq(dev);
 	iounmap(dev->iseg);
-	pci_clear_master(dev->pdev);
 	release_bar(dev->pdev);
 	mlx5_pci_disable_device(dev);
 }
@@ -1041,7 +1051,7 @@ static int mlx5_init_once(struct mlx5_core_dev *dev)
 
 	dev->dm = mlx5_dm_create(dev);
 	if (IS_ERR(dev->dm))
-		mlx5_core_warn(dev, "Failed to init device memory%d\n", err);
+		mlx5_core_warn(dev, "Failed to init device memory %ld\n", PTR_ERR(dev->dm));
 
 	dev->tracer = mlx5_fw_tracer_create(dev);
 	dev->hv_vhca = mlx5_hv_vhca_create(dev);
@@ -1111,7 +1121,7 @@ static void mlx5_cleanup_once(struct mlx5_core_dev *dev)
 	mlx5_devcom_unregister_device(dev->priv.devcom);
 }
 
-static int mlx5_function_setup(struct mlx5_core_dev *dev, bool boot, u64 timeout)
+static int mlx5_function_enable(struct mlx5_core_dev *dev, bool boot, u64 timeout)
 {
 	int err;
 
@@ -1147,6 +1157,7 @@ static int mlx5_function_setup(struct mlx5_core_dev *dev, bool boot, u64 timeout
 		goto err_cmd_cleanup;
 	}
 
+	dev->caps.embedded_cpu = mlx5_read_embedded_cpu(dev);
 	mlx5_cmd_set_state(dev, MLX5_CMDIF_STATE_UP);
 
 	mlx5_start_health_poll(dev);
@@ -1175,39 +1186,6 @@ static int mlx5_function_setup(struct mlx5_core_dev *dev, bool boot, u64 timeout
 		goto reclaim_boot_pages;
 	}
 
-	err = set_hca_ctrl(dev);
-	if (err) {
-		mlx5_core_err(dev, "set_hca_ctrl failed\n");
-		goto reclaim_boot_pages;
-	}
-
-	err = set_hca_cap(dev);
-	if (err) {
-		mlx5_core_err(dev, "set_hca_cap failed\n");
-		goto reclaim_boot_pages;
-	}
-
-	err = mlx5_satisfy_startup_pages(dev, 0);
-	if (err) {
-		mlx5_core_err(dev, "failed to allocate init pages\n");
-		goto reclaim_boot_pages;
-	}
-
-	err = mlx5_cmd_init_hca(dev, sw_owner_id);
-	if (err) {
-		mlx5_core_err(dev, "init hca failed\n");
-		goto reclaim_boot_pages;
-	}
-
-	mlx5_set_driver_version(dev);
-
-	err = mlx5_query_hca_caps(dev);
-	if (err) {
-		mlx5_core_err(dev, "query hca failed\n");
-		goto reclaim_boot_pages;
-	}
-	mlx5_start_health_fw_log_up(dev);
-
 	return 0;
 
 reclaim_boot_pages:
@@ -1223,7 +1201,55 @@ err_cmd_cleanup:
 	return err;
 }
 
-static int mlx5_function_teardown(struct mlx5_core_dev *dev, bool boot)
+static void mlx5_function_disable(struct mlx5_core_dev *dev, bool boot)
+{
+	mlx5_reclaim_startup_pages(dev);
+	mlx5_core_disable_hca(dev, 0);
+	mlx5_stop_health_poll(dev, boot);
+	mlx5_cmd_set_state(dev, MLX5_CMDIF_STATE_DOWN);
+	mlx5_cmd_cleanup(dev);
+}
+
+static int mlx5_function_open(struct mlx5_core_dev *dev)
+{
+	int err;
+
+	err = set_hca_ctrl(dev);
+	if (err) {
+		mlx5_core_err(dev, "set_hca_ctrl failed\n");
+		return err;
+	}
+
+	err = set_hca_cap(dev);
+	if (err) {
+		mlx5_core_err(dev, "set_hca_cap failed\n");
+		return err;
+	}
+
+	err = mlx5_satisfy_startup_pages(dev, 0);
+	if (err) {
+		mlx5_core_err(dev, "failed to allocate init pages\n");
+		return err;
+	}
+
+	err = mlx5_cmd_init_hca(dev, sw_owner_id);
+	if (err) {
+		mlx5_core_err(dev, "init hca failed\n");
+		return err;
+	}
+
+	mlx5_set_driver_version(dev);
+
+	err = mlx5_query_hca_caps(dev);
+	if (err) {
+		mlx5_core_err(dev, "query hca failed\n");
+		return err;
+	}
+	mlx5_start_health_fw_log_up(dev);
+	return 0;
+}
+
+static int mlx5_function_close(struct mlx5_core_dev *dev)
 {
 	int err;
 
@@ -1232,13 +1258,31 @@ static int mlx5_function_teardown(struct mlx5_core_dev *dev, bool boot)
 		mlx5_core_err(dev, "tear_down_hca failed, skip cleanup\n");
 		return err;
 	}
-	mlx5_reclaim_startup_pages(dev);
-	mlx5_core_disable_hca(dev, 0);
-	mlx5_stop_health_poll(dev, boot);
-	mlx5_cmd_set_state(dev, MLX5_CMDIF_STATE_DOWN);
-	mlx5_cmd_cleanup(dev);
 
 	return 0;
+}
+
+static int mlx5_function_setup(struct mlx5_core_dev *dev, bool boot, u64 timeout)
+{
+	int err;
+
+	err = mlx5_function_enable(dev, boot, timeout);
+	if (err)
+		return err;
+
+	err = mlx5_function_open(dev);
+	if (err)
+		mlx5_function_disable(dev, boot);
+	return err;
+}
+
+static int mlx5_function_teardown(struct mlx5_core_dev *dev, bool boot)
+{
+	int err = mlx5_function_close(dev);
+
+	if (!err)
+		mlx5_function_disable(dev, boot);
+	return err;
 }
 
 static int mlx5_load(struct mlx5_core_dev *dev)
@@ -1383,12 +1427,11 @@ static void mlx5_unload(struct mlx5_core_dev *dev)
 	mlx5_put_uars_page(dev, dev->priv.uar);
 }
 
-int mlx5_init_one(struct mlx5_core_dev *dev)
+int mlx5_init_one_devl_locked(struct mlx5_core_dev *dev)
 {
-	struct devlink *devlink = priv_to_devlink(dev);
+	bool light_probe = mlx5_dev_is_lightweight(dev);
 	int err = 0;
 
-	devl_lock(devlink);
 	mutex_lock(&dev->intf_state_mutex);
 	dev->state = MLX5_DEVICE_STATE_UP;
 
@@ -1402,36 +1445,51 @@ int mlx5_init_one(struct mlx5_core_dev *dev)
 		goto function_teardown;
 	}
 
+	/* In case of light_probe, mlx5_devlink is already registered.
+	 * Hence, don't register devlink again.
+	 */
+	if (!light_probe) {
+		err = mlx5_devlink_params_register(priv_to_devlink(dev));
+		if (err)
+			goto err_devlink_params_reg;
+	}
+
 	err = mlx5_load(dev);
 	if (err)
 		goto err_load;
 
 	set_bit(MLX5_INTERFACE_STATE_UP, &dev->intf_state);
 
-	err = mlx5_devlink_params_register(priv_to_devlink(dev));
-	if (err)
-		goto err_devlink_params_reg;
-
 	err = mlx5_register_device(dev);
 	if (err)
 		goto err_register;
 
 	mutex_unlock(&dev->intf_state_mutex);
-	devl_unlock(devlink);
 	return 0;
 
 err_register:
-	mlx5_devlink_params_unregister(priv_to_devlink(dev));
-err_devlink_params_reg:
 	clear_bit(MLX5_INTERFACE_STATE_UP, &dev->intf_state);
 	mlx5_unload(dev);
 err_load:
+	if (!light_probe)
+		mlx5_devlink_params_unregister(priv_to_devlink(dev));
+err_devlink_params_reg:
 	mlx5_cleanup_once(dev);
 function_teardown:
 	mlx5_function_teardown(dev, true);
 err_function:
 	dev->state = MLX5_DEVICE_STATE_INTERNAL_ERROR;
 	mutex_unlock(&dev->intf_state_mutex);
+	return err;
+}
+
+int mlx5_init_one(struct mlx5_core_dev *dev)
+{
+	struct devlink *devlink = priv_to_devlink(dev);
+	int err;
+
+	devl_lock(devlink);
+	err = mlx5_init_one_devl_locked(dev);
 	devl_unlock(devlink);
 	return err;
 }
@@ -1444,7 +1502,6 @@ void mlx5_uninit_one(struct mlx5_core_dev *dev)
 	mutex_lock(&dev->intf_state_mutex);
 
 	mlx5_unregister_device(dev);
-	mlx5_devlink_params_unregister(priv_to_devlink(dev));
 
 	if (!test_bit(MLX5_INTERFACE_STATE_UP, &dev->intf_state)) {
 		mlx5_core_warn(dev, "%s: interface is down, NOP\n",
@@ -1455,6 +1512,7 @@ void mlx5_uninit_one(struct mlx5_core_dev *dev)
 
 	clear_bit(MLX5_INTERFACE_STATE_UP, &dev->intf_state);
 	mlx5_unload(dev);
+	mlx5_devlink_params_unregister(priv_to_devlink(dev));
 	mlx5_cleanup_once(dev);
 	mlx5_function_teardown(dev, true);
 out:
@@ -1509,13 +1567,13 @@ out:
 	return err;
 }
 
-int mlx5_load_one(struct mlx5_core_dev *dev)
+int mlx5_load_one(struct mlx5_core_dev *dev, bool recovery)
 {
 	struct devlink *devlink = priv_to_devlink(dev);
 	int ret;
 
 	devl_lock(devlink);
-	ret = mlx5_load_one_devl_locked(dev, false);
+	ret = mlx5_load_one_devl_locked(dev, recovery);
 	devl_unlock(devlink);
 	return ret;
 }
@@ -1547,6 +1605,100 @@ void mlx5_unload_one(struct mlx5_core_dev *dev, bool suspend)
 	devl_lock(devlink);
 	mlx5_unload_one_devl_locked(dev, suspend);
 	devl_unlock(devlink);
+}
+
+/* In case of light probe, we don't need a full query of hca_caps, but only the bellow caps.
+ * A full query of hca_caps will be done when the device will reload.
+ */
+static int mlx5_query_hca_caps_light(struct mlx5_core_dev *dev)
+{
+	int err;
+
+	err = mlx5_core_get_caps(dev, MLX5_CAP_GENERAL);
+	if (err)
+		return err;
+
+	if (MLX5_CAP_GEN(dev, eth_net_offloads)) {
+		err = mlx5_core_get_caps(dev, MLX5_CAP_ETHERNET_OFFLOADS);
+		if (err)
+			return err;
+	}
+
+	if (MLX5_CAP_GEN(dev, nic_flow_table) ||
+	    MLX5_CAP_GEN(dev, ipoib_enhanced_offloads)) {
+		err = mlx5_core_get_caps(dev, MLX5_CAP_FLOW_TABLE);
+		if (err)
+			return err;
+	}
+
+	if (MLX5_CAP_GEN_64(dev, general_obj_types) &
+		MLX5_GENERAL_OBJ_TYPES_CAP_VIRTIO_NET_Q) {
+		err = mlx5_core_get_caps(dev, MLX5_CAP_VDPA_EMULATION);
+		if (err)
+			return err;
+	}
+
+	return 0;
+}
+
+int mlx5_init_one_light(struct mlx5_core_dev *dev)
+{
+	struct devlink *devlink = priv_to_devlink(dev);
+	int err;
+
+	dev->state = MLX5_DEVICE_STATE_UP;
+	err = mlx5_function_enable(dev, true, mlx5_tout_ms(dev, FW_PRE_INIT_TIMEOUT));
+	if (err) {
+		mlx5_core_warn(dev, "mlx5_function_enable err=%d\n", err);
+		goto out;
+	}
+
+	err = mlx5_query_hca_caps_light(dev);
+	if (err) {
+		mlx5_core_warn(dev, "mlx5_query_hca_caps_light err=%d\n", err);
+		goto query_hca_caps_err;
+	}
+
+	devl_lock(devlink);
+	err = mlx5_devlink_params_register(priv_to_devlink(dev));
+	devl_unlock(devlink);
+	if (err) {
+		mlx5_core_warn(dev, "mlx5_devlink_param_reg err = %d\n", err);
+		goto query_hca_caps_err;
+	}
+
+	return 0;
+
+query_hca_caps_err:
+	mlx5_function_disable(dev, true);
+out:
+	dev->state = MLX5_DEVICE_STATE_INTERNAL_ERROR;
+	return err;
+}
+
+void mlx5_uninit_one_light(struct mlx5_core_dev *dev)
+{
+	struct devlink *devlink = priv_to_devlink(dev);
+
+	devl_lock(devlink);
+	mlx5_devlink_params_unregister(priv_to_devlink(dev));
+	devl_unlock(devlink);
+	if (dev->state != MLX5_DEVICE_STATE_UP)
+		return;
+	mlx5_function_disable(dev, true);
+}
+
+/* xxx_light() function are used in order to configure the device without full
+ * init (light init). e.g.: There isn't a point in reload a device to light state.
+ * Hence, mlx5_load_one_light() isn't needed.
+ */
+
+void mlx5_unload_one_light(struct mlx5_core_dev *dev)
+{
+	if (dev->state != MLX5_DEVICE_STATE_UP)
+		return;
+	mlx5_function_disable(dev, false);
+	dev->state = MLX5_DEVICE_STATE_INTERNAL_ERROR;
 }
 
 static const int types[] = {
@@ -1768,6 +1920,10 @@ static int probe_one(struct pci_dev *pdev, const struct pci_device_id *id)
 	if (err)
 		dev_err(&pdev->dev, "mlx5_crdump_enable failed with error code %d\n", err);
 
+	err = mlx5_thermal_init(dev);
+	if (err)
+		dev_err(&pdev->dev, "mlx5_thermal_init failed with error code %d\n", err);
+
 	pci_save_state(pdev);
 	devlink_register(devlink);
 	return 0;
@@ -1790,14 +1946,16 @@ static void remove_one(struct pci_dev *pdev)
 	struct devlink *devlink = priv_to_devlink(dev);
 
 	set_bit(MLX5_BREAK_FW_WAIT, &dev->intf_state);
-	/* mlx5_drain_fw_reset() is using devlink APIs. Hence, we must drain
-	 * fw_reset before unregistering the devlink.
+	/* mlx5_drain_fw_reset() and mlx5_drain_health_wq() are using
+	 * devlink notify APIs.
+	 * Hence, we must drain them before unregistering the devlink.
 	 */
 	mlx5_drain_fw_reset(dev);
-	devlink_unregister(devlink);
-	mlx5_sriov_disable(pdev);
-	mlx5_crdump_disable(dev);
 	mlx5_drain_health_wq(dev);
+	devlink_unregister(devlink);
+	mlx5_sriov_disable(pdev, false);
+	mlx5_thermal_uninit(dev);
+	mlx5_crdump_disable(dev);
 	mlx5_uninit_one(dev);
 	mlx5_pci_close(dev);
 	mlx5_mdev_uninit(dev);
@@ -1912,7 +2070,8 @@ static void mlx5_pci_resume(struct pci_dev *pdev)
 
 	mlx5_pci_trace(dev, "Enter, loading driver..\n");
 
-	err = mlx5_load_one(dev);
+	err = mlx5_load_one(dev, false);
+
 	if (!err)
 		devlink_health_reporter_state_update(dev->priv.health.fw_fatal_reporter,
 						     DEVLINK_HEALTH_REPORTER_STATE_HEALTHY);
@@ -2003,7 +2162,7 @@ static int mlx5_resume(struct pci_dev *pdev)
 {
 	struct mlx5_core_dev *dev = pci_get_drvdata(pdev);
 
-	return mlx5_load_one(dev);
+	return mlx5_load_one(dev, false);
 }
 
 static const struct pci_device_id mlx5_core_pci_table[] = {

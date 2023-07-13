@@ -461,9 +461,7 @@ struct amdgpu_display_manager {
 	struct amdgpu_dm_backlight_caps backlight_caps[AMDGPU_DM_MAX_NUM_EDP];
 
 	struct mod_freesync *freesync_module;
-#ifdef CONFIG_DRM_AMD_DC_HDCP
 	struct hdcp_workqueue *hdcp_workqueue;
-#endif
 
 	/**
 	 * @vblank_control_workqueue:
@@ -612,6 +610,7 @@ struct amdgpu_dm_connector {
 
 	struct drm_connector base;
 	uint32_t connector_id;
+	int bl_idx;
 
 	/* we need to mind the EDID between detect
 	   and get modes due to analog/digital/tvencoder */
@@ -662,10 +661,6 @@ struct amdgpu_dm_connector {
 	struct mutex hpd_lock;
 
 	bool fake_enable;
-#ifdef CONFIG_DEBUG_FS
-	uint32_t debugfs_dpcd_address;
-	uint32_t debugfs_dpcd_size;
-#endif
 	bool force_yuv420_output;
 	struct dsc_preferred_settings dsc_settings;
 	union dp_downstream_port_present mst_downstream_port_present;
@@ -747,9 +742,7 @@ struct dm_connector_state {
 	uint8_t underscan_hborder;
 	bool underscan_enable;
 	bool freesync_capable;
-#ifdef CONFIG_DRM_AMD_DC_HDCP
 	bool update_hdcp;
-#endif
 	uint8_t abm_level;
 	int vcpi_slots;
 	uint64_t pbn;

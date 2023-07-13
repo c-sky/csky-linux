@@ -395,6 +395,7 @@ struct ath12k_sta {
 	u8 rssi_comb;
 	struct ath12k_rx_peer_stats *rx_stats;
 	struct ath12k_wbm_tx_stats *wbm_tx_stats;
+	u32 bw_prev;
 };
 
 #define ATH12K_MIN_5G_FREQ 4150
@@ -532,6 +533,7 @@ struct ath12k {
 	/* protects txmgmt_idr data */
 	spinlock_t txmgmt_idr_lock;
 	atomic_t num_pending_mgmt_tx;
+	wait_queue_head_t txmgmt_empty_waitq;
 
 	/* cycle count is reported twice for each visited channel during scan.
 	 * access protected by data_lock
@@ -691,7 +693,7 @@ struct ath12k_base {
 
 	/* Below regd's are protected by ab->data_lock */
 	/* This is the regd set for every radio
-	 * by the firmware during initializatin
+	 * by the firmware during initialization
 	 */
 	struct ieee80211_regdomain *default_regd[MAX_RADIOS];
 	/* This regd is set during dynamic country setting

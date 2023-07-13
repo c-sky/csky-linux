@@ -23,6 +23,7 @@
 #include <asm/daifflags.h>
 #include <asm/debug-monitors.h>
 #include <asm/elf.h>
+#include <asm/exception.h>
 #include <asm/cacheflush.h>
 #include <asm/ucontext.h>
 #include <asm/unistd.h>
@@ -398,7 +399,7 @@ static int restore_tpidr2_context(struct user_ctxs *user)
 
 	__get_user_error(tpidr2_el0, &user->tpidr2->tpidr2, err);
 	if (!err)
-		current->thread.tpidr2_el0 = tpidr2_el0;
+		write_sysreg_s(tpidr2_el0, SYS_TPIDR2_EL0);
 
 	return err;
 }
@@ -651,7 +652,7 @@ static int parse_user_sigframe(struct user_ctxs *user,
 			break;
 
 		case TPIDR2_MAGIC:
-			if (!system_supports_sme())
+			if (!system_supports_tpidr2())
 				goto invalid;
 
 			if (user->tpidr2)
@@ -802,7 +803,7 @@ static int restore_sigframe(struct pt_regs *regs,
 			err = restore_fpsimd_context(&user);
 	}
 
-	if (err == 0 && system_supports_sme() && user.tpidr2)
+	if (err == 0 && system_supports_tpidr2() && user.tpidr2)
 		err = restore_tpidr2_context(&user);
 
 	if (err == 0 && system_supports_sme() && user.za)
@@ -893,6 +894,13 @@ static int setup_sigframe_layout(struct rt_sigframe_user_layout *user,
 			return err;
 	}
 
+	if (system_supports_tpidr2()) {
+		err = sigframe_alloc(user, &user->tpidr2_offset,
+				     sizeof(struct tpidr2_context));
+		if (err)
+			return err;
+	}
+
 	if (system_supports_sme()) {
 		unsigned int vl;
 		unsigned int vq = 0;
@@ -901,11 +909,6 @@ static int setup_sigframe_layout(struct rt_sigframe_user_layout *user,
 			vl = sme_max_vl();
 		else
 			vl = task_get_sme_vl(current);
-
-		err = sigframe_alloc(user, &user->tpidr2_offset,
-				     sizeof(struct tpidr2_context));
-		if (err)
-			return err;
 
 		if (thread_za_enabled(&current->thread))
 			vq = sve_vq_from_vl(vl);
@@ -974,7 +977,7 @@ static int setup_sigframe(struct rt_sigframe_user_layout *user,
 	}
 
 	/* TPIDR2 if supported */
-	if (system_supports_sme() && err == 0) {
+	if (system_supports_tpidr2() && err == 0) {
 		struct tpidr2_context __user *tpidr2_ctx =
 			apply_user_offset(user, user->tpidr2_offset);
 		err |= preserve_tpidr2_context(tpidr2_ctx);

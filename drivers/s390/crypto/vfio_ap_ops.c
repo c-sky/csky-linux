@@ -445,7 +445,7 @@ static struct ap_queue_status vfio_ap_irq_enable(struct vfio_ap_queue *q,
 		q->saved_isc = isc;
 		break;
 	case AP_RESPONSE_OTHERWISE_CHANGED:
-		/* We could not modify IRQ setings: clear new configuration */
+		/* We could not modify IRQ settings: clear new configuration */
 		vfio_unpin_pages(&q->matrix_mdev->vdev, nib, 1);
 		kvm_s390_gisc_unregister(kvm, isc);
 		break;
@@ -524,7 +524,7 @@ static void vfio_ap_le_guid_to_be_uuid(guid_t *guid, unsigned long *uuid)
  * Response.status may be set to following Response Code:
  * - AP_RESPONSE_Q_NOT_AVAIL: if the queue is not available
  * - AP_RESPONSE_DECONFIGURED: if the queue is not configured
- * - AP_RESPONSE_NORMAL (0) : in case of successs
+ * - AP_RESPONSE_NORMAL (0) : in case of success
  *   Check vfio_ap_setirq() and vfio_ap_clrirq() for other possible RC.
  * We take the matrix_dev lock to ensure serialization on queues and
  * mediated device access.
@@ -599,9 +599,9 @@ out_unlock:
 static void vfio_ap_matrix_init(struct ap_config_info *info,
 				struct ap_matrix *matrix)
 {
-	matrix->apm_max = info->apxa ? info->Na : 63;
-	matrix->aqm_max = info->apxa ? info->Nd : 15;
-	matrix->adm_max = info->apxa ? info->Nd : 15;
+	matrix->apm_max = info->apxa ? info->na : 63;
+	matrix->aqm_max = info->apxa ? info->nd : 15;
+	matrix->adm_max = info->apxa ? info->nd : 15;
 }
 
 static void vfio_ap_mdev_update_guest_apcb(struct ap_matrix_mdev *matrix_mdev)
@@ -716,6 +716,7 @@ static int vfio_ap_mdev_probe(struct mdev_device *mdev)
 	ret = vfio_register_emulated_iommu_dev(&matrix_mdev->vdev);
 	if (ret)
 		goto err_put_vdev;
+	matrix_mdev->req_trigger = NULL;
 	dev_set_drvdata(&mdev->dev, matrix_mdev);
 	mutex_lock(&matrix_dev->mdevs_lock);
 	list_add(&matrix_mdev->node, &matrix_dev->mdev_list);
@@ -1657,7 +1658,7 @@ static int vfio_ap_mdev_reset_queue(struct vfio_ap_queue *q)
 	if (!q)
 		return 0;
 retry_zapq:
-	status = ap_zapq(q->apqn);
+	status = ap_zapq(q->apqn, 0);
 	q->reset_rc = status.response_code;
 	switch (status.response_code) {
 	case AP_RESPONSE_NORMAL:
@@ -1735,6 +1736,26 @@ static void vfio_ap_mdev_close_device(struct vfio_device *vdev)
 	vfio_ap_mdev_unset_kvm(matrix_mdev);
 }
 
+static void vfio_ap_mdev_request(struct vfio_device *vdev, unsigned int count)
+{
+	struct device *dev = vdev->dev;
+	struct ap_matrix_mdev *matrix_mdev;
+
+	matrix_mdev = container_of(vdev, struct ap_matrix_mdev, vdev);
+
+	if (matrix_mdev->req_trigger) {
+		if (!(count % 10))
+			dev_notice_ratelimited(dev,
+					       "Relaying device request to user (#%u)\n",
+					       count);
+
+		eventfd_signal(matrix_mdev->req_trigger, 1);
+	} else if (count == 0) {
+		dev_notice(dev,
+			   "No device request registered, blocked until released by user\n");
+	}
+}
+
 static int vfio_ap_mdev_get_device_info(unsigned long arg)
 {
 	unsigned long minsz;
@@ -1750,9 +1771,113 @@ static int vfio_ap_mdev_get_device_info(unsigned long arg)
 
 	info.flags = VFIO_DEVICE_FLAGS_AP | VFIO_DEVICE_FLAGS_RESET;
 	info.num_regions = 0;
-	info.num_irqs = 0;
+	info.num_irqs = VFIO_AP_NUM_IRQS;
 
 	return copy_to_user((void __user *)arg, &info, minsz) ? -EFAULT : 0;
+}
+
+static ssize_t vfio_ap_get_irq_info(unsigned long arg)
+{
+	unsigned long minsz;
+	struct vfio_irq_info info;
+
+	minsz = offsetofend(struct vfio_irq_info, count);
+
+	if (copy_from_user(&info, (void __user *)arg, minsz))
+		return -EFAULT;
+
+	if (info.argsz < minsz || info.index >= VFIO_AP_NUM_IRQS)
+		return -EINVAL;
+
+	switch (info.index) {
+	case VFIO_AP_REQ_IRQ_INDEX:
+		info.count = 1;
+		info.flags = VFIO_IRQ_INFO_EVENTFD;
+		break;
+	default:
+		return -EINVAL;
+	}
+
+	return copy_to_user((void __user *)arg, &info, minsz) ? -EFAULT : 0;
+}
+
+static int vfio_ap_irq_set_init(struct vfio_irq_set *irq_set, unsigned long arg)
+{
+	int ret;
+	size_t data_size;
+	unsigned long minsz;
+
+	minsz = offsetofend(struct vfio_irq_set, count);
+
+	if (copy_from_user(irq_set, (void __user *)arg, minsz))
+		return -EFAULT;
+
+	ret = vfio_set_irqs_validate_and_prepare(irq_set, 1, VFIO_AP_NUM_IRQS,
+						 &data_size);
+	if (ret)
+		return ret;
+
+	if (!(irq_set->flags & VFIO_IRQ_SET_ACTION_TRIGGER))
+		return -EINVAL;
+
+	return 0;
+}
+
+static int vfio_ap_set_request_irq(struct ap_matrix_mdev *matrix_mdev,
+				   unsigned long arg)
+{
+	s32 fd;
+	void __user *data;
+	unsigned long minsz;
+	struct eventfd_ctx *req_trigger;
+
+	minsz = offsetofend(struct vfio_irq_set, count);
+	data = (void __user *)(arg + minsz);
+
+	if (get_user(fd, (s32 __user *)data))
+		return -EFAULT;
+
+	if (fd == -1) {
+		if (matrix_mdev->req_trigger)
+			eventfd_ctx_put(matrix_mdev->req_trigger);
+		matrix_mdev->req_trigger = NULL;
+	} else if (fd >= 0) {
+		req_trigger = eventfd_ctx_fdget(fd);
+		if (IS_ERR(req_trigger))
+			return PTR_ERR(req_trigger);
+
+		if (matrix_mdev->req_trigger)
+			eventfd_ctx_put(matrix_mdev->req_trigger);
+
+		matrix_mdev->req_trigger = req_trigger;
+	} else {
+		return -EINVAL;
+	}
+
+	return 0;
+}
+
+static int vfio_ap_set_irqs(struct ap_matrix_mdev *matrix_mdev,
+			    unsigned long arg)
+{
+	int ret;
+	struct vfio_irq_set irq_set;
+
+	ret = vfio_ap_irq_set_init(&irq_set, arg);
+	if (ret)
+		return ret;
+
+	switch (irq_set.flags & VFIO_IRQ_SET_DATA_TYPE_MASK) {
+	case VFIO_IRQ_SET_DATA_EVENTFD:
+		switch (irq_set.index) {
+		case VFIO_AP_REQ_IRQ_INDEX:
+			return vfio_ap_set_request_irq(matrix_mdev, arg);
+		default:
+			return -EINVAL;
+		}
+	default:
+		return -EINVAL;
+	}
 }
 
 static ssize_t vfio_ap_mdev_ioctl(struct vfio_device *vdev,
@@ -1769,6 +1894,12 @@ static ssize_t vfio_ap_mdev_ioctl(struct vfio_device *vdev,
 		break;
 	case VFIO_DEVICE_RESET:
 		ret = vfio_ap_mdev_reset_queues(&matrix_mdev->qtable);
+		break;
+	case VFIO_DEVICE_GET_IRQ_INFO:
+			ret = vfio_ap_get_irq_info(arg);
+			break;
+	case VFIO_DEVICE_SET_IRQS:
+		ret = vfio_ap_set_irqs(matrix_mdev, arg);
 		break;
 	default:
 		ret = -EOPNOTSUPP;
@@ -1844,6 +1975,7 @@ static const struct vfio_device_ops vfio_ap_matrix_dev_ops = {
 	.bind_iommufd = vfio_iommufd_emulated_bind,
 	.unbind_iommufd = vfio_iommufd_emulated_unbind,
 	.attach_ioas = vfio_iommufd_emulated_attach_ioas,
+	.request = vfio_ap_mdev_request
 };
 
 static struct mdev_driver vfio_ap_matrix_driver = {
@@ -2115,8 +2247,8 @@ static void vfio_ap_filter_apid_by_qtype(unsigned long *apm, unsigned long *aqm)
 {
 	bool apid_cleared;
 	struct ap_queue_status status;
-	unsigned long apid, apqi, info;
-	int qtype, qtype_mask = 0xff000000;
+	unsigned long apid, apqi;
+	struct ap_tapq_gr2 info;
 
 	for_each_set_bit_inv(apid, apm, AP_DEVICES) {
 		apid_cleared = false;
@@ -2133,15 +2265,13 @@ static void vfio_ap_filter_apid_by_qtype(unsigned long *apm, unsigned long *aqm)
 			case AP_RESPONSE_DECONFIGURED:
 			case AP_RESPONSE_CHECKSTOPPED:
 			case AP_RESPONSE_BUSY:
-				qtype = info & qtype_mask;
-
 				/*
 				 * The vfio_ap device driver only
 				 * supports CEX4 and newer adapters, so
 				 * remove the APID if the adapter is
 				 * older than a CEX4.
 				 */
-				if (qtype < AP_DEVICE_TYPE_CEX4) {
+				if (info.at < AP_DEVICE_TYPE_CEX4) {
 					clear_bit_inv(apid, apm);
 					apid_cleared = true;
 				}

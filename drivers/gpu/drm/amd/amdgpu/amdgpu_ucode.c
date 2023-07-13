@@ -126,19 +126,6 @@ void amdgpu_ucode_print_gfx_hdr(const struct common_firmware_header *hdr)
 	}
 }
 
-void amdgpu_ucode_print_imu_hdr(const struct common_firmware_header *hdr)
-{
-	uint16_t version_major = le16_to_cpu(hdr->header_version_major);
-	uint16_t version_minor = le16_to_cpu(hdr->header_version_minor);
-
-	DRM_DEBUG("IMU\n");
-	amdgpu_ucode_print_common_hdr(hdr);
-
-	if (version_major != 1) {
-		DRM_ERROR("Unknown GFX ucode version: %u.%u\n", version_major, version_minor);
-	}
-}
-
 void amdgpu_ucode_print_rlc_hdr(const struct common_firmware_header *hdr)
 {
 	uint16_t version_major = le16_to_cpu(hdr->header_version_major);
@@ -472,6 +459,12 @@ void amdgpu_ucode_print_psp_hdr(const struct common_firmware_header *hdr)
 				DRM_DEBUG("psp_dbg_drv_size_bytes: %u\n",
 					  le32_to_cpu(desc->size_bytes));
 				break;
+			case PSP_FW_TYPE_PSP_RAS_DRV:
+				DRM_DEBUG("psp_ras_drv_version: %u\n",
+					  le32_to_cpu(desc->fw_version));
+				DRM_DEBUG("psp_ras_drv_size_bytes: %u\n",
+					  le32_to_cpu(desc->size_bytes));
+				break;
 			default:
 				DRM_DEBUG("Unsupported PSP fw type: %d\n", desc->fw_type);
 				break;
@@ -669,6 +662,8 @@ const char *amdgpu_ucode_name(enum AMDGPU_UCODE_ID ucode_id)
 		return "VCN1_RAM";
 	case AMDGPU_UCODE_ID_DMCUB:
 		return "DMCUB";
+	case AMDGPU_UCODE_ID_CAP:
+		return "CAP";
 	default:
 		return "UNKNOWN UCODE";
 	}
@@ -753,7 +748,7 @@ static int amdgpu_ucode_init_single_fw(struct amdgpu_device *adev,
 	const struct imu_firmware_header_v1_0 *imu_hdr = NULL;
 	u8 *ucode_addr;
 
-	if (NULL == ucode->fw)
+	if (!ucode->fw)
 		return 0;
 
 	ucode->mc_addr = mc_addr;
@@ -977,7 +972,7 @@ static int amdgpu_ucode_patch_jt(struct amdgpu_firmware_info *ucode,
 	uint8_t *src_addr = NULL;
 	uint8_t *dst_addr = NULL;
 
-	if (NULL == ucode->fw)
+	if (!ucode->fw)
 		return 0;
 
 	comm_hdr = (const struct common_firmware_header *)ucode->fw->data;
@@ -1048,6 +1043,7 @@ int amdgpu_ucode_init_bo(struct amdgpu_device *adev)
 			if (i == AMDGPU_UCODE_ID_CP_MEC1 &&
 			    adev->firmware.load_type != AMDGPU_FW_LOAD_PSP) {
 				const struct gfx_firmware_header_v1_0 *cp_hdr;
+
 				cp_hdr = (const struct gfx_firmware_header_v1_0 *)ucode->fw->data;
 				amdgpu_ucode_patch_jt(ucode,  adev->firmware.fw_buf_mc + fw_offset,
 						    adev->firmware.fw_buf_ptr + fw_offset);

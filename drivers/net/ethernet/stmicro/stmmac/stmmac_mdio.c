@@ -281,9 +281,8 @@ static int stmmac_mdio_read_c22(struct mii_bus *bus, int phyaddr, int phyreg)
 	value |= (phyreg << priv->hw->mii.reg_shift) & priv->hw->mii.reg_mask;
 	value |= (priv->clk_csr << priv->hw->mii.clk_csr_shift)
 		& priv->hw->mii.clk_csr_mask;
-	if (priv->plat->has_gmac4) {
+	if (priv->plat->has_gmac4)
 		value |= MII_GMAC4_READ;
-	}
 
 	data = stmmac_mdio_read(priv, data, value);
 
@@ -492,7 +491,6 @@ int stmmac_mdio_reset(struct mii_bus *bus)
 int stmmac_xpcs_setup(struct mii_bus *bus)
 {
 	struct net_device *ndev = bus->priv;
-	struct mdio_device *mdiodev;
 	struct stmmac_priv *priv;
 	struct dw_xpcs *xpcs;
 	int mode, addr;
@@ -502,15 +500,9 @@ int stmmac_xpcs_setup(struct mii_bus *bus)
 
 	/* Try to probe the XPCS by scanning all addresses. */
 	for (addr = 0; addr < PHY_MAX_ADDR; addr++) {
-		mdiodev = mdio_device_create(bus, addr);
-		if (IS_ERR(mdiodev))
+		xpcs = xpcs_create_mdiodev(bus, addr, mode);
+		if (IS_ERR(xpcs))
 			continue;
-
-		xpcs = xpcs_create(mdiodev, mode);
-		if (IS_ERR_OR_NULL(xpcs)) {
-			mdio_device_free(mdiodev);
-			continue;
-		}
 
 		priv->hw->xpcs = xpcs;
 		break;
@@ -670,10 +662,8 @@ int stmmac_mdio_unregister(struct net_device *ndev)
 	if (!priv->mii)
 		return 0;
 
-	if (priv->hw->xpcs) {
-		mdio_device_free(priv->hw->xpcs->mdiodev);
+	if (priv->hw->xpcs)
 		xpcs_destroy(priv->hw->xpcs);
-	}
 
 	mdiobus_unregister(priv->mii);
 	priv->mii->priv = NULL;

@@ -23,7 +23,6 @@
 #include <linux/pinctrl/machine.h>
 #include <linux/pinctrl/pinconf-generic.h>
 #include <linux/pinctrl/pinconf.h>
-#include <linux/pinctrl/pinctrl.h>
 #include <linux/pinctrl/pinmux.h>
 
 #include <linux/soc/qcom/irq.h>
@@ -121,7 +120,7 @@ static const char *msm_get_group_name(struct pinctrl_dev *pctldev,
 {
 	struct msm_pinctrl *pctrl = pinctrl_dev_get_drvdata(pctldev);
 
-	return pctrl->soc->groups[group].name;
+	return pctrl->soc->groups[group].grp.name;
 }
 
 static int msm_get_group_pins(struct pinctrl_dev *pctldev,
@@ -131,8 +130,8 @@ static int msm_get_group_pins(struct pinctrl_dev *pctldev,
 {
 	struct msm_pinctrl *pctrl = pinctrl_dev_get_drvdata(pctldev);
 
-	*pins = pctrl->soc->groups[group].pins;
-	*num_pins = pctrl->soc->groups[group].npins;
+	*pins = pctrl->soc->groups[group].grp.pins;
+	*num_pins = pctrl->soc->groups[group].grp.npins;
 	return 0;
 }
 
@@ -323,6 +322,7 @@ static int msm_config_reg(struct msm_pinctrl *pctrl,
 		break;
 	case PIN_CONFIG_OUTPUT:
 	case PIN_CONFIG_INPUT_ENABLE:
+	case PIN_CONFIG_OUTPUT_ENABLE:
 		*bit = g->oe_bit;
 		*mask = 1;
 		break;
@@ -414,11 +414,9 @@ static int msm_config_group_get(struct pinctrl_dev *pctldev,
 		val = msm_readl_io(pctrl, g);
 		arg = !!(val & BIT(g->in_bit));
 		break;
-	case PIN_CONFIG_INPUT_ENABLE:
-		/* Pin is output */
-		if (arg)
+	case PIN_CONFIG_OUTPUT_ENABLE:
+		if (!arg)
 			return -EINVAL;
-		arg = 1;
 		break;
 	default:
 		return -ENOTSUPP;
@@ -502,8 +500,35 @@ static int msm_config_group_set(struct pinctrl_dev *pctldev,
 			arg = 1;
 			break;
 		case PIN_CONFIG_INPUT_ENABLE:
-			/* disable output */
+			/*
+			 * According to pinctrl documentation this should
+			 * actually be a no-op.
+			 *
+			 * The docs are explicit that "this does not affect
+			 * the pin's ability to drive output" but what we do
+			 * here is to modify the output enable bit. Thus, to
+			 * follow the docs we should remove that.
+			 *
+			 * The docs say that we should enable any relevant
+			 * input buffer, but TLMM there is no input buffer that
+			 * can be enabled/disabled. It's always on.
+			 *
+			 * The points above, explain why this _should_ be a
+			 * no-op. However, for historical reasons and to
+			 * support old device trees, we'll violate the docs
+			 * and still affect the output.
+			 *
+			 * It should further be noted that this old historical
+			 * behavior actually overrides arg to 0. That means
+			 * that "input-enable" and "input-disable" in a device
+			 * tree would _both_ disable the output. We'll
+			 * continue to preserve this behavior as well since
+			 * we have no other use for this attribute.
+			 */
 			arg = 0;
+			break;
+		case PIN_CONFIG_OUTPUT_ENABLE:
+			arg = !!arg;
 			break;
 		default:
 			dev_err(pctrl->dev, "Unsupported config parameter: %x\n",
@@ -680,11 +705,11 @@ static void msm_gpio_dbg_show_one(struct seq_file *s,
 		val = !!(io_reg & BIT(g->in_bit));
 
 	if (egpio_enable) {
-		seq_printf(s, " %-8s: egpio\n", g->name);
+		seq_printf(s, " %-8s: egpio\n", g->grp.name);
 		return;
 	}
 
-	seq_printf(s, " %-8s: %-3s", g->name, is_out ? "out" : "in");
+	seq_printf(s, " %-8s: %-3s", g->grp.name, is_out ? "out" : "in");
 	seq_printf(s, " %-4s func%d", val ? "high" : "low", func);
 	seq_printf(s, " %dmA", msm_regval_to_drive(drive));
 	if (pctrl->soc->pull_no_keeper)
@@ -1416,7 +1441,7 @@ static void msm_ps_hold_poweroff(void)
 static void msm_pinctrl_setup_pm_reset(struct msm_pinctrl *pctrl)
 {
 	int i;
-	const struct msm_function *func = pctrl->soc->functions;
+	const struct pinfunction *func = pctrl->soc->functions;
 
 	for (i = 0; i < pctrl->soc->nfunctions; i++)
 		if (!strcmp(func[i].name, "ps_hold")) {
@@ -1480,8 +1505,7 @@ int msm_pinctrl_probe(struct platform_device *pdev,
 				return PTR_ERR(pctrl->regs[i]);
 		}
 	} else {
-		res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
-		pctrl->regs[0] = devm_ioremap_resource(&pdev->dev, res);
+		pctrl->regs[0] = devm_platform_get_and_ioremap_resource(pdev, 0, &res);
 		if (IS_ERR(pctrl->regs[0]))
 			return PTR_ERR(pctrl->regs[0]);
 

@@ -68,9 +68,6 @@
 # Run with verbose output:
 #   sudo ./test_xsk.sh -v
 #
-# Run and dump packet contents:
-#   sudo ./test_xsk.sh -D
-#
 # Set up veth interfaces and leave them up so xskxceiver can be launched in a debugger:
 #   sudo ./test_xsk.sh -d
 #
@@ -81,11 +78,10 @@
 
 ETH=""
 
-while getopts "vDi:d" flag
+while getopts "vi:d" flag
 do
 	case "${flag}" in
 		v) verbose=1;;
-		D) dump_pkts=1;;
 		d) debug=1;;
 		i) ETH=${OPTARG};;
 	esac
@@ -116,6 +112,7 @@ setup_vethPairs() {
 	ip link add ${VETH0} numtxqueues 4 numrxqueues 4 type veth peer name ${VETH1} numtxqueues 4 numrxqueues 4
 	if [ -f /proc/net/if_inet6 ]; then
 		echo 1 > /proc/sys/net/ipv6/conf/${VETH0}/disable_ipv6
+		echo 1 > /proc/sys/net/ipv6/conf/${VETH1}/disable_ipv6
 	fi
 	if [[ $verbose -eq 1 ]]; then
 	        echo "setting up ${VETH1}"
@@ -154,10 +151,6 @@ fi
 
 if [[ $verbose -eq 1 ]]; then
 	ARGS+="-v "
-fi
-
-if [[ $dump_pkts -eq 1 ]]; then
-	ARGS="-D "
 fi
 
 retval=$?

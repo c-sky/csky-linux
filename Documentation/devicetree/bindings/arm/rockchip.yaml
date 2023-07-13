@@ -40,6 +40,11 @@ properties:
           - const: anbernic,rg353p
           - const: rockchip,rk3566
 
+      - description: Anbernic RG353PS
+        items:
+          - const: anbernic,rg353ps
+          - const: rockchip,rk3566
+
       - description: Anbernic RG353V
         items:
           - const: anbernic,rg353v
@@ -100,6 +105,12 @@ properties:
         items:
           - const: edgeble,neural-compute-module-6a-io  # Edgeble Neural Compute Module 6A IO Board
           - const: edgeble,neural-compute-module-6a     # Edgeble Neural Compute Module 6A SoM
+          - const: rockchip,rk3588
+
+      - description: Edgeble Neural Compute Module 6(Neu6) Model B SoM based boards
+        items:
+          - const: edgeble,neural-compute-module-6b-io  # Edgeble Neural Compute Module 6B IO Board
+          - const: edgeble,neural-compute-module-6b     # Edgeble Neural Compute Module 6B SoM
           - const: rockchip,rk3588
 
       - description: Elgin RV1108 R1
@@ -185,9 +196,12 @@ properties:
           - const: firefly,rk3566-roc-pc
           - const: rockchip,rk3566
 
-      - description: FriendlyElec NanoPi R2S
+      - description: FriendlyElec NanoPi R2 series boards
         items:
-          - const: friendlyarm,nanopi-r2s
+          - enum:
+              - friendlyarm,nanopi-r2c
+              - friendlyarm,nanopi-r2c-plus
+              - friendlyarm,nanopi-r2s
           - const: rockchip,rk3328
 
       - description: FriendlyElec NanoPi4 series boards
@@ -200,6 +214,13 @@ properties:
               - friendlyarm,nanopi-r4s
               - friendlyarm,nanopi-r4s-enterprise
           - const: rockchip,rk3399
+
+      - description: FriendlyElec NanoPi R5 series boards
+        items:
+          - enum:
+              - friendlyarm,nanopi-r5c
+              - friendlyarm,nanopi-r5s
+          - const: rockchip,rk3568
 
       - description: GeekBuying GeekBox
         items:
@@ -525,6 +546,11 @@ properties:
           - const: hugsun,x99
           - const: rockchip,rk3399
 
+      - description: Indiedroid Nova SBC
+        items:
+          - const: indiedroid,nova
+          - const: rockchip,rk3588s
+
       - description: Khadas Edge series boards
         items:
           - enum:
@@ -532,6 +558,11 @@ properties:
               - khadas,edge-captain
               - khadas,edge-v
           - const: rockchip,rk3399
+
+      - description: Khadas Edge2 series boards
+        items:
+          - const: khadas,edge2
+          - const: rockchip,rk3588s
 
       - description: Kobol Helios64
         items:
@@ -547,6 +578,13 @@ properties:
         items:
           - const: leez,p710
           - const: rockchip,rk3399
+
+      - description: Lunzn FastRhino R66S / R68S
+        items:
+          - enum:
+              - lunzn,fastrhino-r66s
+              - lunzn,fastrhino-r68s
+          - const: rockchip,rk3568
 
       - description: mqmaker MiQi
         items:
@@ -817,9 +855,11 @@ properties:
           - const: tronsmart,orion-r68-meta
           - const: rockchip,rk3368
 
-      - description: Xunlong Orange Pi R1 Plus
+      - description: Xunlong Orange Pi R1 Plus / LTS
         items:
-          - const: xunlong,orangepi-r1-plus
+          - enum:
+              - xunlong,orangepi-r1-plus
+              - xunlong,orangepi-r1-plus-lts
           - const: rockchip,rk3328
 
       - description: Zkmagic A95X Z2

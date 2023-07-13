@@ -264,7 +264,7 @@ checkpoint=%s[:%u[%]]	 Set to "disable" to turn off checkpointing. Set to "enabl
 			 disabled, any unmounting or unexpected shutdowns will cause
 			 the filesystem contents to appear as they did when the
 			 filesystem was mounted with that option.
-			 While mounting with checkpoint=disabled, the filesystem must
+			 While mounting with checkpoint=disable, the filesystem must
 			 run garbage collection to ensure that all available space can
 			 be used. If this takes too much time, the mount may return
 			 EAGAIN. You may optionally add a value to indicate how much
@@ -351,6 +351,22 @@ age_extent_cache	 Enable an age extent cache based on rb-tree. It records
 			 data block update frequency of the extent per inode, in
 			 order to provide better temperature hints for data block
 			 allocation.
+errors=%s		 Specify f2fs behavior on critical errors. This supports modes:
+			 "panic", "continue" and "remount-ro", respectively, trigger
+			 panic immediately, continue without doing anything, and remount
+			 the partition in read-only mode. By default it uses "continue"
+			 mode.
+			 ====================== =============== =============== ========
+			 mode			continue	remount-ro	panic
+			 ====================== =============== =============== ========
+			 access ops		normal		noraml		N/A
+			 syscall errors		-EIO		-EROFS		N/A
+			 mount option		rw		ro		N/A
+			 pending dir write	keep		keep		N/A
+			 pending non-dir write	drop		keep		N/A
+			 pending node write	drop		keep		N/A
+			 pending meta write	keep		keep		N/A
+			 ====================== =============== =============== ========
 ======================== ============================================================
 
 Debugfs Entries

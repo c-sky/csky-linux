@@ -2162,15 +2162,14 @@ static int tegra_xudc_gadget_stop(struct usb_gadget *gadget)
 static int tegra_xudc_gadget_vbus_draw(struct usb_gadget *gadget,
 						unsigned int m_a)
 {
-	int ret = 0;
 	struct tegra_xudc *xudc = to_xudc(gadget);
 
 	dev_dbg(xudc->dev, "%s: %u mA\n", __func__, m_a);
 
-	if (xudc->curr_usbphy->chg_type == SDP_TYPE)
-		ret = usb_phy_set_power(xudc->curr_usbphy, m_a);
+	if (xudc->curr_usbphy && xudc->curr_usbphy->chg_type == SDP_TYPE)
+		return usb_phy_set_power(xudc->curr_usbphy, m_a);
 
-	return ret;
+	return 0;
 }
 
 static int tegra_xudc_set_selfpowered(struct usb_gadget *gadget, int is_on)
@@ -3907,7 +3906,7 @@ put_padctl:
 	return err;
 }
 
-static int tegra_xudc_remove(struct platform_device *pdev)
+static void tegra_xudc_remove(struct platform_device *pdev)
 {
 	struct tegra_xudc *xudc = platform_get_drvdata(pdev);
 	unsigned int i;
@@ -3937,8 +3936,6 @@ static int tegra_xudc_remove(struct platform_device *pdev)
 	pm_runtime_put(xudc->dev);
 
 	tegra_xusb_padctl_put(xudc->padctl);
-
-	return 0;
 }
 
 static int __maybe_unused tegra_xudc_powergate(struct tegra_xudc *xudc)
@@ -4064,7 +4061,7 @@ static const struct dev_pm_ops tegra_xudc_pm_ops = {
 
 static struct platform_driver tegra_xudc_driver = {
 	.probe = tegra_xudc_probe,
-	.remove = tegra_xudc_remove,
+	.remove_new = tegra_xudc_remove,
 	.driver = {
 		.name = "tegra-xudc",
 		.pm = &tegra_xudc_pm_ops,

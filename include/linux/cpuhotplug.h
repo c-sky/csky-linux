@@ -133,6 +133,7 @@ enum cpuhp_state {
 	CPUHP_MIPS_SOC_PREPARE,
 	CPUHP_BP_PREPARE_DYN,
 	CPUHP_BP_PREPARE_DYN_END		= CPUHP_BP_PREPARE_DYN + 20,
+	CPUHP_BP_KICK_AP,
 	CPUHP_BRINGUP_CPU,
 
 	/*
@@ -163,7 +164,6 @@ enum cpuhp_state {
 	CPUHP_AP_PERF_X86_CSTATE_STARTING,
 	CPUHP_AP_PERF_XTENSA_STARTING,
 	CPUHP_AP_MIPS_OP_LOONGSON3_STARTING,
-	CPUHP_AP_ARM_SDEI_STARTING,
 	CPUHP_AP_ARM_VFP_STARTING,
 	CPUHP_AP_ARM64_DEBUG_MONITORS_STARTING,
 	CPUHP_AP_PERF_ARM_HW_BREAKPOINT_STARTING,
@@ -201,6 +201,7 @@ enum cpuhp_state {
 
 	/* Online section invoked on the hotplugged CPU from the hotplug thread */
 	CPUHP_AP_ONLINE_IDLE,
+	CPUHP_AP_HYPERV_ONLINE,
 	CPUHP_AP_KVM_ONLINE,
 	CPUHP_AP_SCHED_WAIT_EMPTY,
 	CPUHP_AP_SMPBOOT_THREADS,
@@ -218,7 +219,6 @@ enum cpuhp_state {
 	CPUHP_AP_PERF_X86_CQM_ONLINE,
 	CPUHP_AP_PERF_X86_CSTATE_ONLINE,
 	CPUHP_AP_PERF_X86_IDXD_ONLINE,
-	CPUHP_AP_PERF_X86_IOMMU_PERF_ONLINE,
 	CPUHP_AP_PERF_S390_CF_ONLINE,
 	CPUHP_AP_PERF_S390_SF_ONLINE,
 	CPUHP_AP_PERF_ARM_CCI_ONLINE,
@@ -517,6 +517,22 @@ static inline int cpuhp_state_remove_instance_nocalls(enum cpuhp_state state,
 void cpuhp_online_idle(enum cpuhp_state state);
 #else
 static inline void cpuhp_online_idle(enum cpuhp_state state) { }
+#endif
+
+struct task_struct;
+
+void cpuhp_ap_sync_alive(void);
+void arch_cpuhp_sync_state_poll(void);
+void arch_cpuhp_cleanup_kick_cpu(unsigned int cpu);
+int arch_cpuhp_kick_ap_alive(unsigned int cpu, struct task_struct *tidle);
+bool arch_cpuhp_init_parallel_bringup(void);
+
+#ifdef CONFIG_HOTPLUG_CORE_SYNC_DEAD
+void cpuhp_ap_report_dead(void);
+void arch_cpuhp_cleanup_dead_cpu(unsigned int cpu);
+#else
+static inline void cpuhp_ap_report_dead(void) { }
+static inline void arch_cpuhp_cleanup_dead_cpu(unsigned int cpu) { }
 #endif
 
 #endif

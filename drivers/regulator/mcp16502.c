@@ -584,9 +584,10 @@ static const struct i2c_device_id mcp16502_i2c_id[] = {
 MODULE_DEVICE_TABLE(i2c, mcp16502_i2c_id);
 
 static struct i2c_driver mcp16502_drv = {
-	.probe_new	= mcp16502_probe,
+	.probe		= mcp16502_probe,
 	.driver		= {
 		.name	= "mcp16502-regulator",
+		.probe_type = PROBE_PREFER_ASYNCHRONOUS,
 		.of_match_table	= of_match_ptr(mcp16502_ids),
 #ifdef CONFIG_PM
 		.pm = &mcp16502_pm_ops,

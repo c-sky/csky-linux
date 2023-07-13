@@ -19,10 +19,12 @@
 #include <linux/interrupt.h>
 #include <linux/io.h>
 #include <linux/kernel.h>
+#include <linux/list.h>
 #include <linux/mdio.h>
 #include <linux/mii.h>
 #include <linux/mm.h>
 #include <linux/module.h>
+#include <linux/of.h>
 #include <linux/netdevice.h>
 #include <linux/phy.h>
 #include <linux/phy_led_triggers.h>
@@ -452,8 +454,7 @@ int phy_unregister_fixup(const char *bus_id, u32 phy_uid, u32 phy_uid_mask)
 		fixup = list_entry(pos, struct phy_fixup, list);
 
 		if ((!strcmp(fixup->bus_id, bus_id)) &&
-		    ((fixup->phy_uid & phy_uid_mask) ==
-		     (phy_uid & phy_uid_mask))) {
+		    phy_id_compare(fixup->phy_uid, phy_uid, phy_uid_mask)) {
 			list_del(&fixup->list);
 			kfree(fixup);
 			ret = 0;
@@ -489,8 +490,8 @@ static int phy_needs_fixup(struct phy_device *phydev, struct phy_fixup *fixup)
 		if (strcmp(fixup->bus_id, PHY_ANY_ID) != 0)
 			return 0;
 
-	if ((fixup->phy_uid & fixup->phy_uid_mask) !=
-	    (phydev->phy_id & fixup->phy_uid_mask))
+	if (!phy_id_compare(phydev->phy_id, fixup->phy_uid,
+			    fixup->phy_uid_mask))
 		if (fixup->phy_uid != PHY_ANY_UID)
 			return 0;
 
@@ -537,15 +538,14 @@ static int phy_bus_match(struct device *dev, struct device_driver *drv)
 			if (phydev->c45_ids.device_ids[i] == 0xffffffff)
 				continue;
 
-			if ((phydrv->phy_id & phydrv->phy_id_mask) ==
-			    (phydev->c45_ids.device_ids[i] &
-			     phydrv->phy_id_mask))
+			if (phy_id_compare(phydev->c45_ids.device_ids[i],
+					   phydrv->phy_id, phydrv->phy_id_mask))
 				return 1;
 		}
 		return 0;
 	} else {
-		return (phydrv->phy_id & phydrv->phy_id_mask) ==
-			(phydev->phy_id & phydrv->phy_id_mask);
+		return phy_id_compare(phydev->phy_id, phydrv->phy_id,
+				      phydrv->phy_id_mask);
 	}
 }
 
@@ -674,6 +674,7 @@ struct phy_device *phy_device_create(struct mii_bus *bus, int addr, u32 phy_id,
 	device_initialize(&mdiodev->dev);
 
 	dev->state = PHY_DOWN;
+	INIT_LIST_HEAD(&dev->leds);
 
 	mutex_init(&dev->lock);
 	INIT_DELAYED_WORK(&dev->state_queue, phy_state_machine);
@@ -1857,9 +1858,10 @@ int phy_suspend(struct phy_device *phydev)
 	if (phydev->suspended)
 		return 0;
 
-	/* If the device has WOL enabled, we cannot suspend the PHY */
 	phy_ethtool_get_wol(phydev, &wol);
-	if (wol.wolopts || (netdev && netdev->wol_enabled))
+	phydev->wol_enabled = wol.wolopts || (netdev && netdev->wol_enabled);
+	/* If the device has WOL enabled, we cannot suspend the PHY */
+	if (phydev->wol_enabled && !(phydrv->flags & PHY_ALWAYS_CALL_SUSPEND))
 		return -EBUSY;
 
 	if (!phydrv || !phydrv->suspend)
@@ -2988,6 +2990,115 @@ static bool phy_drv_supports_irq(struct phy_driver *phydrv)
 	return phydrv->config_intr && phydrv->handle_interrupt;
 }
 
+static int phy_led_set_brightness(struct led_classdev *led_cdev,
+				  enum led_brightness value)
+{
+	struct phy_led *phyled = to_phy_led(led_cdev);
+	struct phy_device *phydev = phyled->phydev;
+	int err;
+
+	mutex_lock(&phydev->lock);
+	err = phydev->drv->led_brightness_set(phydev, phyled->index, value);
+	mutex_unlock(&phydev->lock);
+
+	return err;
+}
+
+static int phy_led_blink_set(struct led_classdev *led_cdev,
+			     unsigned long *delay_on,
+			     unsigned long *delay_off)
+{
+	struct phy_led *phyled = to_phy_led(led_cdev);
+	struct phy_device *phydev = phyled->phydev;
+	int err;
+
+	mutex_lock(&phydev->lock);
+	err = phydev->drv->led_blink_set(phydev, phyled->index,
+					 delay_on, delay_off);
+	mutex_unlock(&phydev->lock);
+
+	return err;
+}
+
+static void phy_leds_unregister(struct phy_device *phydev)
+{
+	struct phy_led *phyled;
+
+	list_for_each_entry(phyled, &phydev->leds, list) {
+		led_classdev_unregister(&phyled->led_cdev);
+	}
+}
+
+static int of_phy_led(struct phy_device *phydev,
+		      struct device_node *led)
+{
+	struct device *dev = &phydev->mdio.dev;
+	struct led_init_data init_data = {};
+	struct led_classdev *cdev;
+	struct phy_led *phyled;
+	u32 index;
+	int err;
+
+	phyled = devm_kzalloc(dev, sizeof(*phyled), GFP_KERNEL);
+	if (!phyled)
+		return -ENOMEM;
+
+	cdev = &phyled->led_cdev;
+	phyled->phydev = phydev;
+
+	err = of_property_read_u32(led, "reg", &index);
+	if (err)
+		return err;
+	if (index > U8_MAX)
+		return -EINVAL;
+
+	phyled->index = index;
+	if (phydev->drv->led_brightness_set)
+		cdev->brightness_set_blocking = phy_led_set_brightness;
+	if (phydev->drv->led_blink_set)
+		cdev->blink_set = phy_led_blink_set;
+	cdev->max_brightness = 1;
+	init_data.devicename = dev_name(&phydev->mdio.dev);
+	init_data.fwnode = of_fwnode_handle(led);
+	init_data.devname_mandatory = true;
+
+	err = led_classdev_register_ext(dev, cdev, &init_data);
+	if (err)
+		return err;
+
+	list_add(&phyled->list, &phydev->leds);
+
+	return 0;
+}
+
+static int of_phy_leds(struct phy_device *phydev)
+{
+	struct device_node *node = phydev->mdio.dev.of_node;
+	struct device_node *leds, *led;
+	int err;
+
+	if (!IS_ENABLED(CONFIG_OF_MDIO))
+		return 0;
+
+	if (!node)
+		return 0;
+
+	leds = of_get_child_by_name(node, "leds");
+	if (!leds)
+		return 0;
+
+	for_each_available_child_of_node(leds, led) {
+		err = of_phy_led(phydev, led);
+		if (err) {
+			of_node_put(led);
+			phy_leds_unregister(phydev);
+			return err;
+		}
+	}
+
+	return 0;
+}
+
 /**
  * fwnode_mdio_find_device - Given a fwnode, find the mdio_device
  * @fwnode: pointer to the mdio_device's fwnode
@@ -3057,7 +3168,7 @@ EXPORT_SYMBOL_GPL(device_phy_find_device);
  * and "phy-device" are not supported in ACPI. DT supports all the three
  * named references to the phy node.
  */
-struct fwnode_handle *fwnode_get_phy_node(struct fwnode_handle *fwnode)
+struct fwnode_handle *fwnode_get_phy_node(const struct fwnode_handle *fwnode)
 {
 	struct fwnode_handle *phy_node;
 
@@ -3076,9 +3187,7 @@ EXPORT_SYMBOL_GPL(fwnode_get_phy_node);
  * phy_probe - probe and init a PHY device
  * @dev: device to probe and init
  *
- * Description: Take care of setting up the phy_device structure,
- *   set the state to READY (the driver's init function should
- *   set it to STARTING if needed).
+ * Take care of setting up the phy_device structure, set the state to READY.
  */
 static int phy_probe(struct device *dev)
 {
@@ -3185,6 +3294,12 @@ static int phy_probe(struct device *dev)
 	/* Set the state to READY by default */
 	phydev->state = PHY_READY;
 
+	/* Get the LEDs from the device tree, and instantiate standard
+	 * LEDs for them.
+	 */
+	if (IS_ENABLED(CONFIG_PHYLIB_LEDS))
+		err = of_phy_leds(phydev);
+
 out:
 	/* Re-assert the reset signal on error */
 	if (err)
@@ -3198,6 +3313,9 @@ static int phy_remove(struct device *dev)
 	struct phy_device *phydev = to_phy_device(dev);
 
 	cancel_delayed_work_sync(&phydev->state_queue);
+
+	if (IS_ENABLED(CONFIG_PHYLIB_LEDS))
+		phy_leds_unregister(phydev);
 
 	phydev->state = PHY_DOWN;
 

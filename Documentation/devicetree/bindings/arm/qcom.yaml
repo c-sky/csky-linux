@@ -30,14 +30,17 @@ description: |
         apq8084
         apq8096
         ipq4018
+        ipq5332
         ipq6018
         ipq8074
+        ipq9574
         mdm9615
         msm8226
         msm8916
         msm8939
         msm8953
         msm8956
+        msm8960
         msm8974
         msm8976
         msm8992
@@ -45,7 +48,10 @@ description: |
         msm8996
         msm8998
         qcs404
+        qcm2290
         qdu1000
+        qrb2210
+        qrb4210
         qru1000
         sa8155p
         sa8540p
@@ -64,6 +70,7 @@ description: |
         sdm845
         sdx55
         sdx65
+        sdx75
         sm4250
         sm6115
         sm6115p
@@ -80,6 +87,15 @@ description: |
   The 'board' element must be one of the following strings:
 
         adp
+        ap-al02-c2
+        ap-al02-c6
+        ap-al02-c7
+        ap-al02-c8
+        ap-al02-c9
+        ap-mi01.2
+        ap-mi01.3
+        ap-mi01.6
+        ap-mi01.9
         cdp
         cp01-c1
         dragonboard
@@ -90,6 +106,7 @@ description: |
         liquid
         mtp
         qrd
+        rb2
         ride
         sbc
         x100
@@ -182,6 +199,7 @@ properties:
       - items:
           - enum:
               - qcom,msm8960-cdp
+              - samsung,expressatt
           - const: qcom,msm8960
 
       - items:
@@ -226,6 +244,7 @@ properties:
               - thwc,uf896
               - thwc,ufi001c
               - wingtech,wt88047
+              - yiming,uz801-v3
           - const: qcom,msm8916
 
       - items:
@@ -322,6 +341,14 @@ properties:
 
       - items:
           - enum:
+              - qcom,ipq5332-ap-mi01.2
+              - qcom,ipq5332-ap-mi01.3
+              - qcom,ipq5332-ap-mi01.6
+              - qcom,ipq5332-ap-mi01.9
+          - const: qcom,ipq5332
+
+      - items:
+          - enum:
               - mikrotik,rb3011
               - qcom,ipq8064-ap148
           - const: qcom,ipq8064
@@ -333,11 +360,27 @@ properties:
               - qcom,ipq8074-hk10-c2
           - const: qcom,ipq8074
 
+      - items:
+          - enum:
+              - qcom,ipq9574-ap-al02-c2
+              - qcom,ipq9574-ap-al02-c6
+              - qcom,ipq9574-ap-al02-c7
+              - qcom,ipq9574-ap-al02-c8
+              - qcom,ipq9574-ap-al02-c9
+          - const: qcom,ipq9574
+
       - description: Sierra Wireless MangOH Green with WP8548 Module
         items:
           - const: swir,mangoh-green-wp8548
           - const: swir,wp8548
           - const: qcom,mdm9615
+
+      - description: Qualcomm Technologies, Inc. Robotics RB1
+        items:
+          - enum:
+              - qcom,qrb2210-rb1
+          - const: qcom,qrb2210
+          - const: qcom,qcm2290
 
       - description: Qualcomm Technologies, Inc. Distributed Unit 1000 platform
         items:
@@ -352,9 +395,9 @@ properties:
               - qcom,qru1000-idp
           - const: qcom,qru1000
 
-      - description: Qualcomm Technologies, Inc. SC7180 IDP
-        items:
+      - items:
           - enum:
+              - acer,aspire1
               - qcom,sc7180-idp
           - const: qcom,sc7180
 
@@ -793,6 +836,11 @@ properties:
 
       - items:
           - enum:
+              - qcom,sdx75-idp
+          - const: qcom,sdx75
+
+      - items:
+          - enum:
               - qcom,ipq6018-cp01
               - qcom,ipq6018-cp01-c1
           - const: qcom,ipq6018
@@ -850,6 +898,17 @@ properties:
 
       - items:
           - enum:
+              - qcom,qrb4210-rb2
+          - const: qcom,qrb4210
+          - const: qcom,sm4250
+
+      - items:
+          - enum:
+              - fxtec,pro1x
+          - const: qcom,sm6115
+
+      - items:
+          - enum:
               - lenovo,j606f
           - const: qcom,sm6115p
           - const: qcom,sm6115
@@ -857,6 +916,7 @@ properties:
       - items:
           - enum:
               - sony,pdx201
+              - xiaomi,laurel-sprout
           - const: qcom,sm6125
 
       - items:
@@ -913,6 +973,7 @@ properties:
       - items:
           - enum:
               - qcom,sm8550-mtp
+              - qcom,sm8550-qrd
           - const: qcom,sm8550
 
   # Board compatibles go above
@@ -1006,6 +1067,7 @@ allOf:
               - qcom,sdm845
               - qcom,sdx55
               - qcom,sdx65
+              - qcom,sdx75
               - qcom,sm4250
               - qcom,sm6115
               - qcom,sm6125

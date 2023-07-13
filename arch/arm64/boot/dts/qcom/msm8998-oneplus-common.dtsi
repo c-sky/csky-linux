@@ -279,10 +279,6 @@
 	};
 };
 
-&pmi8998_rradc {
-	status = "okay";
-};
-
 &qusb2phy {
 	status = "okay";
 
@@ -501,7 +497,6 @@
 		function = "gpio";
 		drive-strength = <2>;
 		bias-disable;
-		input-enable;
 	};
 
 	ts_int_active: ts-int-active-state {

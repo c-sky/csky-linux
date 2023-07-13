@@ -116,6 +116,27 @@ static const struct abm_parameters * const abm_settings[] = {
 	abm_settings_config2,
 };
 
+static const struct dm_bl_data_point custom_backlight_curve0[] = {
+		{2, 14}, {4, 16}, {6, 18}, {8, 21}, {10, 23}, {12, 26}, {14, 29}, {16, 32}, {18, 35},
+		{20, 38}, {22, 41}, {24, 44}, {26, 48}, {28, 52}, {30, 55}, {32, 59}, {34, 62},
+		{36, 67}, {38, 71}, {40, 75}, {42, 80}, {44, 84}, {46, 88}, {48, 93}, {50, 98},
+		{52, 103}, {54, 108}, {56, 113}, {58, 118}, {60, 123}, {62, 129}, {64, 135}, {66, 140},
+		{68, 146}, {70, 152}, {72, 158}, {74, 164}, {76, 171}, {78, 177}, {80, 183}, {82, 190},
+		{84, 197}, {86, 204}, {88, 211}, {90, 218}, {92, 225}, {94, 232}, {96, 240}, {98, 247}};
+
+struct custom_backlight_profile {
+	uint8_t  ac_level_percentage;
+	uint8_t  dc_level_percentage;
+	uint8_t  min_input_signal;
+	uint8_t  max_input_signal;
+	uint8_t  num_data_points;
+	const struct dm_bl_data_point *data_points;
+};
+
+static const struct custom_backlight_profile custom_backlight_profiles[] = {
+		{100, 32, 12, 255, ARRAY_SIZE(custom_backlight_curve0), custom_backlight_curve0},
+};
+
 #define NUM_AMBI_LEVEL    5
 #define NUM_AGGR_LEVEL    4
 #define NUM_POWER_FN_SEGS 8
@@ -678,13 +699,8 @@ bool dmub_init_abm_config(struct resource_pool *res_pool,
 	bool result = false;
 	uint32_t i, j = 0;
 
-#if defined(CONFIG_DRM_AMD_DC_DCN)
 	if (res_pool->abm == NULL && res_pool->multiple_abms[inst] == NULL)
 		return false;
-#else
-	if (res_pool->abm == NULL)
-		return false;
-#endif
 
 	memset(&ram_table, 0, sizeof(ram_table));
 	memset(&config, 0, sizeof(config));
@@ -737,12 +753,10 @@ bool dmub_init_abm_config(struct resource_pool *res_pool,
 
 	config.min_abm_backlight = ram_table.min_abm_backlight;
 
-#if defined(CONFIG_DRM_AMD_DC_DCN)
 	if (res_pool->multiple_abms[inst]) {
 		result = res_pool->multiple_abms[inst]->funcs->init_abm_config(
 			res_pool->multiple_abms[inst], (char *)(&config), sizeof(struct abm_config_table), inst);
 	} else
-#endif
 		result = res_pool->abm->funcs->init_abm_config(
 			res_pool->abm, (char *)(&config), sizeof(struct abm_config_table), 0);
 
@@ -765,8 +779,8 @@ bool dmcu_load_iram(struct dmcu *dmcu,
 
 	if (dmcu->dmcu_version.abm_version == 0x24) {
 		fill_iram_v_2_3((struct iram_table_v_2_2 *)ram_table, params, true);
-			result = dmcu->funcs->load_iram(
-					dmcu, 0, (char *)(&ram_table), IRAM_RESERVE_AREA_START_V2_2);
+		result = dmcu->funcs->load_iram(dmcu, 0, (char *)(&ram_table),
+						IRAM_RESERVE_AREA_START_V2_2);
 	} else if (dmcu->dmcu_version.abm_version == 0x23) {
 		fill_iram_v_2_3((struct iram_table_v_2_2 *)ram_table, params, true);
 
@@ -934,6 +948,10 @@ bool psr_su_set_dsc_slice_height(struct dc *dc, struct dc_link *link,
 
 	pic_height = stream->timing.v_addressable +
 		stream->timing.v_border_top + stream->timing.v_border_bottom;
+
+	if (stream->timing.dsc_cfg.num_slices_v == 0)
+		return false;
+
 	slice_height = pic_height / stream->timing.dsc_cfg.num_slices_v;
 	config->dsc_slice_height = slice_height;
 
@@ -945,5 +963,27 @@ bool psr_su_set_dsc_slice_height(struct dc *dc, struct dc_link *link,
 		}
 	}
 
+	return true;
+}
+
+bool fill_custom_backlight_caps(unsigned int config_no, struct dm_acpi_atif_backlight_caps *caps)
+{
+	unsigned int data_points_size;
+
+	if (config_no >= ARRAY_SIZE(custom_backlight_profiles))
+		return false;
+
+	data_points_size = custom_backlight_profiles[config_no].num_data_points
+			* sizeof(custom_backlight_profiles[config_no].data_points[0]);
+
+	caps->size = sizeof(struct dm_acpi_atif_backlight_caps) - sizeof(caps->data_points) + data_points_size;
+	caps->flags = 0;
+	caps->error_code = 0;
+	caps->ac_level_percentage = custom_backlight_profiles[config_no].ac_level_percentage;
+	caps->dc_level_percentage = custom_backlight_profiles[config_no].dc_level_percentage;
+	caps->min_input_signal = custom_backlight_profiles[config_no].min_input_signal;
+	caps->max_input_signal = custom_backlight_profiles[config_no].max_input_signal;
+	caps->num_data_points = custom_backlight_profiles[config_no].num_data_points;
+	memcpy(caps->data_points, custom_backlight_profiles[config_no].data_points, data_points_size);
 	return true;
 }

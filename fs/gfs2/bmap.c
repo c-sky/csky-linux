@@ -1729,8 +1729,8 @@ static int punch_hole(struct gfs2_inode *ip, u64 offset, u64 length)
 
 	if (offset >= maxsize) {
 		/*
-		 * The starting point lies beyond the allocated meta-data;
-		 * there are no blocks do deallocate.
+		 * The starting point lies beyond the allocated metadata;
+		 * there are no blocks to deallocate.
 		 */
 		return 0;
 	}
@@ -2033,14 +2033,6 @@ static int do_shrink(struct inode *inode, u64 newsize)
 		error = trunc_end(ip);
 
 	return error;
-}
-
-void gfs2_trim_blocks(struct inode *inode)
-{
-	int ret;
-
-	ret = do_shrink(inode, inode->i_size);
-	WARN_ON(ret != 0);
 }
 
 /**

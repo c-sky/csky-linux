@@ -27,6 +27,7 @@
 #include <linux/net.h>
 #include <linux/pm_runtime.h>
 #include <net/devlink.h>
+#include <net/ipv6.h>
 #include <net/xdp_sock_drv.h>
 #include <net/flow_offload.h>
 #include <linux/ethtool_netlink.h>
@@ -573,8 +574,8 @@ static int ethtool_get_link_ksettings(struct net_device *dev,
 static int ethtool_set_link_ksettings(struct net_device *dev,
 				      void __user *useraddr)
 {
+	struct ethtool_link_ksettings link_ksettings = {};
 	int err;
-	struct ethtool_link_ksettings link_ksettings;
 
 	ASSERT_RTNL();
 
@@ -1435,14 +1436,25 @@ static int ethtool_get_wol(struct net_device *dev, char __user *useraddr)
 
 static int ethtool_set_wol(struct net_device *dev, char __user *useraddr)
 {
-	struct ethtool_wolinfo wol;
+	struct ethtool_wolinfo wol, cur_wol;
 	int ret;
 
-	if (!dev->ethtool_ops->set_wol)
+	if (!dev->ethtool_ops->get_wol || !dev->ethtool_ops->set_wol)
 		return -EOPNOTSUPP;
+
+	memset(&cur_wol, 0, sizeof(struct ethtool_wolinfo));
+	cur_wol.cmd = ETHTOOL_GWOL;
+	dev->ethtool_ops->get_wol(dev, &cur_wol);
 
 	if (copy_from_user(&wol, useraddr, sizeof(wol)))
 		return -EFAULT;
+
+	if (wol.wolopts & ~cur_wol.supported)
+		return -EINVAL;
+
+	if (wol.wolopts == cur_wol.wolopts &&
+	    !memcmp(wol.sopass, cur_wol.sopass, sizeof(wol.sopass)))
+		return 0;
 
 	ret = dev->ethtool_ops->set_wol(dev, &wol);
 	if (ret)
@@ -3127,7 +3139,6 @@ struct ethtool_rx_flow_rule *
 ethtool_rx_flow_rule_create(const struct ethtool_rx_flow_spec_input *input)
 {
 	const struct ethtool_rx_flow_spec *fs = input->fs;
-	static struct in6_addr zero_addr = {};
 	struct ethtool_rx_flow_match *match;
 	struct ethtool_rx_flow_rule *flow;
 	struct flow_action_entry *act;
@@ -3233,20 +3244,20 @@ ethtool_rx_flow_rule_create(const struct ethtool_rx_flow_spec_input *input)
 
 		v6_spec = &fs->h_u.tcp_ip6_spec;
 		v6_m_spec = &fs->m_u.tcp_ip6_spec;
-		if (memcmp(v6_m_spec->ip6src, &zero_addr, sizeof(zero_addr))) {
+		if (!ipv6_addr_any((struct in6_addr *)v6_m_spec->ip6src)) {
 			memcpy(&match->key.ipv6.src, v6_spec->ip6src,
 			       sizeof(match->key.ipv6.src));
 			memcpy(&match->mask.ipv6.src, v6_m_spec->ip6src,
 			       sizeof(match->mask.ipv6.src));
 		}
-		if (memcmp(v6_m_spec->ip6dst, &zero_addr, sizeof(zero_addr))) {
+		if (!ipv6_addr_any((struct in6_addr *)v6_m_spec->ip6dst)) {
 			memcpy(&match->key.ipv6.dst, v6_spec->ip6dst,
 			       sizeof(match->key.ipv6.dst));
 			memcpy(&match->mask.ipv6.dst, v6_m_spec->ip6dst,
 			       sizeof(match->mask.ipv6.dst));
 		}
-		if (memcmp(v6_m_spec->ip6src, &zero_addr, sizeof(zero_addr)) ||
-		    memcmp(v6_m_spec->ip6dst, &zero_addr, sizeof(zero_addr))) {
+		if (!ipv6_addr_any((struct in6_addr *)v6_m_spec->ip6src) ||
+		    !ipv6_addr_any((struct in6_addr *)v6_m_spec->ip6dst)) {
 			match->dissector.used_keys |=
 				BIT(FLOW_DISSECTOR_KEY_IPV6_ADDRS);
 			match->dissector.offset[FLOW_DISSECTOR_KEY_IPV6_ADDRS] =

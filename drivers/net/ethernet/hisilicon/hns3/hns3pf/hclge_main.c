@@ -689,8 +689,7 @@ static void hclge_update_stats_for_all(struct hclge_dev *hdev)
 			"Update MAC stats fail, status = %d.\n", status);
 }
 
-static void hclge_update_stats(struct hnae3_handle *handle,
-			       struct net_device_stats *net_stats)
+static void hclge_update_stats(struct hnae3_handle *handle)
 {
 	struct hclge_vport *vport = hclge_get_vport(handle);
 	struct hclge_dev *hdev = vport->back;
@@ -824,7 +823,7 @@ static void hclge_get_mac_stat(struct hnae3_handle *handle,
 	struct hclge_vport *vport = hclge_get_vport(handle);
 	struct hclge_dev *hdev = vport->back;
 
-	hclge_update_stats(handle, NULL);
+	hclge_update_stats(handle);
 
 	mac_stats->tx_pause_cnt = hdev->mac_stats.mac_tx_mac_pause_num;
 	mac_stats->rx_pause_cnt = hdev->mac_stats.mac_rx_mac_pause_num;
@@ -4965,9 +4964,7 @@ int hclge_rss_init_hw(struct hclge_dev *hdev)
 	if (ret)
 		return ret;
 
-	ret = hclge_comm_set_rss_input_tuple(&hdev->vport[0].nic,
-					     &hdev->hw.hw, true,
-					     &hdev->rss_cfg);
+	ret = hclge_comm_set_rss_input_tuple(&hdev->hw.hw, &hdev->rss_cfg);
 	if (ret)
 		return ret;
 
@@ -6243,8 +6240,7 @@ static int hclge_fd_check_spec(struct hclge_dev *hdev,
 	return hclge_fd_check_ext_tuple(hdev, fs, unused_tuple);
 }
 
-static void hclge_fd_get_tcpip4_tuple(struct hclge_dev *hdev,
-				      struct ethtool_rx_flow_spec *fs,
+static void hclge_fd_get_tcpip4_tuple(struct ethtool_rx_flow_spec *fs,
 				      struct hclge_fd_rule *rule, u8 ip_proto)
 {
 	rule->tuples.src_ip[IPV4_INDEX] =
@@ -6273,8 +6269,7 @@ static void hclge_fd_get_tcpip4_tuple(struct hclge_dev *hdev,
 	rule->tuples_mask.ip_proto = 0xFF;
 }
 
-static void hclge_fd_get_ip4_tuple(struct hclge_dev *hdev,
-				   struct ethtool_rx_flow_spec *fs,
+static void hclge_fd_get_ip4_tuple(struct ethtool_rx_flow_spec *fs,
 				   struct hclge_fd_rule *rule)
 {
 	rule->tuples.src_ip[IPV4_INDEX] =
@@ -6297,8 +6292,7 @@ static void hclge_fd_get_ip4_tuple(struct hclge_dev *hdev,
 	rule->tuples_mask.ether_proto = 0xFFFF;
 }
 
-static void hclge_fd_get_tcpip6_tuple(struct hclge_dev *hdev,
-				      struct ethtool_rx_flow_spec *fs,
+static void hclge_fd_get_tcpip6_tuple(struct ethtool_rx_flow_spec *fs,
 				      struct hclge_fd_rule *rule, u8 ip_proto)
 {
 	be32_to_cpu_array(rule->tuples.src_ip, fs->h_u.tcp_ip6_spec.ip6src,
@@ -6327,8 +6321,7 @@ static void hclge_fd_get_tcpip6_tuple(struct hclge_dev *hdev,
 	rule->tuples_mask.ip_proto = 0xFF;
 }
 
-static void hclge_fd_get_ip6_tuple(struct hclge_dev *hdev,
-				   struct ethtool_rx_flow_spec *fs,
+static void hclge_fd_get_ip6_tuple(struct ethtool_rx_flow_spec *fs,
 				   struct hclge_fd_rule *rule)
 {
 	be32_to_cpu_array(rule->tuples.src_ip, fs->h_u.usr_ip6_spec.ip6src,
@@ -6351,8 +6344,7 @@ static void hclge_fd_get_ip6_tuple(struct hclge_dev *hdev,
 	rule->tuples_mask.ether_proto = 0xFFFF;
 }
 
-static void hclge_fd_get_ether_tuple(struct hclge_dev *hdev,
-				     struct ethtool_rx_flow_spec *fs,
+static void hclge_fd_get_ether_tuple(struct ethtool_rx_flow_spec *fs,
 				     struct hclge_fd_rule *rule)
 {
 	ether_addr_copy(rule->tuples.src_mac, fs->h_u.ether_spec.h_source);
@@ -6388,8 +6380,7 @@ static void hclge_fd_get_user_def_tuple(struct hclge_fd_user_def_info *info,
 	rule->ep.user_def = *info;
 }
 
-static int hclge_fd_get_tuple(struct hclge_dev *hdev,
-			      struct ethtool_rx_flow_spec *fs,
+static int hclge_fd_get_tuple(struct ethtool_rx_flow_spec *fs,
 			      struct hclge_fd_rule *rule,
 			      struct hclge_fd_user_def_info *info)
 {
@@ -6397,31 +6388,31 @@ static int hclge_fd_get_tuple(struct hclge_dev *hdev,
 
 	switch (flow_type) {
 	case SCTP_V4_FLOW:
-		hclge_fd_get_tcpip4_tuple(hdev, fs, rule, IPPROTO_SCTP);
+		hclge_fd_get_tcpip4_tuple(fs, rule, IPPROTO_SCTP);
 		break;
 	case TCP_V4_FLOW:
-		hclge_fd_get_tcpip4_tuple(hdev, fs, rule, IPPROTO_TCP);
+		hclge_fd_get_tcpip4_tuple(fs, rule, IPPROTO_TCP);
 		break;
 	case UDP_V4_FLOW:
-		hclge_fd_get_tcpip4_tuple(hdev, fs, rule, IPPROTO_UDP);
+		hclge_fd_get_tcpip4_tuple(fs, rule, IPPROTO_UDP);
 		break;
 	case IP_USER_FLOW:
-		hclge_fd_get_ip4_tuple(hdev, fs, rule);
+		hclge_fd_get_ip4_tuple(fs, rule);
 		break;
 	case SCTP_V6_FLOW:
-		hclge_fd_get_tcpip6_tuple(hdev, fs, rule, IPPROTO_SCTP);
+		hclge_fd_get_tcpip6_tuple(fs, rule, IPPROTO_SCTP);
 		break;
 	case TCP_V6_FLOW:
-		hclge_fd_get_tcpip6_tuple(hdev, fs, rule, IPPROTO_TCP);
+		hclge_fd_get_tcpip6_tuple(fs, rule, IPPROTO_TCP);
 		break;
 	case UDP_V6_FLOW:
-		hclge_fd_get_tcpip6_tuple(hdev, fs, rule, IPPROTO_UDP);
+		hclge_fd_get_tcpip6_tuple(fs, rule, IPPROTO_UDP);
 		break;
 	case IPV6_USER_FLOW:
-		hclge_fd_get_ip6_tuple(hdev, fs, rule);
+		hclge_fd_get_ip6_tuple(fs, rule);
 		break;
 	case ETHER_FLOW:
-		hclge_fd_get_ether_tuple(hdev, fs, rule);
+		hclge_fd_get_ether_tuple(fs, rule);
 		break;
 	default:
 		return -EOPNOTSUPP;
@@ -6578,7 +6569,7 @@ static int hclge_add_fd_entry(struct hnae3_handle *handle,
 	if (!rule)
 		return -ENOMEM;
 
-	ret = hclge_fd_get_tuple(hdev, fs, rule, &info);
+	ret = hclge_fd_get_tuple(fs, rule, &info);
 	if (ret) {
 		kfree(rule);
 		return ret;
@@ -8053,12 +8044,15 @@ static void hclge_ae_stop(struct hnae3_handle *handle)
 	/* If it is not PF reset or FLR, the firmware will disable the MAC,
 	 * so it only need to stop phy here.
 	 */
-	if (test_bit(HCLGE_STATE_RST_HANDLING, &hdev->state) &&
-	    hdev->reset_type != HNAE3_FUNC_RESET &&
-	    hdev->reset_type != HNAE3_FLR_RESET) {
-		hclge_mac_stop_phy(hdev);
-		hclge_update_link_status(hdev);
-		return;
+	if (test_bit(HCLGE_STATE_RST_HANDLING, &hdev->state)) {
+		hclge_pfc_pause_en_cfg(hdev, HCLGE_PFC_TX_RX_DISABLE,
+				       HCLGE_PFC_DISABLE);
+		if (hdev->reset_type != HNAE3_FUNC_RESET &&
+		    hdev->reset_type != HNAE3_FLR_RESET) {
+			hclge_mac_stop_phy(hdev);
+			hclge_update_link_status(hdev);
+			return;
+		}
 	}
 
 	hclge_reset_tqp(handle);
@@ -11365,7 +11359,7 @@ static int hclge_pci_init(struct hclge_dev *hdev)
 	if (!hw->hw.io_base) {
 		dev_err(&pdev->dev, "Can't map configuration register space\n");
 		ret = -ENOMEM;
-		goto err_clr_master;
+		goto err_release_regions;
 	}
 
 	ret = hclge_dev_mem_map(hdev);
@@ -11378,8 +11372,7 @@ static int hclge_pci_init(struct hclge_dev *hdev)
 
 err_unmap_io_base:
 	pcim_iounmap(pdev, hdev->hw.hw.io_base);
-err_clr_master:
-	pci_clear_master(pdev);
+err_release_regions:
 	pci_release_regions(pdev);
 err_disable_device:
 	pci_disable_device(pdev);
@@ -11396,7 +11389,6 @@ static void hclge_pci_uninit(struct hclge_dev *hdev)
 
 	pcim_iounmap(pdev, hdev->hw.hw.io_base);
 	pci_free_irq_vectors(pdev);
-	pci_clear_master(pdev);
 	pci_release_mem_regions(pdev);
 	pci_disable_device(pdev);
 }
@@ -11522,6 +11514,124 @@ static void hclge_uninit_rxd_adv_layout(struct hclge_dev *hdev)
 {
 	if (hnae3_ae_dev_rxd_adv_layout_supported(hdev->ae_dev))
 		hclge_write_dev(&hdev->hw, HCLGE_RXD_ADV_LAYOUT_EN_REG, 0);
+}
+
+static struct hclge_wol_info *hclge_get_wol_info(struct hnae3_handle *handle)
+{
+	struct hclge_vport *vport = hclge_get_vport(handle);
+
+	return &vport->back->hw.mac.wol;
+}
+
+static int hclge_get_wol_supported_mode(struct hclge_dev *hdev,
+					u32 *wol_supported)
+{
+	struct hclge_query_wol_supported_cmd *wol_supported_cmd;
+	struct hclge_desc desc;
+	int ret;
+
+	hclge_cmd_setup_basic_desc(&desc, HCLGE_OPC_WOL_GET_SUPPORTED_MODE,
+				   true);
+	wol_supported_cmd = (struct hclge_query_wol_supported_cmd *)desc.data;
+
+	ret = hclge_cmd_send(&hdev->hw, &desc, 1);
+	if (ret) {
+		dev_err(&hdev->pdev->dev,
+			"failed to query wol supported, ret = %d\n", ret);
+		return ret;
+	}
+
+	*wol_supported = le32_to_cpu(wol_supported_cmd->supported_wake_mode);
+
+	return 0;
+}
+
+static int hclge_set_wol_cfg(struct hclge_dev *hdev,
+			     struct hclge_wol_info *wol_info)
+{
+	struct hclge_wol_cfg_cmd *wol_cfg_cmd;
+	struct hclge_desc desc;
+	int ret;
+
+	hclge_cmd_setup_basic_desc(&desc, HCLGE_OPC_WOL_CFG, false);
+	wol_cfg_cmd = (struct hclge_wol_cfg_cmd *)desc.data;
+	wol_cfg_cmd->wake_on_lan_mode = cpu_to_le32(wol_info->wol_current_mode);
+	wol_cfg_cmd->sopass_size = wol_info->wol_sopass_size;
+	memcpy(wol_cfg_cmd->sopass, wol_info->wol_sopass, SOPASS_MAX);
+
+	ret = hclge_cmd_send(&hdev->hw, &desc, 1);
+	if (ret)
+		dev_err(&hdev->pdev->dev,
+			"failed to set wol config, ret = %d\n", ret);
+
+	return ret;
+}
+
+static int hclge_update_wol(struct hclge_dev *hdev)
+{
+	struct hclge_wol_info *wol_info = &hdev->hw.mac.wol;
+
+	if (!hnae3_ae_dev_wol_supported(hdev->ae_dev))
+		return 0;
+
+	return hclge_set_wol_cfg(hdev, wol_info);
+}
+
+static int hclge_init_wol(struct hclge_dev *hdev)
+{
+	struct hclge_wol_info *wol_info = &hdev->hw.mac.wol;
+	int ret;
+
+	if (!hnae3_ae_dev_wol_supported(hdev->ae_dev))
+		return 0;
+
+	memset(wol_info, 0, sizeof(struct hclge_wol_info));
+	ret = hclge_get_wol_supported_mode(hdev,
+					   &wol_info->wol_support_mode);
+	if (ret) {
+		wol_info->wol_support_mode = 0;
+		return ret;
+	}
+
+	return hclge_update_wol(hdev);
+}
+
+static void hclge_get_wol(struct hnae3_handle *handle,
+			  struct ethtool_wolinfo *wol)
+{
+	struct hclge_wol_info *wol_info = hclge_get_wol_info(handle);
+
+	wol->supported = wol_info->wol_support_mode;
+	wol->wolopts = wol_info->wol_current_mode;
+	if (wol_info->wol_current_mode & WAKE_MAGICSECURE)
+		memcpy(wol->sopass, wol_info->wol_sopass, SOPASS_MAX);
+}
+
+static int hclge_set_wol(struct hnae3_handle *handle,
+			 struct ethtool_wolinfo *wol)
+{
+	struct hclge_wol_info *wol_info = hclge_get_wol_info(handle);
+	struct hclge_vport *vport = hclge_get_vport(handle);
+	u32 wol_mode;
+	int ret;
+
+	wol_mode = wol->wolopts;
+	if (wol_mode & ~wol_info->wol_support_mode)
+		return -EINVAL;
+
+	wol_info->wol_current_mode = wol_mode;
+	if (wol_mode & WAKE_MAGICSECURE) {
+		memcpy(wol_info->wol_sopass, wol->sopass, SOPASS_MAX);
+		wol_info->wol_sopass_size = SOPASS_MAX;
+	} else {
+		wol_info->wol_sopass_size = 0;
+	}
+
+	ret = hclge_set_wol_cfg(vport->back, wol_info);
+	if (ret)
+		wol_info->wol_current_mode = 0;
+
+	return ret;
 }
 
 static int hclge_init_ae_dev(struct hnae3_ae_dev *ae_dev)
@@ -11720,6 +11830,11 @@ static int hclge_init_ae_dev(struct hnae3_ae_dev *ae_dev)
 	/* Enable MISC vector(vector0) */
 	hclge_enable_vector(&hdev->misc_vector, true);
 
+	ret = hclge_init_wol(hdev);
+	if (ret)
+		dev_warn(&pdev->dev,
+			 "failed to wake on lan init, ret = %d\n", ret);
+
 	hclge_state_init(hdev);
 	hdev->last_reset_time = jiffies;
 
@@ -11743,7 +11858,6 @@ err_devlink_uninit:
 	hclge_devlink_uninit(hdev);
 err_pci_uninit:
 	pcim_iounmap(pdev, hdev->hw.hw.io_base);
-	pci_clear_master(pdev);
 	pci_release_regions(pdev);
 	pci_disable_device(pdev);
 out:
@@ -12098,6 +12212,11 @@ static int hclge_reset_ae_dev(struct hnae3_ae_dev *ae_dev)
 		return ret;
 
 	hclge_init_rxd_adv_layout(hdev);
+
+	ret = hclge_update_wol(hdev);
+	if (ret)
+		dev_warn(&pdev->dev,
+			 "failed to update wol config, ret = %d\n", ret);
 
 	dev_info(&pdev->dev, "Reset done, %s driver initialization finished.\n",
 		 HCLGE_DRIVER_NAME);
@@ -13145,6 +13264,8 @@ static const struct hnae3_ae_ops hclge_ops = {
 	.get_link_diagnosis_info = hclge_get_link_diagnosis_info,
 	.clean_vf_config = hclge_clean_vport_config,
 	.get_dscp_prio = hclge_get_dscp_prio,
+	.get_wol = hclge_get_wol,
+	.set_wol = hclge_set_wol,
 };
 
 static struct hnae3_ae_algo ae_algo = {

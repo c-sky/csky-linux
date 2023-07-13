@@ -1122,6 +1122,7 @@ err_async:
 static void max9286_v4l2_unregister(struct max9286_priv *priv)
 {
 	fwnode_handle_put(priv->sd.fwnode);
+	v4l2_ctrl_handler_free(&priv->ctrls);
 	v4l2_async_unregister_subdev(&priv->sd);
 	max9286_v4l2_notifier_unregister(priv);
 }
@@ -1715,7 +1716,7 @@ static struct i2c_driver max9286_i2c_driver = {
 		.name		= "max9286",
 		.of_match_table	= of_match_ptr(max9286_dt_ids),
 	},
-	.probe_new	= max9286_probe,
+	.probe		= max9286_probe,
 	.remove		= max9286_remove,
 };
 

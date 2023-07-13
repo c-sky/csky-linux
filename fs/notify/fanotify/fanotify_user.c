@@ -663,7 +663,7 @@ static ssize_t copy_event_to_user(struct fsnotify_group *group,
 	struct fanotify_info *info = fanotify_event_info(event);
 	unsigned int info_mode = FAN_GROUP_FLAG(group, FANOTIFY_INFO_MODES);
 	unsigned int pidfd_mode = info_mode & FAN_REPORT_PIDFD;
-	struct file *f = NULL;
+	struct file *f = NULL, *pidfd_file = NULL;
 	int ret, pidfd = FAN_NOPIDFD, fd = FAN_NOFD;
 
 	pr_debug("%s: group=%p event=%p\n", __func__, group, event);
@@ -718,7 +718,7 @@ static ssize_t copy_event_to_user(struct fsnotify_group *group,
 		    !pid_has_task(event->pid, PIDTYPE_TGID)) {
 			pidfd = FAN_NOPIDFD;
 		} else {
-			pidfd = pidfd_create(event->pid, 0);
+			pidfd = pidfd_prepare(event->pid, 0, &pidfd_file);
 			if (pidfd < 0)
 				pidfd = FAN_EPIDFD;
 		}
@@ -751,6 +751,9 @@ static ssize_t copy_event_to_user(struct fsnotify_group *group,
 	if (f)
 		fd_install(fd, f);
 
+	if (pidfd_file)
+		fd_install(pidfd, pidfd_file);
+
 	return metadata.event_len;
 
 out_close_fd:
@@ -759,8 +762,10 @@ out_close_fd:
 		fput(f);
 	}
 
-	if (pidfd >= 0)
-		close_fd(pidfd);
+	if (pidfd >= 0) {
+		put_unused_fd(pidfd);
+		fput(pidfd_file);
+	}
 
 	return ret;
 }
@@ -1586,11 +1591,10 @@ static int fanotify_test_fid(struct dentry *dentry)
 	 * We need to make sure that the file system supports at least
 	 * encoding a file handle so user can use name_to_handle_at() to
 	 * compare fid returned with event to the file handle of watched
-	 * objects. However, name_to_handle_at() requires that the
-	 * filesystem also supports decoding file handles.
+	 * objects. However, even the relaxed AT_HANDLE_FID flag requires
+	 * at least empty export_operations for ecoding unique file ids.
 	 */
-	if (!dentry->d_sb->s_export_op ||
-	    !dentry->d_sb->s_export_op->fh_to_dentry)
+	if (!dentry->d_sb->s_export_op)
 		return -EOPNOTSUPP;
 
 	return 0;
@@ -1616,6 +1620,20 @@ static int fanotify_events_supported(struct fsnotify_group *group,
 	 */
 	if (mask & FANOTIFY_PERM_EVENTS &&
 	    path->mnt->mnt_sb->s_type->fs_flags & FS_DISALLOW_NOTIFY_PERM)
+		return -EINVAL;
+
+	/*
+	 * mount and sb marks are not allowed on kernel internal pseudo fs,
+	 * like pipe_mnt, because that would subscribe to events on all the
+	 * anonynous pipes in the system.
+	 *
+	 * SB_NOUSER covers all of the internal pseudo fs whose objects are not
+	 * exposed to user's mount namespace, but there are other SB_KERNMOUNT
+	 * fs, like nsfs, debugfs, for which the value of allowing sb and mount
+	 * mark is questionable. For now we leave them alone.
+	 */
+	if (mark_type != FAN_MARK_INODE &&
+	    path->mnt->mnt_sb->s_flags & SB_NOUSER)
 		return -EINVAL;
 
 	/*

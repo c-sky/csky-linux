@@ -1774,9 +1774,21 @@ static int read_symlink(struct btrfs_root *root,
 	ei = btrfs_item_ptr(path->nodes[0], path->slots[0],
 			struct btrfs_file_extent_item);
 	type = btrfs_file_extent_type(path->nodes[0], ei);
+	if (unlikely(type != BTRFS_FILE_EXTENT_INLINE)) {
+		ret = -EUCLEAN;
+		btrfs_crit(root->fs_info,
+"send: found symlink extent that is not inline, ino %llu root %llu extent type %d",
+			   ino, btrfs_root_id(root), type);
+		goto out;
+	}
 	compression = btrfs_file_extent_compression(path->nodes[0], ei);
-	BUG_ON(type != BTRFS_FILE_EXTENT_INLINE);
-	BUG_ON(compression);
+	if (unlikely(compression != BTRFS_COMPRESS_NONE)) {
+		ret = -EUCLEAN;
+		btrfs_crit(root->fs_info,
+"send: found symlink extent with compression, ino %llu root %llu compression type %d",
+			   ino, btrfs_root_id(root), compression);
+		goto out;
+	}
 
 	off = btrfs_file_extent_inline_start(ei);
 	len = btrfs_file_extent_ram_bytes(path->nodes[0], ei);
@@ -1875,7 +1887,7 @@ static int get_cur_inode_state(struct send_ctx *sctx, u64 ino, u64 gen,
 	int left_ret;
 	int right_ret;
 	u64 left_gen;
-	u64 right_gen;
+	u64 right_gen = 0;
 	struct btrfs_inode_info info;
 
 	ret = get_inode_info(sctx->send_root, ino, &info);

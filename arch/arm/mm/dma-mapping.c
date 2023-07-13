@@ -25,7 +25,7 @@
 #include <linux/sizes.h>
 #include <linux/cma.h>
 
-#include <asm/memory.h>
+#include <asm/page.h>
 #include <asm/highmem.h>
 #include <asm/cacheflush.h>
 #include <asm/tlbflush.h>
@@ -258,12 +258,14 @@ static struct dma_contig_early_reserve dma_mmu_remap[MAX_CMA_AREAS] __initdata;
 
 static int dma_mmu_remap_num __initdata;
 
+#ifdef CONFIG_DMA_CMA
 void __init dma_contiguous_early_fixup(phys_addr_t base, unsigned long size)
 {
 	dma_mmu_remap[dma_mmu_remap_num].base = base;
 	dma_mmu_remap[dma_mmu_remap_num].size = size;
 	dma_mmu_remap_num++;
 }
+#endif
 
 void __init dma_contiguous_remap(void)
 {
@@ -1543,7 +1545,7 @@ static const struct dma_map_ops iommu_ops = {
  * arm_iommu_attach_device function.
  */
 struct dma_iommu_mapping *
-arm_iommu_create_mapping(struct bus_type *bus, dma_addr_t base, u64 size)
+arm_iommu_create_mapping(const struct bus_type *bus, dma_addr_t base, u64 size)
 {
 	unsigned int bits = size >> PAGE_SHIFT;
 	unsigned int bitmap_size = BITS_TO_LONGS(bits) * sizeof(long);

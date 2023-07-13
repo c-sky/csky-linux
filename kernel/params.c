@@ -847,7 +847,7 @@ static void __init param_sysfs_builtin(void)
 			name_len = 0;
 		} else {
 			name_len = dot - kp->name + 1;
-			strlcpy(modname, kp->name, name_len);
+			strscpy(modname, kp->name, name_len);
 		}
 		kernel_add_sysfs_param(modname, kp, name_len);
 	}
@@ -948,7 +948,7 @@ static void module_kobj_release(struct kobject *kobj)
 	complete(mk->kobj_completion);
 }
 
-struct kobj_type module_ktype = {
+const struct kobj_type module_ktype = {
 	.release   =	module_kobj_release,
 	.sysfs_ops =	&module_sysfs_ops,
 };

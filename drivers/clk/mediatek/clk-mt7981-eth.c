@@ -105,14 +105,15 @@ static const struct of_device_id of_match_clk_mt7981_eth[] = {
 	{ .compatible = "mediatek,mt7981-sgmiisys_1", .data = &sgmii1_desc },
 	{ /* sentinel */ }
 };
+MODULE_DEVICE_TABLE(of, of_match_clk_mt7981_eth);
 
 static struct platform_driver clk_mt7981_eth_drv = {
 	.probe = mtk_clk_simple_probe,
-	.remove = mtk_clk_simple_remove,
+	.remove_new = mtk_clk_simple_remove,
 	.driver = {
 		.name = "clk-mt7981-eth",
 		.of_match_table = of_match_clk_mt7981_eth,
 	},
 };
 module_platform_driver(clk_mt7981_eth_drv);
-MODULE_LICENSE("GPL v2");
+MODULE_LICENSE("GPL");

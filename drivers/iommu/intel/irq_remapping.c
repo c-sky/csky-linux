@@ -175,18 +175,14 @@ static int modify_irte(struct irq_2_iommu *irq_iommu,
 	irte = &iommu->ir_table->base[index];
 
 	if ((irte->pst == 1) || (irte_modified->pst == 1)) {
-		bool ret;
-
-		ret = cmpxchg_double(&irte->low, &irte->high,
-				     irte->low, irte->high,
-				     irte_modified->low, irte_modified->high);
 		/*
 		 * We use cmpxchg16 to atomically update the 128-bit IRTE,
 		 * and it cannot be updated by the hardware or other processors
 		 * behind us, so the return value of cmpxchg16 should be the
 		 * same as the old value.
 		 */
-		WARN_ON(!ret);
+		u128 old = irte->irte;
+		WARN_ON(!try_cmpxchg128(&irte->irte, &old, irte_modified->irte));
 	} else {
 		WRITE_ONCE(irte->low, irte_modified->low);
 		WRITE_ONCE(irte->high, irte_modified->high);
@@ -311,14 +307,12 @@ static int set_ioapic_sid(struct irte *irte, int apic)
 	if (!irte)
 		return -1;
 
-	down_read(&dmar_global_lock);
 	for (i = 0; i < MAX_IO_APICS; i++) {
 		if (ir_ioapic[i].iommu && ir_ioapic[i].id == apic) {
 			sid = (ir_ioapic[i].bus << 8) | ir_ioapic[i].devfn;
 			break;
 		}
 	}
-	up_read(&dmar_global_lock);
 
 	if (sid == 0) {
 		pr_warn("Failed to set source-id of IOAPIC (%d)\n", apic);
@@ -338,14 +332,12 @@ static int set_hpet_sid(struct irte *irte, u8 id)
 	if (!irte)
 		return -1;
 
-	down_read(&dmar_global_lock);
 	for (i = 0; i < MAX_HPET_TBS; i++) {
 		if (ir_hpet[i].iommu && ir_hpet[i].id == id) {
 			sid = (ir_hpet[i].bus << 8) | ir_hpet[i].devfn;
 			break;
 		}
 	}
-	up_read(&dmar_global_lock);
 
 	if (sid == 0) {
 		pr_warn("Failed to set source-id of HPET block (%d)\n", id);
@@ -552,7 +544,7 @@ static int intel_setup_irq_remapping(struct intel_iommu *iommu)
 		goto out_free_table;
 	}
 
-	bitmap = bitmap_zalloc(INTR_REMAP_TABLE_ENTRIES, GFP_ATOMIC);
+	bitmap = bitmap_zalloc(INTR_REMAP_TABLE_ENTRIES, GFP_KERNEL);
 	if (bitmap == NULL) {
 		pr_err("IR%d: failed to allocate bitmap\n", iommu->seq_id);
 		goto out_free_pages;
@@ -1339,9 +1331,7 @@ static int intel_irq_remapping_alloc(struct irq_domain *domain,
 	if (!data)
 		goto out_free_parent;
 
-	down_read(&dmar_global_lock);
 	index = alloc_irte(iommu, &data->irq_2_iommu, nr_irqs);
-	up_read(&dmar_global_lock);
 	if (index < 0) {
 		pr_warn("Failed to allocate IRTE\n");
 		kfree(data);

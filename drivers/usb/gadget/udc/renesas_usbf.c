@@ -545,17 +545,6 @@ static inline void usbf_ep_dma_reg_bitclr(struct usbf_ep *ep, uint offset,
 	usbf_ep_dma_reg_writel(ep, offset, tmp);
 }
 
-static inline void usbf_ep_dma_reg_clrset(struct usbf_ep *ep, uint offset,
-					  u32 clr, u32 set)
-{
-	u32 tmp;
-
-	tmp = usbf_ep_dma_reg_readl(ep, offset);
-	tmp &= ~clr;
-	tmp |= set;
-	usbf_ep_dma_reg_writel(ep, offset, tmp);
-}
-
 static void usbf_ep0_send_null(struct usbf_ep *ep0, bool is_data1)
 {
 	u32 set;
@@ -3372,15 +3361,13 @@ static int usbf_probe(struct platform_device *pdev)
 	return 0;
 }
 
-static int usbf_remove(struct platform_device *pdev)
+static void usbf_remove(struct platform_device *pdev)
 {
 	struct usbf_udc *udc = platform_get_drvdata(pdev);
 
 	usb_del_gadget_udc(&udc->gadget);
 
 	pm_runtime_put(&pdev->dev);
-
-	return 0;
 }
 
 static const struct of_device_id usbf_match[] = {
@@ -3396,7 +3383,7 @@ static struct platform_driver udc_driver = {
 		.of_match_table = usbf_match,
 	},
 	.probe          = usbf_probe,
-	.remove         = usbf_remove,
+	.remove_new     = usbf_remove,
 };
 
 module_platform_driver(udc_driver);

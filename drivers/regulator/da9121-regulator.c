@@ -1194,9 +1194,10 @@ MODULE_DEVICE_TABLE(i2c, da9121_i2c_id);
 static struct i2c_driver da9121_regulator_driver = {
 	.driver = {
 		.name = "da9121",
+		.probe_type = PROBE_PREFER_ASYNCHRONOUS,
 		.of_match_table = of_match_ptr(da9121_dt_ids),
 	},
-	.probe_new = da9121_i2c_probe,
+	.probe = da9121_i2c_probe,
 	.remove = da9121_i2c_remove,
 	.id_table = da9121_i2c_id,
 };

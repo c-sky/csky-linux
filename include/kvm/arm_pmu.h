@@ -8,7 +8,7 @@
 #define __ASM_ARM_KVM_PMU_H
 
 #include <linux/perf_event.h>
-#include <asm/perf_event.h>
+#include <linux/perf/arm_pmuv3.h>
 
 #define ARMV8_PMU_CYCLE_IDX		(ARMV8_PMU_MAX_COUNTERS - 1)
 
@@ -92,8 +92,12 @@ void kvm_vcpu_pmu_restore_host(struct kvm_vcpu *vcpu);
 /*
  * Evaluates as true when emulating PMUv3p5, and false otherwise.
  */
-#define kvm_pmu_is_3p5(vcpu)						\
-	(vcpu->kvm->arch.dfr0_pmuver.imp >= ID_AA64DFR0_EL1_PMUVer_V3P5)
+#define kvm_pmu_is_3p5(vcpu) ({						\
+	u64 val = IDREG(vcpu->kvm, SYS_ID_AA64DFR0_EL1);		\
+	u8 pmuver = SYS_FIELD_GET(ID_AA64DFR0_EL1, PMUVer, val);	\
+									\
+	pmuver >= ID_AA64DFR0_EL1_PMUVer_V3P5;				\
+})
 
 u8 kvm_arm_pmu_get_pmuver_limit(void);
 
