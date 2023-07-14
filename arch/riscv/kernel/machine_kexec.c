@@ -86,7 +86,14 @@ machine_kexec_prepare(struct kimage *image)
 
 	/* Copy the assembler code for relocation to the control page */
 	if (image->type != KEXEC_TYPE_CRASH) {
-		control_code_buffer = page_address(image->control_code_page);
+		control_code_buffer = vm_map_ram(&image->control_code_page,
+						 KEXEC_CONTROL_PAGE_SIZE/PAGE_SIZE,
+						 NUMA_NO_NODE);
+		if (control_code_buffer == NULL) {
+			pr_err("Failed to vm_map control page\n");
+			return -ENOMEM;
+		}
+
 		control_code_buffer_sz = page_size(image->control_code_page);
 
 		if (unlikely(riscv_kexec_relocate_size > control_code_buffer_sz)) {
@@ -99,6 +106,8 @@ machine_kexec_prepare(struct kimage *image)
 
 		/* Mark the control page executable */
 		set_memory_x((unsigned long) control_code_buffer, 1);
+
+		internal->control_code_buffer = control_code_buffer;
 	}
 
 	return 0;
@@ -211,7 +220,10 @@ machine_kexec(struct kimage *image)
 	unsigned long this_cpu_id = __smp_processor_id();
 	unsigned long this_hart_id = cpuid_to_hartid_map(this_cpu_id);
 	unsigned long fdt_addr = internal->fdt_addr;
-	void *control_code_buffer = page_address(image->control_code_page);
+	void *control_code_buffer = internal->control_code_buffer;
+	unsigned long va_va_offset =
+			(unsigned long) page_address(image->control_code_page)
+		      - (unsigned long) control_code_buffer;
 	riscv_kexec_method kexec_method = NULL;
 
 #ifdef CONFIG_SMP
@@ -234,6 +246,6 @@ machine_kexec(struct kimage *image)
 	/* Jump to the relocation code */
 	pr_notice("Bye...\n");
 	kexec_method(first_ind_entry, jump_addr, fdt_addr,
-		     this_hart_id, kernel_map.va_pa_offset);
+		     this_hart_id, kernel_map.va_pa_offset - va_va_offset);
 	unreachable();
 }

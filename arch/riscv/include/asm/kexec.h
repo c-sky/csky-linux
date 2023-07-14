@@ -41,6 +41,7 @@ crash_setup_regs(struct pt_regs *newregs,
 struct kimage_arch {
 	void *fdt; /* For CONFIG_KEXEC_FILE */
 	unsigned long fdt_addr;
+	void *control_code_buffer;
 };
 
 extern const unsigned char riscv_kexec_relocate[];
