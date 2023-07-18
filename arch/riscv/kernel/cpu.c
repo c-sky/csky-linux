@@ -66,10 +66,11 @@ int riscv_early_of_processor_hartid(struct device_node *node, unsigned long *har
 		return -ENODEV;
 	}
 
-	if (IS_ENABLED(CONFIG_32BIT) && strncasecmp(isa, "rv32ima", 7))
+	if (IS_ENABLED(CONFIG_RV32I)  && strncasecmp(isa, "rv32ima", 7))
 		return -ENODEV;
 
-	if (IS_ENABLED(CONFIG_64BIT) && strncasecmp(isa, "rv64ima", 7))
+	if ((IS_ENABLED(CONFIG_RV64I) || IS_ENABLED(CONFIG_RV64IILP32))
+				      && strncasecmp(isa, "rv64ima", 7))
 		return -ENODEV;
 
 	return 0;
