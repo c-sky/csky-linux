@@ -513,7 +513,7 @@ config RISCV_ISA_V
 	depends on TOOLCHAIN_HAS_V
 	depends on FPU
 	select DYNAMIC_SIGFRAME
-	default y
+	default n
 	help
 	  Say N here if you want to disable all vector related procedure
 	  in the kernel.
