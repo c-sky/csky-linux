@@ -77,4 +77,23 @@ config ERRATA_THEAD_PMU
 
 	  If you don't know what to do here, say "Y".
 
+config ERRATA_THEAD_WRITE_ONCE
+	bool "Apply T-Head WRITE_ONCE errata"
+	depends on ERRATA_THEAD
+	default y
+	help
+	  The early version of T-Head C9xx cores has a store merge buffer
+	  delay problem. The store merge buffer could improve the store queue
+	  performance by merging multi-store requests, but when there are no
+	  continued store requests, the prior single store request would be
+	  waiting in the store queue for a long time. That would cause
+	  significant problems for communication between multi-cores. Appending
+	  a fence w.o could immediately flush the store merge buffer and let
+	  other cores see the write result.
+
+	  This will apply the WRITE_ONCE errata to handle the non-standard
+	  behavior via appending a fence w.o instruction for WRITE_ONCE().
+
+	  If you don't know what to do here, say "Y".
+
 endmenu # "CPU errata selection"
