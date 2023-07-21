@@ -25,11 +25,19 @@
 #define _PAGE_SOFT      (1 << 8)    /* Reserved for software */
 
 /* T-HEAD C9xx extend */
+#ifdef CONFIG_STD_SVPBMT
+#define _PAGE_SEC	(0UL << 00)   /* Security */
+#define _PAGE_SHARE	(0UL << 00)   /* Shareable */
+#define _PAGE_BUF	(0UL << 00)   /* Bufferable */
+#define _PAGE_CACHE	(0UL << 00)   /* Cacheable */
+#define _PAGE_SO	(1UL << 62)   /* Strong Order */
+#else
 #define _PAGE_SEC	(1UL << 59)   /* Security */
 #define _PAGE_SHARE	(1UL << 60)   /* Shareable */
 #define _PAGE_BUF	(1UL << 61)   /* Bufferable */
 #define _PAGE_CACHE	(1UL << 62)   /* Cacheable */
 #define _PAGE_SO	(1UL << 63)   /* Strong Order */
+#endif
 
 #define _PAGE_SPECIAL   _PAGE_SOFT
 #define _PAGE_TABLE     _PAGE_PRESENT

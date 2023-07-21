@@ -432,8 +432,13 @@ static inline pgprot_t pgprot_noncached(pgprot_t _prot)
 {
 	unsigned long prot = pgprot_val(_prot);
 
+#ifdef CONFIG_STD_SVPBMT
+	prot &= ~BIT(61);
+	prot |= _PAGE_SO;
+#else
 	prot &= ~(_PAGE_CACHE | _PAGE_BUF);
 	prot |= _PAGE_SO;
+#endif
 
 	return __pgprot(prot);
 }
@@ -443,7 +448,12 @@ static inline pgprot_t pgprot_writecombine(pgprot_t _prot)
 {
 	unsigned long prot = pgprot_val(_prot);
 
+#ifdef CONFIG_STD_SVPBMT
+	prot &= ~_PAGE_SO;
+	prot |= BIT(61);
+#else
 	prot &= ~(_PAGE_CACHE | _PAGE_BUF);
+#endif
 
 	return __pgprot(prot);
 }

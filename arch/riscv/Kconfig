@@ -418,6 +418,10 @@ config THEAD_ISA
 	bool "T-HEAD extension ISA in AFLAGS with -march=_xtheadc"
 	default n
 
+config STD_SVPBMT
+	bool "Use standard SVPBMT"
+	default y
+
 endmenu
 
 menu "Kernel features"
