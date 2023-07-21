@@ -258,8 +258,7 @@ void handle_page_fault(struct pt_regs *regs)
 	 * only copy the information from the master page table,
 	 * nothing more.
 	 */
-	if ((!IS_ENABLED(CONFIG_MMU) || !IS_ENABLED(CONFIG_64BIT)) &&
-	    unlikely(addr >= VMALLOC_START && addr < VMALLOC_END)) {
+	if (unlikely(addr >= TASK_SIZE)) {
 		vmalloc_fault(regs, code, addr);
 		return;
 	}
