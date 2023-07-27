@@ -21,6 +21,7 @@
 #include <asm/hwcap.h>
 #include <asm/patch.h>
 #include <asm/processor.h>
+#include <asm/sbi.h>
 #include <asm/vector.h>
 
 #define NUM_ALPHA_EXTS ('z' - 'a' + 1)
@@ -343,7 +344,8 @@ void __init riscv_fill_hwcap(void)
 		 * ticket_spinlock, but can not be vice.
 		 */
 		if (!force_qspinlock &&
-		    !riscv_has_errata_thead_qspinlock()) {
+		    !riscv_has_errata_thead_qspinlock() &&
+		    (sbi_get_firmware_id() != SBI_EXT_BASE_IMPL_ID_KVM)) {
 			set_bit(RISCV_ISA_EXT_XTICKETLOCK, isainfo->isa);
 		}
 #endif

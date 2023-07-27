@@ -26,6 +26,7 @@
 #include <asm/alternative.h>
 #include <asm/cacheflush.h>
 #include <asm/cpu_ops.h>
+#include <asm/cpufeature.h>
 #include <asm/early_ioremap.h>
 #include <asm/pgtable.h>
 #include <asm/setup.h>
@@ -264,6 +265,19 @@ static void __init parse_dtb(void)
 #endif
 }
 
+#ifdef CONFIG_QUEUED_SPINLOCKS
+DEFINE_STATIC_KEY_TRUE(virt_spin_lock_key);
+
+static void __init virt_spin_lock_init(void)
+{
+	if (sbi_get_firmware_id() != SBI_EXT_BASE_IMPL_ID_KVM ||
+	    force_qspinlock)
+		static_branch_disable(&virt_spin_lock_key);
+}
+#else
+static void __init virt_spin_lock_init(void) {}
+#endif
+
 extern void __init init_rt_signal_env(void);
 
 void __init setup_arch(char **cmdline_p)
@@ -311,6 +325,11 @@ void __init setup_arch(char **cmdline_p)
 	if (IS_ENABLED(CONFIG_RISCV_ISA_ZICBOM) &&
 	    riscv_isa_extension_available(NULL, ZICBOM))
 		riscv_noncoherent_supported();
+}
+
+void __init arch_cpu_finalize_init(void)
+{
+	virt_spin_lock_init();
 }
 
 static int __init topology_init(void)
