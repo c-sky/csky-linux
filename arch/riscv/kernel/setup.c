@@ -26,6 +26,7 @@
 #include <asm/alternative.h>
 #include <asm/cacheflush.h>
 #include <asm/cpu_ops.h>
+#include <asm/cpufeature.h>
 #include <asm/early_ioremap.h>
 #include <asm/pgtable.h>
 #include <asm/setup.h>
@@ -325,14 +326,32 @@ static int __init force_queued_spinlock(char *p)
 	return 0;
 }
 early_param("qspinlock", force_queued_spinlock);
+#endif
+
+#ifdef CONFIG_QUEUED_SPINLOCKS
+DEFINE_STATIC_KEY_TRUE(virt_spin_lock_key);
+
+static void __init virt_spin_lock_init(void)
+{
+	if (sbi_get_firmware_id() != SBI_EXT_BASE_IMPL_ID_KVM ||
+	    force_qspinlock)
+		static_branch_disable(&virt_spin_lock_key);
+}
+#endif
 
 void __init arch_cpu_finalize_init(void)
 {
-	if (!force_qspinlock) {
+#ifdef CONFIG_RISCV_COMBO_SPINLOCKS
+	if (!force_qspinlock &&
+	    (sbi_get_firmware_id() != SBI_EXT_BASE_IMPL_ID_KVM)) {
 		static_branch_disable(&qspinlock_key);
 	}
-}
 #endif
+
+#ifdef CONFIG_QUEUED_SPINLOCKS
+	virt_spin_lock_init();
+#endif
+}
 
 static int __init topology_init(void)
 {
