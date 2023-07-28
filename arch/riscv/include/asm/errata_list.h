@@ -141,6 +141,26 @@ asm volatile(ALTERNATIVE(						\
 	: "=r" (__ovl) :						\
 	: "memory")
 
+static __always_inline bool
+riscv_has_errata_thead_qspinlock(void)
+{
+	if (IS_ENABLED(CONFIG_RISCV_ALTERNATIVE)) {
+		asm_volatile_goto(
+		ALTERNATIVE(
+		"j	%l[l_no]", "nop",
+		THEAD_VENDOR_ID,
+		ERRATA_THEAD_QSPINLOCK,
+		CONFIG_ERRATA_THEAD_QSPINLOCK)
+		: : : : l_no);
+	} else {
+		goto l_no;
+	}
+
+	return true;
+l_no:
+	return false;
+}
+
 #endif /* __ASSEMBLY__ */
 
 #endif
