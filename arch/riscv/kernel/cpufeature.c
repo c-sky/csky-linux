@@ -342,7 +342,8 @@ void __init riscv_fill_hwcap(void)
 		 * spinlock value, the only way is to change from queued_spinlock to
 		 * ticket_spinlock, but can not be vice.
 		 */
-		if (!force_qspinlock) {
+		if (!force_qspinlock &&
+		    !riscv_has_errata_thead_qspinlock()) {
 			set_bit(RISCV_ISA_EXT_XTICKETLOCK, isainfo->isa);
 		}
 #endif
