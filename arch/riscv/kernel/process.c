@@ -88,7 +88,7 @@ static bool compat_mode_supported __read_mostly;
 
 bool compat_elf_check_arch(Elf32_Ehdr *hdr)
 {
-	return compat_mode_supported &&
+	return (compat_mode_supported || (hdr->e_flags & EF_RISCV_64ILP32)) &&
 	       hdr->e_machine == EM_RISCV &&
 	       hdr->e_ident[EI_CLASS] == ELFCLASS32;
 }
