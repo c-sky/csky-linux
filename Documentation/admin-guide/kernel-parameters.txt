@@ -4666,6 +4666,9 @@
 
 	quiet		[KNL] Disable most log messages
 
+	qspinlock	[RISCV] Forces kernel to use queued_spinlock when
+			CONFIG_RISCV_COMBO_SPINLOCKS=y.
+
 	r128=		[HW,DRM]
 
 	radix_hcall_invalidate=on  [PPC/PSERIES]

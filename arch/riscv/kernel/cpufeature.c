@@ -99,6 +99,17 @@ static bool riscv_isa_extension_check(int id)
 	return true;
 }
 
+#ifdef CONFIG_QUEUED_SPINLOCKS
+bool force_qspinlock = false;
+static int __init force_queued_spinlock(char *p)
+{
+	force_qspinlock = true;
+	pr_info("Force kernel to use queued_spinlock");
+	return 0;
+}
+early_param("qspinlock", force_queued_spinlock);
+#endif
+
 void __init riscv_fill_hwcap(void)
 {
 	struct device_node *node;
@@ -331,7 +342,9 @@ void __init riscv_fill_hwcap(void)
 		 * spinlock value, the only way is to change from queued_spinlock to
 		 * ticket_spinlock, but can not be vice.
 		 */
-		set_bit(RISCV_ISA_EXT_XTICKETLOCK, isainfo->isa);
+		if (!force_qspinlock) {
+			set_bit(RISCV_ISA_EXT_XTICKETLOCK, isainfo->isa);
+		}
 #endif
 
 		/*
