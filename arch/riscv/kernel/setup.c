@@ -317,9 +317,20 @@ void __init setup_arch(char **cmdline_p)
 DEFINE_STATIC_KEY_TRUE_RO(qspinlock_key);
 EXPORT_SYMBOL(qspinlock_key);
 
+bool force_qspinlock = false;
+static int __init force_queued_spinlock(char *p)
+{
+	force_qspinlock = true;
+	pr_info("Force kernel to use queued_spinlock");
+	return 0;
+}
+early_param("qspinlock", force_queued_spinlock);
+
 void __init arch_cpu_finalize_init(void)
 {
-	static_branch_disable(&qspinlock_key);
+	if (!force_qspinlock) {
+		static_branch_disable(&qspinlock_key);
+	}
 }
 #endif
 
