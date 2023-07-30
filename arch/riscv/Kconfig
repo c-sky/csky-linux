@@ -770,6 +770,7 @@ config RELOCATABLE
 config PARAVIRT
 	bool "Enable paravirtualization code"
 	depends on RISCV_SBI
+	select PARAVIRT_SPINLOCKS
 	default y
 	help
 	  This changes the kernel so it can modify itself when it is run
@@ -787,6 +788,17 @@ config PARAVIRT_TIME_ACCOUNTING
 	  that, there can be a small performance impact.
 
 	  If in doubt, say N here.
+
+config PARAVIRT_SPINLOCKS
+	bool "Paravirtualization layer for spinlocks"
+	depends on PARAVIRT && SMP
+	help
+	  Paravirtualized spinlocks allow a unfair qspinlock to replace the
+	  test-set kvm-guest virt spinlock implementation with something
+	  virtualization-friendly, for example, halt the virtual CPU rather
+	  than spinning.
+
+	  If you are unsure how to answer this question, answer Y.
 
 endmenu # "Kernel features"
 
