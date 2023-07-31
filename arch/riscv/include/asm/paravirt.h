@@ -26,4 +26,24 @@ int __init pv_time_init(void);
 
 #endif // CONFIG_PARAVIRT
 
+#ifdef CONFIG_PARAVIRT_SPINLOCKS
+
+void pv_wait(u8 *ptr, u8 val);
+void pv_kick(int cpu);
+
+void dummy_queued_spin_lock_slowpath(struct qspinlock *lock, u32 val);
+void dummy_queued_spin_unlock(struct qspinlock *lock);
+
+DECLARE_STATIC_CALL(pv_queued_spin_lock_slowpath, dummy_queued_spin_lock_slowpath);
+DECLARE_STATIC_CALL(pv_queued_spin_unlock, dummy_queued_spin_unlock);
+
+void __init pv_qspinlock_init(void);
+
+static inline bool pv_is_native_spin_unlock(void)
+{
+	return false;
+}
+
+#endif /* CONFIG_PARAVIRT_SPINLOCKS */
+
 #endif
