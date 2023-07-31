@@ -39,7 +39,7 @@ static inline bool virt_spin_lock(struct qspinlock *lock)
 #undef arch_spin_trylock
 #undef arch_spin_unlock
 
-#include <asm-generic/qspinlock.h>
+#include <asm/qspinlock.h>
 #include <asm/hwcap.h>
 
 #undef arch_spin_is_locked

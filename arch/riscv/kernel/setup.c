@@ -329,6 +329,9 @@ void __init setup_arch(char **cmdline_p)
 
 void __init arch_cpu_finalize_init(void)
 {
+#ifdef CONFIG_PARAVIRT_SPINLOCKS
+	pv_qspinlock_init();
+#endif
 	virt_spin_lock_init();
 }
 
