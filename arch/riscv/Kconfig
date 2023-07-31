@@ -420,7 +420,7 @@ config THEAD_ISA
 
 config STD_SVPBMT
 	bool "Use standard SVPBMT"
-	default y
+	default n
 
 endmenu
 
