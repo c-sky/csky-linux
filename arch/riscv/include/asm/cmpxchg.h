@@ -103,12 +103,37 @@ static inline ulong __xchg16_relaxed(ulong new, void *ptr)
 					    _x_, sizeof(*(ptr)));	\
 })
 
+static inline ulong __xchg8(ulong new, void *ptr)
+{
+	ulong ret, tmp;
+	ulong shif = ((ulong)ptr & 3) * 8;
+	ulong mask = 0xff << shif;
+	ulong *__ptr = (ulong *)((ulong)ptr & ~3);
+
+	__asm__ __volatile__ (
+		"0:	lr.w %0, %2\n"
+		"	and  %1, %0, %z3\n"
+		"	or   %1, %1, %z4\n"
+		"	sc.w.rl %1, %1, %2\n"
+		"	bnez %1, 0b\n"
+			"fence w, rw\n"
+		: "=&r" (ret), "=&r" (tmp), "+A" (*__ptr)
+		: "rJ" (~mask), "rJ" (new << shif)
+		: "memory");
+
+	return (ulong)((ret & mask) >> shif);
+}
+
 #define __arch_xchg(ptr, new, size)					\
 ({									\
 	__typeof__(ptr) __ptr = (ptr);					\
 	__typeof__(new) __new = (new);					\
 	__typeof__(*(ptr)) __ret;					\
 	switch (size) {							\
+	case 1:								\
+		__ret = (__typeof__(*(ptr)))				\
+			__xchg8((ulong)__new, __ptr);			\
+		break;							\
 	case 4:								\
 		__asm__ __volatile__ (					\
 			"	amoswap.w.aqrl %0, %2, %1\n"		\
@@ -140,6 +165,51 @@ static inline ulong __xchg16_relaxed(ulong new, void *ptr)
  * store NEW in MEM.  Return the initial value in MEM.  Success is
  * indicated by comparing RETURN with OLD.
  */
+static inline ulong __cmpxchg_small_relaxed(void *ptr, ulong old,
+					    ulong new, ulong size)
+{
+	ulong shift;
+	ulong ret, mask, temp;
+	volatile ulong *ptr32;
+
+	/* Mask inputs to the correct size. */
+	mask = GENMASK((size * BITS_PER_BYTE) - 1, 0);
+	old &= mask;
+	new &= mask;
+
+	/*
+	 * Calculate a shift & mask that correspond to the value we wish to
+	 * compare & exchange within the naturally aligned 4 byte integer
+	 * that includes it.
+	 */
+	shift = (ulong)ptr & 0x3;
+	shift *= BITS_PER_BYTE;
+	old <<= shift;
+	new <<= shift;
+	mask <<= shift;
+
+	/*
+	 * Calculate a pointer to the naturally aligned 4 byte integer that
+	 * includes our byte of interest, and load its value.
+	 */
+	ptr32 = (volatile ulong *)((ulong)ptr & ~0x3);
+
+	__asm__ __volatile__ (
+		"0:	lr.w %0, %2\n"
+		"	and  %1, %0, %z3\n"
+		"	bne  %1, %z5, 1f\n"
+		"	and  %1, %0, %z4\n"
+		"	or   %1, %1, %z6\n"
+		"	sc.w %1, %1, %2\n"
+		"	bnez %1, 0b\n"
+		"1:\n"
+		: "=&r" (ret), "=&r" (temp), "+A" (*ptr32)
+		: "rJ" (mask), "rJ" (~mask), "rJ" (old), "rJ" (new)
+		: "memory");
+
+	return (ret & mask) >> shift;
+}
+
 #define __cmpxchg_relaxed(ptr, old, new, size)				\
 ({									\
 	__typeof__(ptr) __ptr = (ptr);					\
@@ -148,6 +218,11 @@ static inline ulong __xchg16_relaxed(ulong new, void *ptr)
 	__typeof__(*(ptr)) __ret;					\
 	register unsigned int __rc;					\
 	switch (size) {							\
+	case 1:								\
+		__ret = (__typeof__(*(ptr)))				\
+			__cmpxchg_small_relaxed(__ptr, (ulong)__old,	\
+					(ulong)__new, (ulong)size);	\
+		break;							\
 	case 4:								\
 		__asm__ __volatile__ (					\
 			"0:	lr.w %0, %2\n"				\
@@ -184,6 +259,52 @@ static inline ulong __xchg16_relaxed(ulong new, void *ptr)
 					_o_, _n_, sizeof(*(ptr)));	\
 })
 
+static inline ulong __cmpxchg_small_acquire(void *ptr, ulong old,
+					    ulong new, ulong size)
+{
+	ulong shift;
+	ulong ret, mask, temp;
+	volatile ulong *ptr32;
+
+	/* Mask inputs to the correct size. */
+	mask = GENMASK((size * BITS_PER_BYTE) - 1, 0);
+	old &= mask;
+	new &= mask;
+
+	/*
+	 * Calculate a shift & mask that correspond to the value we wish to
+	 * compare & exchange within the naturally aligned 4 byte integer
+	 * that includes it.
+	 */
+	shift = (ulong)ptr & 0x3;
+	shift *= BITS_PER_BYTE;
+	old <<= shift;
+	new <<= shift;
+	mask <<= shift;
+
+	/*
+	 * Calculate a pointer to the naturally aligned 4 byte integer that
+	 * includes our byte of interest, and load its value.
+	 */
+	ptr32 = (volatile ulong *)((ulong)ptr & ~0x3);
+
+	__asm__ __volatile__ (
+		"0:	lr.w %0, %2\n"
+		"	and  %1, %0, %z3\n"
+		"	bne  %1, %z5, 1f\n"
+		"	and  %1, %0, %z4\n"
+		"	or   %1, %1, %z6\n"
+		"	sc.w %1, %1, %2\n"
+		"	bnez %1, 0b\n"
+		RISCV_ACQUIRE_BARRIER
+		"1:\n"
+		: "=&r" (ret), "=&r" (temp), "+A" (*ptr32)
+		: "rJ" (mask), "rJ" (~mask), "rJ" (old), "rJ" (new)
+		: "memory");
+
+	return (ret & mask) >> shift;
+}
+
 #define __cmpxchg_acquire(ptr, old, new, size)				\
 ({									\
 	__typeof__(ptr) __ptr = (ptr);					\
@@ -192,6 +313,12 @@ static inline ulong __xchg16_relaxed(ulong new, void *ptr)
 	__typeof__(*(ptr)) __ret;					\
 	register unsigned int __rc;					\
 	switch (size) {							\
+	case 1:								\
+	case 2:								\
+		__ret = (__typeof__(*(ptr)))				\
+			__cmpxchg_small_acquire(__ptr, (ulong)__old,	\
+					(ulong)__new, (ulong)size);	\
+		break;							\
 	case 4:								\
 		__asm__ __volatile__ (					\
 			"0:	lr.w %0, %2\n"				\
@@ -230,6 +357,51 @@ static inline ulong __xchg16_relaxed(ulong new, void *ptr)
 					_o_, _n_, sizeof(*(ptr)));	\
 })
 
+static inline ulong __cmpxchg_small(void *ptr, ulong old,
+				    ulong new, ulong size)
+{
+	ulong shift;
+	ulong ret, mask, temp;
+	volatile ulong *ptr32;
+
+	/* Mask inputs to the correct size. */
+	mask = GENMASK((size * BITS_PER_BYTE) - 1, 0);
+	old &= mask;
+	new &= mask;
+
+	/*
+	 * Calculate a shift & mask that correspond to the value we wish to
+	 * compare & exchange within the naturally aligned 4 byte integer
+	 * that includes it.
+	 */
+	shift = (ulong)ptr & 0x3;
+	shift *= BITS_PER_BYTE;
+	old <<= shift;
+	new <<= shift;
+	mask <<= shift;
+
+	/*
+	 * Calculate a pointer to the naturally aligned 4 byte integer that
+	 * includes our byte of interest, and load its value.
+	 */
+	ptr32 = (volatile ulong *)((ulong)ptr & ~0x3);
+
+	__asm__ __volatile__ (
+		"0:	lr.w %0, %2\n"
+		"	and  %1, %0, %z3\n"
+		"	bne  %1, %z5, 1f\n"
+		"	and  %1, %0, %z4\n"
+		"	or   %1, %1, %z6\n"
+		"	sc.w.rl %1, %1, %2\n"
+		"	bnez %1, 0b\n"
+		"	fence w, rw\n"
+		"1:\n"
+		: "=&r" (ret), "=&r" (temp), "+A" (*ptr32)
+		: "rJ" (mask), "rJ" (~mask), "rJ" (old), "rJ" (new)
+		: "memory");
+
+	return (ret & mask) >> shift;
+}
 #define __cmpxchg(ptr, old, new, size)					\
 ({									\
 	__typeof__(ptr) __ptr = (ptr);					\
@@ -238,6 +410,11 @@ static inline ulong __xchg16_relaxed(ulong new, void *ptr)
 	__typeof__(*(ptr)) __ret;					\
 	register unsigned int __rc;					\
 	switch (size) {							\
+	case 1:								\
+		__ret = (__typeof__(*(ptr)))				\
+			__cmpxchg_small(__ptr, (ulong)__old,		\
+					(ulong)__new, (ulong)size);	\
+		break;							\
 	case 4:								\
 		__asm__ __volatile__ (					\
 			"0:	lr.w %0, %2\n"				\
