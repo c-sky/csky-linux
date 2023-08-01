@@ -136,6 +136,8 @@ int __init pv_time_init(void)
 
 void pv_kick(int cpu)
 {
+	sbi_ecall(SBI_EXT_PVLOCK, SBI_EXT_PVLOCK_KICK_CPU,
+		  cpuid_to_hartid_map(cpu), 0, 0, 0, 0, 0);
 	return;
 }
 
@@ -150,7 +152,7 @@ void pv_wait(u8 *ptr, u8 val)
 	if (READ_ONCE(*ptr) != val)
 		goto out;
 
-	/* wait_for_interrupt(); */
+	wait_for_interrupt();
 out:
 	local_irq_restore(flags);
 }
@@ -184,6 +186,9 @@ void __init pv_qspinlock_init(void)
 		return;
 
 	if(sbi_get_firmware_id() != SBI_EXT_BASE_IMPL_ID_KVM)
+		return;
+
+	if (!sbi_probe_extension(SBI_EXT_PVLOCK))
 		return;
 
 	pr_info("PV qspinlocks enabled\n");
