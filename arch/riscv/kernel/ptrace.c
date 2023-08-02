@@ -93,6 +93,7 @@ static int riscv_vr_get(struct task_struct *target,
 	struct __riscv_v_state *vstate = &target->thread.vstate;
 
 	membuf_write(&to, vstate, offsetof(struct __riscv_v_state, vtype));
+	membuf_store(&to, vstate->vtype);
 	return membuf_zero(&to, 4);	// explicitly pad
 }
 
