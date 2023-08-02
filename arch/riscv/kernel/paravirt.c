@@ -193,8 +193,10 @@ void __init pv_qspinlock_init(void)
 	if (num_possible_cpus() == 1)
 		return;
 
-	if(sbi_get_firmware_id() != SBI_EXT_BASE_IMPL_ID_KVM)
+	if(sbi_get_firmware_id() != SBI_EXT_BASE_IMPL_ID_KVM) {
+		goto cna_qspinlock;
 		return;
+	}
 
 	if (!sbi_probe_extension(SBI_EXT_PVLOCK))
 		return;
@@ -204,5 +206,13 @@ void __init pv_qspinlock_init(void)
 
 	static_call_update(pv_queued_spin_lock_slowpath, __pv_queued_spin_lock_slowpath);
 	static_call_update(pv_queued_spin_unlock, __pv_queued_spin_unlock);
+	return;
+
+cna_qspinlock:
+#ifdef CONFIG_NUMA_AWARE_SPINLOCKS
+	if (cna_configure_spin_lock_slowpath())
+		static_call_update(pv_queued_spin_lock_slowpath,
+					__cna_queued_spin_lock_slowpath);
+#endif
 }
 #endif
