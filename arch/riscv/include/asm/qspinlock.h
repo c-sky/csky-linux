@@ -12,6 +12,11 @@ void native_queued_spin_lock_slowpath(struct qspinlock *lock, u32 val);
 void __pv_init_lock_hash(void);
 void __pv_queued_spin_lock_slowpath(struct qspinlock *lock, u32 val);
 
+#ifdef CONFIG_NUMA_AWARE_SPINLOCKS
+bool cna_configure_spin_lock_slowpath(void);
+void __cna_queued_spin_lock_slowpath(struct qspinlock *lock, u32 val);
+#endif
+
 static inline void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
 {
 	static_call(pv_queued_spin_lock_slowpath)(lock, val);
