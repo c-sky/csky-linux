@@ -406,20 +406,18 @@ void __cna_queued_spin_lock_slowpath(struct qspinlock *lock, u32 val);
  * multiple NUMA nodes in native environment, unless the user has
  * overridden this default behavior by setting the numa_spinlock flag.
  */
-void __init cna_configure_spin_lock_slowpath(void)
+bool __init cna_configure_spin_lock_slowpath(void)
 {
 
 	if (numa_spinlock_flag < 0)
-		return;
+		return false;
 
-	if (numa_spinlock_flag == 0 && (nr_node_ids < 2 ||
-		    pv_ops.lock.queued_spin_lock_slowpath !=
-			native_queued_spin_lock_slowpath))
-		return;
+	if (numa_spinlock_flag == 0 && nr_node_ids < 2)
+		return false;
 
 	cna_init_nodes();
 
-	pv_ops.lock.queued_spin_lock_slowpath = __cna_queued_spin_lock_slowpath;
-
 	pr_info("Enabling CNA spinlock\n");
+
+	return true;
 }

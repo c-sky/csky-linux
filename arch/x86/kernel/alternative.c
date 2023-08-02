@@ -1538,7 +1538,11 @@ void __init alternative_instructions(void)
 	paravirt_set_cap();
 
 #if defined(CONFIG_NUMA_AWARE_SPINLOCKS)
-	cna_configure_spin_lock_slowpath();
+	if (pv_ops.lock.queued_spin_lock_slowpath == native_queued_spin_lock_slowpath) {
+		if (cna_configure_spin_lock_slowpath())
+			pv_ops.lock.queued_spin_lock_slowpath =
+							__cna_queued_spin_lock_slowpath;
+	}
 #endif
 
 	/*
