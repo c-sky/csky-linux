@@ -86,6 +86,13 @@ static bool errata_probe_write_once(unsigned int stage,
 	return false;
 }
 
+extern bool force_qspinlock;
+static void errata_probe_qspinlock(unsigned int stage)
+{
+	if (stage == RISCV_ALTERNATIVES_BOOT)
+		force_qspinlock = true;
+}
+
 static u32 thead_errata_probe(unsigned int stage,
 			      unsigned long archid, unsigned long impid)
 {
@@ -102,6 +109,8 @@ static u32 thead_errata_probe(unsigned int stage,
 
 	if (errata_probe_write_once(stage, archid, impid))
 		cpu_req_errata |= BIT(ERRATA_THEAD_WRITE_ONCE);
+
+	errata_probe_qspinlock(stage);
 
 	return cpu_req_errata;
 }
